@@ -1287,6 +1287,7 @@ body._touch .menu__list>li._active .menu__arrow {
 
 .list-emloyees-content {
     flex: 1;
+    margin-bottom: 20px;
 }
 
 .list-emloyees table {
@@ -1600,7 +1601,8 @@ body._touch .menu__list>li._active .menu__arrow {
     margin-top: 30px;
 }
 
-.active-chats ul.active-chats-content, .proposal ul.proposal-content {
+.active-chats ul.active-chats-content,
+.proposal ul.proposal-content {
     list-style-type: none;
     background-color: #f9f9f9;
     border-radius: 5px;
@@ -1609,12 +1611,14 @@ body._touch .menu__list>li._active .menu__arrow {
     overflow-y: auto;
 }
 
-.active-chats ul.active-chats-content li, .proposal ul.proposal-content li {
+.active-chats ul.active-chats-content li,
+.proposal ul.proposal-content li {
     margin-bottom: 10px;
     font-size: 16px;
 }
 
-.active-chats ul.active-chats-content li a, .proposal ul.proposal-content li a {
+.active-chats ul.active-chats-content li a,
+.proposal ul.proposal-content li a {
     color: #383838;
 }
 
@@ -1625,6 +1629,11 @@ body._touch .menu__list>li._active .menu__arrow {
     border: 1px solid #4d4c4c;
     border-radius: 10px;
     margin-right: 10px;
+}
+
+.profileEmployees .modal-footer a.act {
+    background-color: #4d4c4c;
+    color: #fff;
 }
 
 .profileEmployees .modal-footer a:hover {
@@ -1713,6 +1722,184 @@ body._touch .menu__list>li._active .menu__arrow {
 
 .block-proposal-question .modal-footer .btn-end:hover {
     background-color: #801313;
+}
+
+.block-history .nav-link {
+    color: var(--secondary-color);
+}
+
+.block-history .nav-link:hover {
+    color: #08588d;
+}
+
+.block-history .history-date {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.block-history .history-date .line {
+    flex: 1;
+    height: 1px;
+    background-color: #dee2e6;
+}
+
+.block-history .history-date .date {
+    padding: 0 12px;
+    white-space: nowrap;
+    color: #979797;
+    font-size: 14px;
+}
+
+.block-history .tab-content {
+    margin: 25px auto 0px auto;
+}
+
+.block-history .history-content .history-content-item {
+    margin: 0px 30px 15px 30px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.block-history .history-content .history-content-item a {
+    color: var(--secondary-color);
+    font-size: 14px;
+}
+
+.block-history .history-content .history-content-item a:hover {
+    text-decoration: none;
+}
+
+.block-history .history-content .history-content-item span {
+    font-size: 10px;
+    text-decoration: none;
+    color: var(--secondary-color);
+}
+
+.block-history .modal-footer .btn-end {
+    background-color: #b63434;
+    border-radius: 10px;
+    color: #fff;
+}
+
+.block-history .modal-footer .btn-end:hover {
+    background-color: #801313;
+}
+
+.clear-history .modal-footer .btn-ok {
+    background-color: var(--secondary-color);
+    color: #fff;
+}
+
+.clear-history .modal-footer .btn-ok:hover {
+    background-color: #08588d;
+}
+
+.clear-history .modal-footer .btn-end {
+    background-color: #b63434;
+    color: #fff
+}
+
+.clear-history .modal-footer .btn-end:hover {
+    background-color: #801313;
+}
+
+/*Адаптив*/
+@media (max-width: 1200px) {
+    .profileEmployees {
+        font-size: 14px;
+    }
+
+    .person-data {
+        flex-basis: 45%;
+    }
+    
+    .fields-info {
+        flex-basis: 45%;
+    }
+
+    .profileEmployees .modal-body h2 {
+        font-size: 16px;
+    }
+
+    .active-chats ul.active-chats-content li, .proposal ul.proposal-content li {
+        font-size: 14px;
+    }
+
+    .status {
+        font-size: 16px;
+    }
+
+    .profileEmployees .modal-footer a, .profileEmployees .modal-footer button.btn-end {
+        padding: 5px 20px;
+        font-size: 14px;
+    }
+
+    .block-appoint {
+        font-size: 14px;
+    }
+
+    .block-appoint .modal-footer button.btn-end {
+        font-size: 14px;
+    }
+
+    .block-history {
+        font-size: 14px;
+    }
+
+    .block-history .modal-footer .btn-end {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 850px) {
+    .pagination-employess .pagination-button {
+        width: 30px;
+        height: 30px;
+        font-size: 14px;
+    }
+
+    .person-data {
+        flex-basis: 100%;
+    }
+
+    .fields-info {
+        flex-basis: 100%;
+        margin-top: 20px;
+    }
+
+    .status {
+        margin-top: 20px;
+    }
+}
+
+@media (max-width: 700px) {
+    .list-emloyees-content {
+        overflow-x: auto;
+    }
+
+    .list-emloyees table {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 450px) {
+    .sidebar-add {
+        font-size: 14px;
+    }
+    
+    .profileEmployees .modal-footer {
+        justify-content: center;
+    }
+
+    .pagination-employess .pagination-button {
+        width: 20px;
+        height: 20px;
+        font-size: 10px;
+    }
 }
 
 

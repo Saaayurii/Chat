@@ -65,7 +65,7 @@
         </div>
     </header>
 
-    <main class="main-content main-content-messages">
+    <main class="main-content main-content-employees">
         <aside class="sidebar sidebar-add">
 
             <div class="add-employees">
@@ -227,7 +227,7 @@
             </div>
         </div>
 
-        <!--Модальное окно профиля сотрудника aria-hidden="true"-->
+        <!--Модальное окно профиля сотрудника-->
         <div class="modal fade profileEmployees" id="profileEmployees" aria-labelledby="profileEmployeesLabel"
             tabindex="-1">
             <div class="modal-dialog modal-xl">
@@ -375,7 +375,8 @@
                         <a href="#" data-bs-target="#blockAppoint" data-bs-toggle="modal"
                             data-bs-dismiss="modal">Назначить</a>
                         <a href="admin-statistic.html">Статистика</a>
-                        <a href="#">История чатов</a>
+                        <a href="#" data-bs-target="#blockHistory" data-bs-toggle="modal"
+                            data-bs-dismiss="modal">История чатов</a>
                         <a href="#" class="btn-block">Заблокировать</a>
                         <button type="button" class="btn btn-end" data-bs-dismiss="modal">Закрыть</button>
                     </div>
@@ -476,13 +477,188 @@
             </div>
         </div>
 
+        <!--Модальное окно история чатов-->
+        <div class="modal fade block-history" id="blockHistory" aria-hidden="true" aria-labelledby="blockHistoryLabel"
+            tabindex="-1">
+            <div class="modal-dialog modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="staticBackdropLabel">История чатов</h1>
+                        <button type="button" class="btn-close" data-bs-toggle="modal" href="#profileEmployees"
+                            role="button" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <ul class="nav nav-tabs" id="myTab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="today-tab" data-bs-toggle="tab"
+                                    data-bs-target="#today-tab-pane" type="button" role="tab"
+                                    aria-controls="today-tab-pane" aria-selected="true">Сегодня</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="yesterday-tab" data-bs-toggle="tab"
+                                    data-bs-target="#yesterday-tab-pane" type="button" role="tab"
+                                    aria-controls="yesterday-tab-pane" aria-selected="false">Вчера</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="week-tab" data-bs-toggle="tab"
+                                    data-bs-target="#week-tab-pane" type="button" role="tab"
+                                    aria-controls="week-tab-pane" aria-selected="false">Неделя</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="month-tab" data-bs-toggle="tab"
+                                    data-bs-target="#month-tab-pane" type="button" role="tab"
+                                    aria-controls="month-tab-pane" aria-selected="false">Месяц</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="period-tab" data-bs-toggle="tab"
+                                    data-bs-target="#period-tab-pane" type="button" role="tab"
+                                    aria-controls="period-tab-pane" aria-selected="false">Период</button>
+                            </li>
+                        </ul>
+                        <div class="tab-content" id="myTabContent">
+                            <!--Блок контента "Сегодня"-->
+                            <div class="tab-pane fade show active" id="today-tab-pane" role="tabpanel"
+                                aria-labelledby="today-tab" tabindex="0">
+                                <div class="history-date">
+                                    <div class="line"></div>
+                                    <div class="date">25 июня 2025</div>
+                                    <div class="line"></div>
+                                </div>
+                                <div class="history-content">
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                </div>
+                            </div>
+                            <!--Блок контента "Вчера"-->
+                            <div class="tab-pane fade" id="yesterday-tab-pane" role="tabpanel"
+                                aria-labelledby="yesterday-tab" tabindex="0">
+                                <div class="history-date">
+                                    <div class="line"></div>
+                                    <div class="date">24 июня 2025</div>
+                                    <div class="line"></div>
+                                </div>
+                                <div class="history-content">
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                </div>
+                            </div>
+                            <!--Блок контента "Неделя"-->
+                            <div class="tab-pane fade" id="week-tab-pane" role="tabpanel"
+                                aria-labelledby="week-tab" tabindex="0">
+                                <div class="history-date">
+                                    <div class="line"></div>
+                                    <div class="date">24 июня 2025</div>
+                                    <div class="line"></div>
+                                </div>
+                                <div class="history-content">
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                </div>
+                                <div class="history-date">
+                                    <div class="line"></div>
+                                    <div class="date">25 июня 2025</div>
+                                    <div class="line"></div>
+                                </div>
+                                <div class="history-content">
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                    <div class="history-content-item"><a href="#">Сотрудник (01) -> Посетитель (02)
+                                            </a><span>(15:45)</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <a class="btn btn-end" href="#blockClearHistory" data-bs-dismiss="modal"
+                            data-bs-toggle="modal">Очистить историю</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!--Модальное окно очистить историю-->
+        <div class="modal fade clear-history" id="blockClearHistory" aria-hidden="true"
+            aria-labelledby="blockClearHistory" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="staticBackdropLabel">Предупреждение</h1>
+                        <button type="button" class="btn-close" data-bs-toggle="modal" href="#profileEmployees"
+                            role="button" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        Вы действительно хотите очистить историю чатов Оператора (1) за период?
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-ok" href="#blockHistory" data-bs-dismiss="modal"
+                            data-bs-toggle="modal">Ок</button>
+                        <button type="button" class="btn btn-end" href="#blockHistory" data-bs-dismiss="modal"
+                            data-bs-toggle="modal">Отмена</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 
 
 
     <footer class="footer">
         <div>Чат поддержки 24/7</div>
-        <div>© 2025 Все права защищены</div>
+        <div>© 2024 Все права защищены</div>
     </footer>
 
     <script src="../libs/bootstrap-5.3.3/js/bootstrap.min.js"></script>

@@ -3,6 +3,7 @@ const editButton = document.getElementById('editButton');
 const saveButton = document.getElementById('saveButton');
 const cancelButton = document.getElementById('cancelButton');
 const phoneProfileEmployees = document.getElementById('phoneInput');
+const btnBlock = document.querySelector('.btn-block');
 
 //Блок подключения маски для телефона
 const maskOptionsPhonePerson = {
@@ -59,3 +60,16 @@ document.addEventListener('keydown', (e) => {
         cancelEdit();
     }
 });
+
+//Функция блокировки пользователя
+btnBlock.addEventListener('click', block_employees)
+
+function block_employees() {
+    if(btnBlock.innerText === 'Заблокировать') {
+        btnBlock.innerText = 'Разблокировать';
+        btnBlock.classList.add('act');
+    } else {
+        btnBlock.innerText = 'Заблокировать';
+        btnBlock.classList.remove('act');
+    }
+} 

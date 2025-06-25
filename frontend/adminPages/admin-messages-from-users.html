@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Административная панель сообщения от посетителя</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../libs/bootstrap-5.3.3/css/bootstrap.min.css">
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="header__container">
+            <a href="#" class="header__logo">AdminPanel</a>
+            <div class="header__menu menu">
+                <div class="menu__icon">
+                    <span></span>
+                </div>
+            </div>
+            <nav class="menu__body">
+                <ul class="menu__list">
+                    <li>
+                        <a href="admin-statistic.html" class="menu__link">Статистика</a>
+                    </li>
+                    <li>
+                        <a href="admin-messages-from-operator.html" class="menu__link active">Сообщения<span
+                                class="new-message">2</span></a>
+                    </li>
+                    <li>
+                        <a href="admin-employees.html" class="menu__link">Сотрудники<span
+                                class="new-message">1</span></a>
+                    </li>
+                    <li>
+                        <a href="#" class="menu__link">Посетители</a>
+                    </li>
+                    <li>
+                        <a href="#" class="menu__link">Настройки</a>
+                    </li>
+                </ul>
+            </nav>
+            <div class="profile-menu">
+                <div class="profile-icon" id="profileToggle">A</div>
+                <div class="profile-dropdown" id="profileDropdown">
+                    <div class="dropdown-item">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        Профиль
+                    </div>
+                    <div class="dropdown-item">
+                        <a href="../index.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                            Выход
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content main-content-messages">
+        <aside class="sidebar sidebar-messages">
+            <h2>Диалоги</h2>
+
+            <div class="search-box">
+                <form action="#">
+                    <input type="search" class="search-input" placeholder="Поиск диалога...">
+                    <button type="submit" class="search-submit">
+                        <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                            viewBox="0 0 24 24">
+                            <path
+                                d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+                        </svg>
+                    </button>
+
+                </form>
+            </div>
+
+            <div class="accordion accordion-sidebar-menu" id="accordionPanelsStayOpenExample">
+                <!--Список операторов-->
+                <div class="accordion-item accordion-sidebar-item">
+                    <h2 class="accordion-header accordion-sidebar-header">
+                        <button class="accordion-button accordion-sidebar-button" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-operators" aria-expanded="true"
+                            aria-controls="panelsStayOpen-operators">
+                            Операторы
+                        </button>
+                    </h2>
+                    <div id="panelsStayOpen-operators" class="accordion-collapse collapse show">
+                        <div class="accordion-sidebar-body">
+                            <ul class="sidebar-menu">
+                                <li class="sidebar-item"><a href="admin-messages-from-operator.html">Оператор 1 <span
+                                            class="new-message">1</span></a></li>
+                                <li class="sidebar-item"><a href="#">Оператор 2</a></li>
+                                <li class="sidebar-item"><a href="#">Оператор 3</a></li>
+                                <li class="sidebar-item"><a href="#">Оператор 4</a></li>
+                                <li class="sidebar-item"><a href="#">Оператор 5</a></li>
+                                <li class="sidebar-item more"><a href="#" data-bs-toggle="modal"
+                                        data-bs-target="#showMoreOperatorsMessages">Показать всех</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!--Список посетителей-->
+                <div class="accordion-item accordion-sidebar-item">
+                    <h2 class="accordion-header accordion-sidebar-header">
+                        <button class="accordion-button collapsed accordion-sidebar-button" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-users" aria-expanded="false"
+                            aria-controls="panelsStayOpen-users">
+                            Посетители
+                        </button>
+                    </h2>
+                    <div id="panelsStayOpen-users" class="accordion-collapse collapse">
+                        <div class="accordion-sidebar-body">
+                            <ul class="sidebar-menu">
+                                <li class="sidebar-item active"><a href="#">Посетитель 1 <span
+                                            class="new-message">1</span></a>
+                                </li>
+                                <li class="sidebar-item"><a href="#">Посетитель 2</a></li>
+                                <li class="sidebar-item"><a href="#">Посетитель 3</a></li>
+                                <li class="sidebar-item"><a href="#">Посетитель 4</a></li>
+                                <li class="sidebar-item"><a href="#">Посетитель 5</a></li>
+                                <li class="sidebar-item more"><a href="#" data-bs-toggle="modal"
+                                        data-bs-target="#showMoreUsersMessages">Показать всех</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Модальное окно операторы aria-hidden="true" -->
+            <div class="modal fade show-more-operators" id="showMoreOperatorsMessages" data-bs-backdrop="static"
+                data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel">
+                <div class="modal-dialog modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h1 class="modal-title fs-5" id="staticBackdropLabel">Список операторов</h1>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <table>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Имя</th>
+                                    <th>Сообщения</th>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Оператор 1 <span class="new-message">1</span></td>
+                                    <td><a href="admin-messages-from-operator.html" class="btn btn-primary">Открыть
+                                            чат</a></td>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Оператор 1</td>
+                                    <td><a href="#" class="btn btn-primary">Открыть чат</a></td>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Оператор 1</td>
+                                    <td><a href="#" class="btn btn-primary">Открыть чат</a></td>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Оператор 1</td>
+                                    <td><a href="#" class="btn btn-primary">Открыть чат</a></td>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Оператор 1</td>
+                                    <td><a href="#" class="btn btn-primary">Открыть чат</a></td>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Оператор 1</td>
+                                    <td><a href="#" class="btn btn-primary">Открыть чат</a></td>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Оператор 1</td>
+                                    <td><a href="#" class="btn btn-primary">Открыть чат</a></td>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Оператор 1</td>
+                                    <td><a href="#" class="btn btn-primary">Открыть чат</a></td>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Оператор 1</td>
+                                    <td><a href="#" class="btn btn-primary">Открыть чат</a></td>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Оператор 1</td>
+                                    <td><a href="#" class="btn btn-primary">Открыть чат</a></td>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Оператор 1</td>
+                                    <td><a href="#" class="btn btn-primary">Открыть чат</a></td>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Оператор 1</td>
+                                    <td><a href="#" class="btn btn-primary">Открыть чат</a></td>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Оператор 1</td>
+                                    <td><a href="#" class="btn btn-primary">Открыть чат</a></td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Модальное окно посетители -->
+            <div class="modal fade show-more-users" id="showMoreUsersMessages" data-bs-backdrop="static"
+                data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h1 class="modal-title fs-5" id="staticBackdropLabel">Список посетителей</h1>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <table>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Имя</th>
+                                    <th>Сообщения</th>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Посетитель 1<span class="new-message">1</span></td>
+                                    <td><a href="admin-messages-from-operator.html" class="btn btn-primary">Открыть
+                                            чат</a></td>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Посетитель 1</td>
+                                    <td><a href="#" class="btn btn-primary">Открыть чат</a></td>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Посетитель 1</td>
+                                    <td><a href="#" class="btn btn-primary">Открыть чат</a></td>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Посетитель 1</td>
+                                    <td><a href="#" class="btn btn-primary">Открыть чат</a></td>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Посетитель 1</td>
+                                    <td><a href="#" class="btn btn-primary">Открыть чат</a></td>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Посетитель 1</td>
+                                    <td><a href="#" class="btn btn-primary">Открыть чат</a></td>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Посетитель 1</td>
+                                    <td><a href="#" class="btn btn-primary">Открыть чат</a></td>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Посетитель 1</td>
+                                    <td><a href="#" class="btn btn-primary">Открыть чат</a></td>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Посетитель 1</td>
+                                    <td><a href="#" class="btn btn-primary">Открыть чат</a></td>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Посетитель 1</td>
+                                    <td><a href="#" class="btn btn-primary">Открыть чат</a></td>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Посетитель 1</td>
+                                    <td><a href="#" class="btn btn-primary">Открыть чат</a></td>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Посетитель 1</td>
+                                    <td><a href="#" class="btn btn-primary">Открыть чат</a></td>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Посетитель 1</td>
+                                    <td><a href="#" class="btn btn-primary">Открыть чат</a></td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </aside>
+
+        <section class="content content-message">
+            <h2 style="text-align: center;">Чат</h2>
+
+            <div class="chat" id="chat">
+                <div class="message-operator">
+                    <div class="message-operator-name">Посетитель 1</div>
+                    <div class="message-operator-item">Lorem Ipsum is simply dummy text of the printing and typesetting
+                        industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an
+                        unknown printer took a galley of type and scrambled it to make a type specimen book. It has
+                        survived not only five centuries, but also the leap into electronic typesetting, remaining
+                        essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets
+                        containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus
+                        PageMaker including versions of Lorem Ipsum.
+                        <div class="date-chat">01.04.2025</div>
+                    </div>
+                </div>
+
+                <div class="clear-block"></div>
+
+                <div class="message-administrator">
+                    <div class="message-administrator-name">Администратор</div>
+                    <div class="message-administrator-item">Lorem Ipsum is simply dummy text of the printing and
+                        typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the
+                        1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen
+                        book. It has survived not only five centuries, but also the leap into electronic typesetting,
+                        remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset
+                        sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like
+                        Aldus PageMaker including versions of Lorem Ipsum.
+                        <div class="date-chat">01.04.2025</div>
+                    </div>
+                </div>
+
+                <div class="clear-block"></div>
+
+                <div class="message-operator">
+                    <div class="message-operator-name">Посетитель 1</div>
+                    <div class="message-operator-item">Lorem Ipsum is simply dummy text of the printing and typesetting
+                        industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an
+                        unknown printer took a galley of type and scrambled it to make a type specimen book. It has
+                        survived not only five centuries, but also the leap into electronic typesetting, remaining
+                        essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets
+                        containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus
+                        PageMaker including versions of Lorem Ipsum.
+                        <div class="date-chat">01.04.2025</div>
+                    </div>
+                </div>
+
+                <div class="clear-block"></div>
+
+                <div class="message-administrator">
+                    <div class="message-administrator-name">Администратор</div>
+                    <div class="message-administrator-item">Lorem Ipsum is simply dummy text of the printing and
+                        typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the
+                        1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen
+                        book. It has survived not only five centuries, but also the leap into electronic typesetting,
+                        remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset
+                        sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like
+                        Aldus PageMaker including versions of Lorem Ipsum.
+                        <div class="date-chat">01.04.2025</div>
+                    </div>
+                </div>
+
+                <div class="clear-block"></div>
+
+            </div>
+
+            <div class="input-group mb-2 send-message">
+
+                <div class="file-input-group">
+                    <input type="file" id="fileInput" class="chat-file" accept="image/*">
+                    <label for="fileInput" class="choose-img">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="25" height="20" fill="currentColor"
+                            class="bi bi-card-image" viewBox="0 0 16 16">
+                            <path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0" />
+                            <path
+                                d="M1.5 2A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2zm13 1a.5.5 0 0 1 .5.5v6l-3.775-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12v.54L1 12.5v-9a.5.5 0 0 1 .5-.5z" />
+                        </svg>
+                    </label>
+                </div>
+
+                <input type="text" class="form-control" id="message-input" placeholder="Написать сообщение"
+                    aria-label="Recipient's username" aria-describedby="button-addon2">
+                <button class="btn btn-outline-secondary" type="button" id="button-addon2"
+                    onClick="sendMessage()">Отправить</button>
+            </div>
+
+        </section>
+
+        <aside class="sidebar sidebar-info">
+            <h2>Информация о посетителе</h2>
+
+            <ul>
+                <li><span>id:</span> Идентификатор</li>
+                <li><span>Имя:</span> Посетитель 1</li>
+                <li><span>Статус:</span> авторизован/не авторизован</li>
+                <li><span>Источник перехода:</span> https://......com</li>
+                <li><span>Электронная почта:</span> посетитель@mail.ru</li>
+                <li><span>Номер телефона:</span> +7(000)-000-00-00</li>
+            </ul>
+
+            <div class="sidebar-info-btn">
+                <button type="button" class="redirect-btn" data-bs-toggle="modal"
+                    data-bs-target="#redirectModal">Перенаправить</button>
+                <button type="button" class="block-btn" data-bs-toggle="modal"
+                    data-bs-target="#blockModal">Заблокировать</button>
+            </div>
+
+            <!-- Модальное окно Перенаправить aria-hidden="true" -->
+            <div class="modal fade redirect-modal" id="redirectModal" data-bs-backdrop="static" data-bs-keyboard="false"
+                tabindex="-1" aria-labelledby="staticBackdropLabel">
+                <div class="modal-dialog modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h1 class="modal-title fs-5" id="staticBackdropLabel">Список операторов</h1>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <table>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Имя</th>
+                                    <th>Статус</th>
+                                    <th></th>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Оператор 1</td>
+                                    <td>Не в сети</td>
+                                    <td><a href="#" class="btn btn-secondary disabled" role="button"
+                                            aria-disabled="true">Назначить</a></td>
+                                </tr>
+                                <tr>
+                                    <td>02</td>
+                                    <td>Оператор 2</td>
+                                    <td>Занят</td>
+                                    <td><a href="#" class="btn btn-secondary disabled" role="button"
+                                            aria-disabled="true">Назначить</a></td>
+                                </tr>
+                                <tr>
+                                    <td>03</td>
+                                    <td>Оператор 3</td>
+                                    <td>Свободен</td>
+                                    <td><a href="#" class="btn btn-primary">Назначить</a></td>
+                                </tr>
+                                <tr>
+                                    <td>04</td>
+                                    <td>Оператор 4</td>
+                                    <td>Перерыв</td>
+                                    <td><a href="#" class="btn btn-secondary disabled" role="button"
+                                            aria-disabled="true">Назначить</a></td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Модальное окно Заблокировать -->
+            <div class="modal fade block-modal" id="blockModal" data-bs-backdrop="static" data-bs-keyboard="false"
+                tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h1 class="modal-title fs-5" id="staticBackdropLabel">Выберите причину блокировки посетителя
+                                Имя(Id)</h1>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="" id="report-1">
+                                <label class="form-check-label" for="report-1">
+                                    Нецензурная лексика
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="" id="report-2" checked>
+                                <label class="form-check-label" for="report-2">
+                                    Неадекватное поведение
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="" id="report-3">
+                                <label class="form-check-label" for="report-3">
+                                    Спам
+                                </label>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary">Ок</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <footer class="footer">
+        <div>Чат поддержки 24/7</div>
+        <div>© 2025 Все права защищены</div>
+    </footer>
+
+    <script src="../libs/bootstrap-5.3.3/js/bootstrap.min.js"></script>
+    <script src="../js/profile-dropdown.js"></script>
+    <script src="../js/menu.js"></script>
+    <script src="../js/send-message.js"></script>
+</body>
+
+</html>

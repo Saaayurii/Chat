@@ -1,12 +1,12 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Group } from '../models/group.model';
-import { UserDocument } from 'src/modules/auth/model/user.model';
-import { Message, MessageDocument } from '../models/message.model';
-import { User } from 'src/modules/auth/model/user.model';
-import { Chat } from '../models/chat.model';
+import { UserDocument } from 'src/modules/auth/models/user.model';
+import { User } from 'src/modules/auth/models/user.model';
 import { Server, Socket } from 'socket.io';
+import { Group } from 'src/modules/auth/models/group.model';
+import { Message, MessageDocument } from 'src/modules/auth/models/message.model';
+import { Chat } from 'src/modules/auth/models/chat.model';
 
 @Injectable()
 export class GroupService {

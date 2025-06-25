@@ -9,14 +9,14 @@ import { Server, Socket } from 'socket.io';
 
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { User } from 'src/modules/auth/model/user.model';
-import { Group } from '../models/group.model';
-import { Message, MessageDocument } from '../models/message.model';
+import { User } from 'src/modules/auth/models/user.model';
 import { JwtService } from '@nestjs/jwt';
 import { SocketData } from '../interfaces/types/gateway.type';
-import { Chat } from '../models/chat.model';
 import { GroupService } from '../services/group.service';
 import { BadGatewayException } from '@nestjs/common';
+import { Group } from 'src/modules/auth/models/group.model';
+import { Chat } from 'src/modules/auth/models/chat.model';
+import { Message, MessageDocument } from 'src/modules/auth/models/message.model';
 
 @WebSocketGateway({ cors: '*', namespace: 'chat' })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {

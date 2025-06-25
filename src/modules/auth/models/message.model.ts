@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import * as mongoose from 'mongoose';
-import { User } from 'src/modules/auth/model/user.model';
+import { User } from 'src/modules/auth/models/user.model';
 import { Group } from './group.model';
 import { Chat } from './chat.model';
 import { HydratedDocument } from 'mongoose';

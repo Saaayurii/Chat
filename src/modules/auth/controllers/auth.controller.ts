@@ -4,7 +4,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { RegistrationDto } from '../dtos/registration.dto';
 import { LoginDto } from '../dtos/login.dto';
 import { Request, Response } from 'express';
-import { User } from '../model/user.model';
+import { User } from '../models/user.model';
 import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller('auth')

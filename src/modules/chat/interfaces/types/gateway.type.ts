@@ -1,4 +1,4 @@
-import { User } from 'src/modules/auth/model/user.model';
+import { User } from 'src/modules/auth/models/user.model';
 
 export interface SocketData {
   user?: User;

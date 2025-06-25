@@ -1,19 +1,16 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import * as mongoose from 'mongoose';
-import { User } from 'src/modules/auth/model/user.model';
+import { User } from 'src/modules/auth/models/user.model';
+import mongoose from 'mongoose';
 import { Message } from './message.model';
 
 @Schema()
-export class Group extends Document {
-  @Prop({ required: true })
-  name: string;
-
+export class Chat extends Document {
   @Prop([{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }])
-  members: User[];
+  participants: [User];
 
   @Prop([{ type: mongoose.Schema.Types.ObjectId, ref: 'Message' }])
-  messages: Message[];
+  messages: [Message];
 }
 
-export const GroupSchema = SchemaFactory.createForClass(Group);
+export const ChatSchema = SchemaFactory.createForClass(Chat);

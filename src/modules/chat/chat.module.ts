@@ -3,10 +3,11 @@ import { GroupService } from './services/group.service';
 import { JwtModule } from '@nestjs/jwt';
 import { ChatGateway } from './gateways/chat.gateways';
 import { MongooseModule } from '@nestjs/mongoose';
-import { User, UserSchema } from '../auth/model/user.model';
-import { Group, GroupSchema } from './models/group.model';
-import { Message, MessageSchema } from './models/message.model';
-import { Chat, ChatSchema } from './models/chat.model';
+import { User, UserSchema } from '../auth/models/user.model';
+import { Group, GroupSchema } from '../auth/models/group.model';
+import { Message, MessageSchema } from '../auth/models/message.model';
+import { Chat, ChatSchema } from '../auth/models/chat.model';
+
 
 @Module({
   imports: [

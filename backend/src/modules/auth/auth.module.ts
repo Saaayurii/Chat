@@ -5,8 +5,8 @@ import { AuthService } from './services/auth.service';
 import { AuthController } from './controllers/auth.controller';
 import { UserService } from './services/user.service';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Group, GroupSchema } from '../auth/models/group.model';
-import { Message, MessageSchema } from '../auth/models/message.model';
+import { Group, GroupSchema } from './models/group.model';
+import { Message, MessageSchema } from './models/message.model';
 import { User, UserSchema } from './models/user.model';
 
 @Module({

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Настройки</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../libs/bootstrap-5.3.3/css/bootstrap.min.css">
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="header__container">
+            <a href="#" class="header__logo">AdminPanel</a>
+            <div class="header__menu menu">
+                <div class="menu__icon">
+                    <span></span>
+                </div>
+            </div>
+            <nav class="menu__body">
+                <ul class="menu__list">
+                    <li>
+                        <a href="admin-statistic.html" class="menu__link">Статистика</a>
+                    </li>
+                    <li>
+                        <a href="admin-messages-from-operator.html" class="menu__link">Сообщения<span
+                                class="new-message">2</span></a>
+                    </li>
+                    <li>
+                        <a href="admin-employees.html" class="menu__link">Сотрудники<span
+                                class="new-message">1</span></a>
+                    </li>
+                    <li>
+                        <a href="admin-visitors.html" class="menu__link">Посетители</a>
+                    </li>
+                    <li>
+                        <a href="admin-settings.html" class="menu__link active">Настройки</a>
+                    </li>
+                </ul>
+            </nav>
+            <div class="profile-menu">
+                <div class="profile-icon" id="profileToggle">A</div>
+                <div class="profile-dropdown" id="profileDropdown">
+                    <div class="dropdown-item">
+                        <a href="../index.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                            Выход
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content main-content-settings">
+
+        <aside class="sidebar">
+
+            <h2 style="text-align: center; margin-bottom: 30px;">Профиль</h2>
+
+            <div class="field">
+                <input type="file" id="fileInput" class="frofile-file" accept="image/*">
+                <label for="fileInput" class="choose-img">
+                    Выбрать изображение:
+                    <svg xmlns="http://www.w3.org/2000/svg" width="25" height="20" fill="currentColor"
+                        class="bi bi-card-image" viewBox="0 0 16 16">
+                        <path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0" />
+                        <path
+                            d="M1.5 2A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2zm13 1a.5.5 0 0 1 .5.5v6l-3.775-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12v.54L1 12.5v-9a.5.5 0 0 1 .5-.5z" />
+                    </svg>
+                </label>
+            </div>
+
+            <div class="custom-select">
+                <div class="status-select">Статус:</div>
+                <select class="original-select" id="original-select">
+                    <option value="">Выберите вариант</option>
+                    <option value="1">Свободен</option>
+                    <option value="2">Занят</option>
+                    <option value="3">Перерыв</option>
+                    <option value="4">Не в сети</option>
+                </select>
+                <div class="custom-select__trigger">
+                    <span>Выберите вариант</span>
+                    <div class="arrow"></div>
+                </div>
+                <div class="custom-options">
+                    <div class="custom-option" data-value="1">Свободен</div>
+                    <div class="custom-option" data-value="2">Занят</div>
+                    <div class="custom-option selected" data-value="3">Перерыв
+                    </div>
+                    <div class="custom-option" data-value="4">Не в сети</div>
+                </div>
+            </div>
+
+        </aside>
+
+        <section class="content list-settings">
+
+            <div class="list-settings-content">
+
+                <h2 style="text-align: center; margin-bottom: 30px;">Персональные данные</h2>
+
+                <div class="person-data" id="admin-data">
+
+                    <div class="field">
+                        <label for="loginInput">Логин:</label>
+                        <div class="text-view" id="loginText">Login</div>
+                        <input type="text" class="edit-input" id="loginInput" value="Login">
+                    </div>
+
+                    <div class="field">
+                        <label for="passwordInput">Пароль:</label>
+                        <div class="text-view" id="passwordText">12345</div>
+                        <input type="text" class="edit-input" id="passwordInput" value="12345">
+                    </div>
+
+                    <div class="field">
+                        <label for="firstnameInput">Фамилия:</label>
+                        <div class="text-view" id="firstnameText">Иванов</div>
+                        <input type="text" class="edit-input" id="firstnameInput" value="Иванов">
+                    </div>
+
+                    <div class="field">
+                        <label for="nameInput">Имя:</label>
+                        <div class="text-view" id="nameText">Иван</div>
+                        <input type="text" class="edit-input" id="nameInput" value="Иван">
+                    </div>
+
+                    <div class="field">
+                        <label for="middlenameInput">Отчество:</label>
+                        <div class="text-view" id="middlenameText">Иванович</div>
+                        <input type="text" class="edit-input" id="middlenameInput" value="Иванович">
+                    </div>
+
+                    <div class="field">
+                        <label for="emailInput">Email:</label>
+                        <div class="text-view" id="emailText">ivan@example.com</div>
+                        <input type="email" class="edit-input" id="emailInput" value="ivan@example.com">
+                    </div>
+
+                    <div class="field">
+                        <label for="phoneInput">Телефон:</label>
+                        <div class="text-view" id="phoneText">+7 (900) 123-45-67</div>
+                        <input type="tel" class="edit-input" id="phoneInput" value="+7 (900) 123-45-67">
+                    </div>
+
+                    <div class="buttons">
+                        <button class="edit-btn" id="editButton">Редактировать</button>
+                        <button class="save-btn" id="saveButton">Сохранить</button>
+                        <button class="cancel-btn" id="cancelButton">Отмена</button>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div>Чат поддержки 24/7</div>
+        <div>© 2024 Все права защищены</div>
+    </footer>
+
+    <script src="../libs/bootstrap-5.3.3/js/bootstrap.min.js"></script>
+    <script src="../js/profile-dropdown.js"></script>
+    <script src="../js/menu.js"></script>
+    <script src="../libs/imask/imask.min.js"></script>
+    <script>
+        const profileContainer = document.getElementById('admin-data');
+        const editButton = document.getElementById('editButton');
+        const saveButton = document.getElementById('saveButton');
+        const cancelButton = document.getElementById('cancelButton');
+        const phoneProfileEmployees = document.getElementById('phoneInput');
+        const btnBlock = document.querySelector('.btn-block');
+
+        //Блок подключения маски для телефона
+        const maskOptionsPhonePerson = {
+            mask: '+{7}(000)000-00-00',
+            lazy: false
+        };
+        const maskPhoneProfile = IMask(phoneProfileEmployees, maskOptionsPhonePerson);
+
+        // Функция включения режима редактирования
+        function enableEditMode() {
+            profileContainer.classList.add('edit-mode');
+        }
+
+        // Функция выключения режима редактирования
+        function disableEditMode() {
+            profileContainer.classList.remove('edit-mode');
+        }
+
+        // Функция сохранения данных
+        function saveData() {
+            // Получаем все текстовые элементы и поля ввода
+            const textElements = document.querySelectorAll('.text-view');
+            const inputElements = document.querySelectorAll('.edit-input');
+
+            // Обновляем текстовые значения из полей ввода
+            textElements.forEach((el, index) => {
+                el.textContent = inputElements[index].value;
+            });
+
+            disableEditMode();
+        }
+
+        // Функция отмены изменений
+        function cancelEdit() {
+            const textElements = document.querySelectorAll('.text-view');
+            const inputElements = document.querySelectorAll('.edit-input');
+
+            // Восстанавливаем значения полей ввода из текстовых элементов
+            inputElements.forEach((el, index) => {
+                el.value = textElements[index].textContent;
+            });
+
+            disableEditMode();
+        }
+
+        // Назначаем обработчики событий
+        editButton.addEventListener('click', enableEditMode);
+        saveButton.addEventListener('click', saveData);
+        cancelButton.addEventListener('click', cancelEdit);
+
+        // Обработка нажатия Esc
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && profileContainer.classList.contains('edit-mode')) {
+                cancelEdit();
+            }
+        });
+
+        //Выпадающий список
+        document.querySelectorAll('.custom-select').forEach(select => {
+            const trigger = select.querySelector('.custom-select__trigger');
+            const options = select.querySelectorAll('.custom-option');
+
+            trigger.addEventListener('click', () => {
+                select.classList.toggle('open');
+            });
+
+            options.forEach(option => {
+                option.addEventListener('click', () => {
+                    // Update UI
+                    options.forEach(opt => opt.classList.remove('selected'));
+                    option.classList.add('selected');
+
+                    // Update trigger text
+                    trigger.querySelector('span').textContent = option.textContent;
+
+                    // Update original select
+                    const originalSelect = select.querySelector('.original-select');
+                    originalSelect.value = option.dataset.value;
+
+                    // Close dropdown
+                    select.classList.remove('open');
+
+                    // Trigger change event
+                    originalSelect.dispatchEvent(new Event('change'));
+                });
+            });
+
+            // Close when clicking outside
+            document.addEventListener('click', e => {
+                if (!select.contains(e.target)) {
+                    select.classList.remove('open');
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

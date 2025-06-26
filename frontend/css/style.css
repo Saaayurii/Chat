@@ -638,7 +638,7 @@ body._touch .menu__list>li._active .menu__arrow {
     margin-left: 10px;
 }
 
-.sidebar-menu .sidebar-item:last-child a {
+.sidebar-menu .sidebar-item:last-child:not(:first-child) a {
     text-align: center;
 }
 
@@ -1667,8 +1667,6 @@ body._touch .menu__list>li._active .menu__arrow {
     border: none !important;
 }
 
-
-
 /*Redirect*/
 .redirect-modal .modal-dialog {
     max-width: 650px !important;
@@ -2159,3 +2157,39 @@ body._touch .menu__list>li._active .menu__arrow {
 }
 
 /*----------------------////////Modal popup////////--------------------*/
+
+
+
+/*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<Роль оператор>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
+
+.operator-content h2 {
+    text-align: center;
+}
+
+.block-accept .accept-operator {
+    font-weight: bold;
+}
+
+.block-accept .btn-ok {
+    background-color: var(--secondary-color);
+    color: #fff;
+}
+
+.block-accept .btn-ok:hover {
+    background-color: #08588d;
+    color: #fff;
+}
+
+.block-accept .btn-cancel {
+    background-color: #b63434;
+    color: #fff;
+}
+
+.block-accept .btn-cancel:hover {
+    background-color: #801313;
+    color: #fff;
+}
+
+
+
+/*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<Роль посетитель>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/

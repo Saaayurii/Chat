@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сотрудники</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../libs/bootstrap-5.3.3/css/bootstrap.min.css">
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="header__container">
+            <a href="#" class="header__logo">AdminPanel</a>
+            <div class="header__menu menu">
+                <div class="menu__icon">
+                    <span></span>
+                </div>
+            </div>
+            <nav class="menu__body">
+                <ul class="menu__list">
+                    <li>
+                        <a href="admin-statistic.html" class="menu__link">Статистика</a>
+                    </li>
+                    <li>
+                        <a href="admin-messages-from-operator.html" class="menu__link">Сообщения<span
+                                class="new-message">2</span></a>
+                    </li>
+                    <li>
+                        <a href="admin-employees.html" class="menu__link">Сотрудники<span
+                                class="new-message">1</span></a>
+                    </li>
+                    <li>
+                        <a href="admin-visitors.html" class="menu__link active">Посетители</a>
+                    </li>
+                    <li>
+                        <a href="admin-settings.html" class="menu__link">Настройки</a>
+                    </li>
+                </ul>
+            </nav>
+            <div class="profile-menu">
+                <div class="profile-icon" id="profileToggle">A</div>
+                <div class="profile-dropdown" id="profileDropdown">
+                    <div class="dropdown-item">
+                        <a href="../index.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                            Выход
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content main-content-visitors">
+
+        <section class="content list-visitors">
+
+            <div class="list-visitors-content">
+
+                <h2 style="text-align: center; margin-bottom: 30px;">Список посетителей</h2>
+
+                <ul class="nav nav-tabs" id="myTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="today-tab" data-bs-toggle="tab"
+                            data-bs-target="#today-tab-pane" type="button" role="tab" aria-controls="today-tab-pane"
+                            aria-selected="true">Сегодня</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="yesterday-tab" data-bs-toggle="tab"
+                            data-bs-target="#yesterday-tab-pane" type="button" role="tab"
+                            aria-controls="yesterday-tab-pane" aria-selected="false">Вчера</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="week-tab" data-bs-toggle="tab" data-bs-target="#week-tab-pane"
+                            type="button" role="tab" aria-controls="week-tab-pane" aria-selected="false">Неделя</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="month-tab" data-bs-toggle="tab" data-bs-target="#month-tab-pane"
+                            type="button" role="tab" aria-controls="month-tab-pane" aria-selected="false">Месяц</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="period-tab" data-bs-toggle="tab" data-bs-target="#period-tab-pane"
+                            type="button" role="tab" aria-controls="period-tab-pane"
+                            aria-selected="false">Период</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="myTabContent">
+                    <!--Блок контента "Сегодня"-->
+                    <div class="tab-pane fade show active" id="today-tab-pane" role="tabpanel"
+                        aria-labelledby="today-tab" tabindex="0">
+                        <div class="history-date">
+                            <div class="line"></div>
+                            <div class="date">25 июня 2025</div>
+                            <div class="line"></div>
+                        </div>
+                        <div class="history-content">
+                            <table>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Имя</th>
+                                    <th>Статус</th>
+                                    <th>Источник перехода</th>
+                                    <th>Почта</th>
+                                    <th>Номер телефона</th>
+                                    <th></th>
+                                    <th></th>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Олег</td>
+                                    <td>Авторизован</td>
+                                    <td>https://site.ru</td>
+                                    <td>посетитель@mail.ru</td>
+                                    <td>+7(999)999-99-99</td>
+                                    <td><a href="admin-messages-from-users.html" class="chat">Просмотреть чат</a></td>
+                                    <td><a href="#" class="block">Заблокировать</a></td>
+                                </tr>
+                                <tr>
+                                    <td>02</td>
+                                    <td>Ирина</td>
+                                    <td>Не авторизован</td>
+                                    <td>https://site.ru</td>
+                                    <td>посетитель@mail.ru</td>
+                                    <td>+7(999)999-99-99</td>
+                                    <td><a href="#" class="chat">Просмотреть чат</a></td>
+                                    <td><a href="#" class="block">Заблокировать</a></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    <!--Блок контента "Вчера"-->
+                    <div class="tab-pane fade" id="yesterday-tab-pane" role="tabpanel" aria-labelledby="yesterday-tab"
+                        tabindex="0">
+                        <div class="history-date">
+                            <div class="line"></div>
+                            <div class="date">25 июня 2025</div>
+                            <div class="line"></div>
+                        </div>
+                        <div class="history-content">
+                            <table>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Имя</th>
+                                    <th>Статус</th>
+                                    <th>Источник перехода</th>
+                                    <th>Почта</th>
+                                    <th>Номер телефона</th>
+                                    <th></th>
+                                    <th></th>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Олег</td>
+                                    <td>Авторизован</td>
+                                    <td>https://site.ru</td>
+                                    <td>посетитель@mail.ru</td>
+                                    <td>+7(999)999-99-99</td>
+                                    <td><a href="admin-messages-from-users.html" class="chat">Просмотреть чат</a></td>
+                                    <td><a href="#" class="block">Заблокировать</a></td>
+                                </tr>
+                                <tr>
+                                    <td>02</td>
+                                    <td>Ирина</td>
+                                    <td>Не авторизован</td>
+                                    <td>https://site.ru</td>
+                                    <td>посетитель@mail.ru</td>
+                                    <td>+7(999)999-99-99</td>
+                                    <td><a href="#" class="chat">Просмотреть чат</a></td>
+                                    <td><a href="#" class="block">Заблокировать</a></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    <!--Блок контента "Неделя"-->
+                    <div class="tab-pane fade" id="week-tab-pane" role="tabpanel" aria-labelledby="week-tab"
+                        tabindex="0">
+                        <div class="history-date">
+                            <div class="line"></div>
+                            <div class="date">24 июня 2025</div>
+                            <div class="line"></div>
+                        </div>
+                        <div class="history-content">
+                            <table>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Имя</th>
+                                    <th>Статус</th>
+                                    <th>Источник перехода</th>
+                                    <th>Почта</th>
+                                    <th>Номер телефона</th>
+                                    <th></th>
+                                    <th></th>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Олег</td>
+                                    <td>Авторизован</td>
+                                    <td>https://site.ru</td>
+                                    <td>посетитель@mail.ru</td>
+                                    <td>+7(999)999-99-99</td>
+                                    <td><a href="admin-messages-from-users.html" class="chat">Просмотреть чат</a></td>
+                                    <td><a href="#" class="block">Заблокировать</a></td>
+                                </tr>
+                                <tr>
+                                    <td>02</td>
+                                    <td>Ирина</td>
+                                    <td>Не авторизован</td>
+                                    <td>https://site.ru</td>
+                                    <td>посетитель@mail.ru</td>
+                                    <td>+7(999)999-99-99</td>
+                                    <td><a href="#" class="chat">Просмотреть чат</a></td>
+                                    <td><a href="#" class="block">Заблокировать</a></td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="history-date">
+                            <div class="line"></div>
+                            <div class="date">25 июня 2025</div>
+                            <div class="line"></div>
+                        </div>
+                        <div class="history-content">
+                            <table>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Имя</th>
+                                    <th>Статус</th>
+                                    <th>Источник перехода</th>
+                                    <th>Почта</th>
+                                    <th>Номер телефона</th>
+                                    <th></th>
+                                    <th></th>
+                                </tr>
+                                <tr>
+                                    <td>01</td>
+                                    <td>Олег</td>
+                                    <td>Авторизован</td>
+                                    <td>https://site.ru</td>
+                                    <td>посетитель@mail.ru</td>
+                                    <td>+7(999)999-99-99</td>
+                                    <td><a href="admin-messages-from-users.html" class="chat">Просмотреть чат</a></td>
+                                    <td><a href="#" class="block">Заблокировать</a></td>
+                                </tr>
+                                <tr>
+                                    <td>02</td>
+                                    <td>Ирина</td>
+                                    <td>Не авторизован</td>
+                                    <td>https://site.ru</td>
+                                    <td>посетитель@mail.ru</td>
+                                    <td>+7(999)999-99-99</td>
+                                    <td><a href="#" class="chat">Просмотреть чат</a></td>
+                                    <td><a href="#" class="block">Заблокировать</a></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="pagination-visitors">
+                <button class="pagination-button prev disabled">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z" />
+                    </svg>
+                </button>
+
+                <button class="pagination-button active">1</button>
+                <button class="pagination-button">2</button>
+                <button class="pagination-button">3</button>
+
+                <div class="pagination-dots">•••</div>
+
+                <button class="pagination-button">8</button>
+                <button class="pagination-button">9</button>
+                <button class="pagination-button">10</button>
+
+                <button class="pagination-button next">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z" />
+                    </svg>
+                </button>
+            </div>
+
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div>Чат поддержки 24/7</div>
+        <div>© 2024 Все права защищены</div>
+    </footer>
+
+    <script src="../libs/bootstrap-5.3.3/js/bootstrap.min.js"></script>
+    <script src="../js/profile-dropdown.js"></script>
+    <script src="../js/menu.js"></script>
+    <script>
+        const btnBlockVisitor = document.querySelectorAll('.block');
+        //Блок пагинация
+        document.querySelectorAll('.pagination-button:not(.prev):not(.next):not(.disabled)').forEach(button => {
+            button.addEventListener('click', function () {
+                // Удаляем активный класс у всех кнопок
+                document.querySelectorAll('.pagination-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+
+                // Добавляем активный класс текущей кнопке
+                this.classList.add('active');
+
+                // Обновляем состояние кнопок (предыдущая/следующая)
+                updatePaginationState();
+            });
+        });
+
+        function updatePaginationState() {
+            const buttons = document.querySelectorAll('.pagination-button:not(.prev):not(.next)');
+            const prevButton = document.querySelector('.prev');
+            const nextButton = document.querySelector('.next');
+
+            // Находим активную страницу
+            let activeIndex = -1;
+            buttons.forEach((btn, index) => {
+                if (btn.classList.contains('active')) activeIndex = index;
+            });
+
+            // Обновляем состояние кнопок
+            prevButton.classList.toggle('disabled', activeIndex === 0);
+            nextButton.classList.toggle('disabled', activeIndex === buttons.length - 1);
+        }
+
+        // Инициализация состояния
+        updatePaginationState();
+
+        //Функция блокировки пользователя
+        for (let i = 0; i < btnBlockVisitor.length; i++) {
+            btnBlockVisitor[i].addEventListener('click', () => {
+                if (btnBlockVisitor[i].innerText === 'Заблокировать') {
+                    btnBlockVisitor[i].innerText = 'Разблокировать';
+                    btnBlockVisitor[i].classList.add('act');
+                } else {
+                    btnBlockVisitor[i].innerText = 'Заблокировать';
+                    btnBlockVisitor[i].classList.remove('act');
+                }
+            });
+        }
+
+
+        function block_employees() {
+            if (btnBlockVisitor.innerText === 'Заблокировать') {
+                btnBlockVisitor.innerText = 'Разблокировать';
+                btnBlockVisitor.classList.add('act');
+            } else {
+                btnBlockVisitor.innerText = 'Заблокировать';
+                btnBlockVisitor.classList.remove('act');
+            }
+        }
+
+    </script>
+</body>
+
+</html>

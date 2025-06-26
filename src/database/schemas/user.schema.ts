@@ -15,6 +15,9 @@ export enum UserRole {
   collection: 'users'
 })
 export class User {
+  // MongoDB автоматически добавляет _id, но для TypeScript нужно объявить
+  _id: Types.ObjectId;
+
   @Prop({ 
     required: true, 
     unique: true,
@@ -86,6 +89,23 @@ export class User {
     responseTimeAvg: number;
   };
 
+  // Информация об удалении (для мягкого удаления)
+  @Prop({
+    type: {
+      deletedAt: { type: Date },
+      deletedBy: { type: Types.ObjectId, ref: 'User' },
+      reason: { type: String },
+      additionalInfo: { type: String }
+    },
+    _id: false
+  })
+  deletionInfo?: {
+    deletedAt: Date;
+    deletedBy: Types.ObjectId;
+    reason: string;
+    additionalInfo: string;
+  };
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -99,3 +119,20 @@ UserSchema.index({ 'profile.username': 1 });
 UserSchema.index({ 'profile.isOnline': 1, role: 1 });
 UserSchema.index({ createdAt: -1 });
 
+// Дополнительные индексы
+UserSchema.index({ 'deletionInfo.deletedAt': 1 });
+UserSchema.index({ isActivated: 1 });
+
+// Виртуальные поля
+UserSchema.virtual('id').get(function() {
+  return this._id.toHexString();
+});
+
+// Убеждаемся, что виртуальные поля включены в JSON
+UserSchema.set('toJSON', {
+  virtuals: true,
+  transform: function(doc, ret) {
+    delete ret.__v;
+    return ret;
+  }
+});

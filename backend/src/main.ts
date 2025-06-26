@@ -10,31 +10,52 @@ import { IoAdapter } from '@nestjs/platform-socket.io';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
-
   const app = await NestFactory.create(AppModule);
 
-  app.use(cookieParser());
+  // 🍪 Cookie parser с секретом для подписанных cookies
+  app.use(cookieParser(process.env.COOKIE_SECRET));
 
+  // ✅ Глобальная валидация DTO
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
+      whitelist: true,           // удаляет лишние поля
+      forbidNonWhitelisted: true, // выбрасывает ошибку при лишних полях
+      transform: true,            // автоматически приводит типы
     }),
   );
 
+  // 📄 Swagger конфигурация с Bearer Auth
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Документация API чата')
-    .setDescription('REST API + WebSocket чата')
+    .setDescription('REST API + WebSocket консультационной системы')
     .setVersion('1.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Введите JWT токен',
+        in: 'header',
+      },
+      'JWT-auth', // Имя схемы безопасности
+    )
+    .addCookieAuth('refresh_token', {
+      type: 'apiKey',
+      in: 'cookie',
+      name: 'refresh_token',
+      description: 'Refresh token в cookie',
+    })
     .build();
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+  
+  // Добавляем описание WebSocket эндпоинта
   swaggerDocument.paths['/chat'] = {
     get: {
       tags: ['WebSocket'],
       summary: 'Подключиться к WebSocket-чату',
-      description: 'Используйте WebSocket-протокол для подключения к чату',
+      description: 'Используйте WebSocket-протокол для подключения к real-time чату',
       responses: {
         101: {
           description: 'WebSocket handshake successful',
@@ -43,18 +64,53 @@ async function bootstrap() {
     },
   };
 
+  // Добавляем описание WebSocket эндпоинта
+  swaggerDocument.paths['/users'] = {
+    get: {
+      tags: ['Users'],
+      summary: 'API Users',
+      description: 'Все API Users',
+      responses: {
+        101: {
+          description: 'WebSocket handshake successful',
+        },
+      },
+    },
+  };
+
+  // 🌐 Swagger UI на /api-docs
   SwaggerModule.setup('api-docs', app, swaggerDocument);
 
+  // 🔐 CORS настройки для безопасности
   app.enableCors({
-    origin: '*',
-    credentials: true,
+    origin: process.env.CLIENT_URL || 'http://localhost:3001', // Конкретный домен
+    credentials: true, // Разрешить cookies
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: [
+      'Origin',
+      'X-Requested-With',
+      'Content-Type',
+      'Accept',
+      'Authorization',
+      'Cache-Control',
+    ],
   });
 
+  // 🔌 WebSocket адаптер
   app.useWebSocketAdapter(new IoAdapter(app));
 
-  const port = 3000;
+  // 🚀 Запуск приложения
+  const port = process.env.SERVER_PORT || 3000;
   await app.listen(port);
-  console.log(`🚀 Приложение запущено на 3000 порту`);
+  
+  // 📊 Логирование информации о запуске
+  console.log('🚀 Приложение запущено на порту:', port);
+  console.log('📚 API Documentation: http://localhost:' + port + '/api-docs');
+  console.log('🔗 Client URL:', process.env.CLIENT_URL);
+  console.log('🍪 Cookie Secret:', process.env.COOKIE_SECRET ? '✅ Настроен' : '❌ Не настроен');
+  console.log('🔐 JWT Secret:', process.env.JWT_SECRET ? '✅ Настроен' : '❌ Не настроен');
+  console.log('📧 Resend API:', process.env.RESEND_API_KEY ? '✅ Настроен' : '❌ Не настроен');
+  console.log('🗄️ MongoDB:', process.env.MONGO_URI ? '✅ Подключено' : '❌ Не настроено');
 }
 
 bootstrap();

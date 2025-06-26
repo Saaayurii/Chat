@@ -518,4 +518,12 @@ export class UsersService {
     
     return null;
   }
+  async updatePassword(userId: string, newPasswordHash: string): Promise<void> {
+  await this.userModel.findByIdAndUpdate(
+    userId,
+    { passwordHash: newPasswordHash }
+  );
 }
+
+}
+

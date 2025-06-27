@@ -16,7 +16,6 @@ import { UpdateProfileDto } from './dto/update-profile.dto/update-profile.dto';
 import { DeleteUserDto } from './dto/delete-user.dto/delete-user.dto';
 import { UserResponse } from './interfaces/user-response.interface';
 
-
 // Интерфейс для файла без Express.Multer
 interface UploadedFile {
   fieldname: string;
@@ -27,29 +26,25 @@ interface UploadedFile {
   buffer: Buffer;
 }
 
-
-
 @Injectable()
 export class UsersService {
-  constructor(
-    @InjectModel(User.name) private userModel: Model<UserDocument>,
-  ) {}
+  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
   async createUser(createUserDto: CreateUserDto): Promise<UserResponse> {
     // Проверяем, существует ли пользователь с таким email
-    const existingUser = await this.userModel.findOne({ 
-      email: createUserDto.email.toLowerCase() 
+    const existingUser = await this.userModel.findOne({
+      email: createUserDto.email.toLowerCase(),
     });
-    
+
     if (existingUser) {
       throw new ConflictException('Пользователь с таким email уже существует');
     }
 
     // Проверяем уникальность username
-    const existingUsername = await this.userModel.findOne({ 
-      'profile.username': createUserDto.username 
+    const existingUsername = await this.userModel.findOne({
+      'profile.username': createUserDto.username,
     });
-    
+
     if (existingUsername) {
       throw new ConflictException('Пользователь с таким именем уже существует');
     }
@@ -79,21 +74,23 @@ export class UsersService {
           averageRating: 0,
           totalRatings: 0,
           responseTimeAvg: 0,
-        }
+        },
       }),
     });
 
     const savedUser = await newUser.save();
-    
+
     // Не возвращаем пароль в ответе
     const { passwordHash: _, ...userWithoutPassword } = savedUser.toObject();
     return userWithoutPassword as UserResponse;
   }
 
-  async createOperator(createOperatorDto: CreateOperatorDto): Promise<UserResponse> {
+  async createOperator(
+    createOperatorDto: CreateOperatorDto,
+  ): Promise<UserResponse> {
     // Генерируем временный пароль если не указан
-    const temporaryPassword = createOperatorDto.temporaryPassword || 
-                            this.generateTemporaryPassword();
+    const temporaryPassword =
+      createOperatorDto.temporaryPassword || this.generateTemporaryPassword();
 
     const operatorData: CreateUserDto = {
       email: createOperatorDto.email,
@@ -124,7 +121,7 @@ export class UsersService {
 
     // Строим фильтр
     const filter: any = {};
-    
+
     if (role) {
       filter.role = role;
     }
@@ -161,7 +158,7 @@ export class UsersService {
 
   async findOperators(onlineOnly?: boolean) {
     const filter: any = { role: UserRole.OPERATOR, isBlocked: false };
-    
+
     if (onlineOnly) {
       filter['profile.isOnline'] = true;
     }
@@ -173,7 +170,10 @@ export class UsersService {
       .exec();
   }
 
-  async findUserById(id: string, currentUser: UserDocument): Promise<UserResponse> {
+  async findUserById(
+    id: string,
+    currentUser: UserDocument,
+  ): Promise<UserResponse> {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('Некорректный ID пользователя');
     }
@@ -188,15 +188,22 @@ export class UsersService {
     }
 
     // Проверяем права доступа
-    if (currentUser.role === UserRole.VISITOR && 
-        currentUser._id.toString() !== id) {
-      throw new ForbiddenException('Недостаточно прав для просмотра этого профиля');
+    if (
+      currentUser.role === UserRole.VISITOR &&
+      currentUser._id.toString() !== id
+    ) {
+      throw new ForbiddenException(
+        'Недостаточно прав для просмотра этого профиля',
+      );
     }
 
     return user.toObject() as UserResponse;
   }
 
-  async updateUser(id: string, updateUserDto: UpdateUserDto): Promise<UserResponse> {
+  async updateUser(
+    id: string,
+    updateUserDto: UpdateUserDto,
+  ): Promise<UserResponse> {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('Некорректный ID пользователя');
     }
@@ -208,24 +215,28 @@ export class UsersService {
 
     // Проверяем уникальность email если он изменяется
     if (updateUserDto.email && updateUserDto.email !== user.email) {
-      const existingUser = await this.userModel.findOne({ 
+      const existingUser = await this.userModel.findOne({
         email: updateUserDto.email.toLowerCase(),
-        _id: { $ne: id }
+        _id: { $ne: id },
       });
-      
+
       if (existingUser) {
-        throw new ConflictException('Пользователь с таким email уже существует');
+        throw new ConflictException(
+          'Пользователь с таким email уже существует',
+        );
       }
     }
 
     const updatedUser = await this.userModel
       .findByIdAndUpdate(
         id,
-        { 
+        {
           ...updateUserDto,
-          ...(updateUserDto.email && { email: updateUserDto.email.toLowerCase() })
+          ...(updateUserDto.email && {
+            email: updateUserDto.email.toLowerCase(),
+          }),
         },
-        { new: true, runValidators: true }
+        { new: true, runValidators: true },
       )
       .select('-passwordHash')
       .exec();
@@ -250,16 +261,21 @@ export class UsersService {
     return user.toObject() as UserResponse;
   }
 
-  async updateProfile(userId: string, updateProfileDto: UpdateProfileDto): Promise<UserResponse> {
+  async updateProfile(
+    userId: string,
+    updateProfileDto: UpdateProfileDto,
+  ): Promise<UserResponse> {
     // Проверяем уникальность username если он изменяется
     if (updateProfileDto.username) {
       const existingUser = await this.userModel.findOne({
         'profile.username': updateProfileDto.username,
-        _id: { $ne: userId }
+        _id: { $ne: userId },
       });
 
       if (existingUser) {
-        throw new ConflictException('Пользователь с таким именем уже существует');
+        throw new ConflictException(
+          'Пользователь с таким именем уже существует',
+        );
       }
     }
 
@@ -273,9 +289,9 @@ export class UsersService {
             'profile.phone': updateProfileDto.phone,
             'profile.avatarUrl': updateProfileDto.avatarUrl,
             'profile.bio': updateProfileDto.bio,
-          }
+          },
         },
-        { new: true, runValidators: true }
+        { new: true, runValidators: true },
       )
       .select('-passwordHash')
       .exec();
@@ -287,33 +303,35 @@ export class UsersService {
     return updatedUser.toObject() as UserResponse;
   }
 
-  async uploadAvatar(userId: string, file: UploadedFile): Promise<{ avatarUrl: string }> {
+  async uploadAvatar(
+    userId: string,
+    file: UploadedFile,
+  ): Promise<{ avatarUrl: string }> {
     // TODO: Реализовать загрузку файла в хранилище (AWS S3, Cloudinary и т.д.)
     const avatarUrl = `/uploads/avatars/${userId}-${Date.now()}-${file.originalname}`;
-    
-    await this.userModel.findByIdAndUpdate(
-      userId,
-      { $set: { 'profile.avatarUrl': avatarUrl } }
-    );
+
+    await this.userModel.findByIdAndUpdate(userId, {
+      $set: { 'profile.avatarUrl': avatarUrl },
+    });
 
     return { avatarUrl };
   }
 
-  async toggleUserBlock(userId: string, adminId: string): Promise<{ isBlocked: boolean }> {
+  async toggleUserBlock(
+    userId: string,
+    adminId: string,
+  ): Promise<{ isBlocked: boolean }> {
     const user = await this.userModel.findById(userId);
     if (!user) {
       throw new NotFoundException('Пользователь не найден');
     }
 
     const newBlockStatus = !user.isBlocked;
-    
-    await this.userModel.findByIdAndUpdate(
-      userId,
-      { 
-        isBlocked: newBlockStatus,
-        blacklistedByAdmin: newBlockStatus 
-      }
-    );
+
+    await this.userModel.findByIdAndUpdate(userId, {
+      isBlocked: newBlockStatus,
+      blacklistedByAdmin: newBlockStatus,
+    });
 
     return { isBlocked: newBlockStatus };
   }
@@ -324,18 +342,15 @@ export class UsersService {
       throw new NotFoundException('Пользователь не найден');
     }
 
-    await this.userModel.findByIdAndUpdate(
-      userId,
-      { isActivated: true }
-    );
+    await this.userModel.findByIdAndUpdate(userId, { isActivated: true });
 
     return { isActivated: true };
   }
 
   async deleteUser(
-    userId: string, 
-    deleteUserDto: DeleteUserDto, 
-    adminId: string
+    userId: string,
+    deleteUserDto: DeleteUserDto,
+    adminId: string,
   ): Promise<{ message: string }> {
     const user = await this.userModel.findById(userId);
     if (!user) {
@@ -343,37 +358,36 @@ export class UsersService {
     }
 
     // Мягкое удаление - помечаем как заблокированного
-    await this.userModel.findByIdAndUpdate(
-      userId,
-      { 
-        isBlocked: true,
-        blacklistedByAdmin: true,
-        // Сохраняем информацию об удалении в дополнительных полях
-        $set: {
-          'deletionInfo.deletedAt': new Date(),
-          'deletionInfo.deletedBy': adminId,
-          'deletionInfo.reason': deleteUserDto.reason,
-          'deletionInfo.additionalInfo': deleteUserDto.additionalInfo,
-        }
-      }
-    );
+    await this.userModel.findByIdAndUpdate(userId, {
+      isBlocked: true,
+      blacklistedByAdmin: true,
+      // Сохраняем информацию об удалении в дополнительных полях
+      $set: {
+        'deletionInfo.deletedAt': new Date(),
+        'deletionInfo.deletedBy': adminId,
+        'deletionInfo.reason': deleteUserDto.reason,
+        'deletionInfo.additionalInfo': deleteUserDto.additionalInfo,
+      },
+    });
 
     return { message: 'Пользователь успешно удален' };
   }
 
-  async updateOnlineStatus(userId: string, isOnline: boolean): Promise<{ isOnline: boolean }> {
-    await this.userModel.findByIdAndUpdate(
-      userId,
-      { 
-        'profile.isOnline': isOnline,
-        'profile.lastSeenAt': new Date()
-      }
-    );
+  async updateOnlineStatus(
+    userId: string,
+    isOnline: boolean,
+  ): Promise<{ isOnline: boolean }> {
+    await this.userModel.findByIdAndUpdate(userId, {
+      'profile.isOnline': isOnline,
+      'profile.lastSeenAt': new Date(),
+    });
 
     return { isOnline };
   }
 
-  async getOnlineStatus(userId: string): Promise<{ isOnline: boolean; lastSeenAt: Date }> {
+  async getOnlineStatus(
+    userId: string,
+  ): Promise<{ isOnline: boolean; lastSeenAt: Date }> {
     const user = await this.userModel
       .findById(userId)
       .select('profile.isOnline profile.lastSeenAt')
@@ -385,7 +399,7 @@ export class UsersService {
 
     return {
       isOnline: user.profile.isOnline,
-      lastSeenAt: user.profile.lastSeenAt
+      lastSeenAt: user.profile.lastSeenAt,
     };
   }
 
@@ -430,7 +444,7 @@ export class UsersService {
       this.userModel.countDocuments({ role: UserRole.VISITOR }),
       this.userModel.countDocuments({ 'profile.isOnline': true }),
       this.userModel.countDocuments({
-        createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+        createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
       }),
     ]);
 
@@ -469,13 +483,18 @@ export class UsersService {
       user.profile?.avatarUrl,
     ];
 
-    const filledFields = fields.filter(field => field && field.trim().length > 0);
+    const filledFields = fields.filter(
+      (field) => field && field.trim().length > 0,
+    );
     completeness = Math.round((filledFields.length / fields.length) * 100);
 
     return completeness;
   }
 
-  private calculateAccountAge(createdAt: Date): { days: number; months: number } {
+  private calculateAccountAge(createdAt: Date): {
+    days: number;
+    months: number;
+  } {
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - createdAt.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -493,37 +512,36 @@ export class UsersService {
       averageRating: number;
       totalRatings: number;
       responseTimeAvg: number;
-    }>
+    }>,
   ): Promise<void> {
-    await this.userModel.findByIdAndUpdate(
-      operatorId,
-      { $set: { operatorStats: stats } }
-    );
+    await this.userModel.findByIdAndUpdate(operatorId, {
+      $set: { operatorStats: stats },
+    });
   }
 
   async findByEmail(email: string): Promise<UserDocument | null> {
     return this.userModel.findOne({ email: email.toLowerCase() }).exec();
   }
 
-  async validateUser(email: string, password: string): Promise<UserResponse | null> {
-    const user = await this.userModel.findOne({ 
+  async validateUser(
+    email: string,
+    password: string,
+  ): Promise<UserResponse | null> {
+    const user = await this.userModel.findOne({
       email: email.toLowerCase(),
-      isBlocked: false 
+      isBlocked: false,
     });
-    
-    if (user && await bcrypt.compare(password, user.passwordHash)) {
+
+    if (user && (await bcrypt.compare(password, user.passwordHash))) {
       const { passwordHash: _, ...userWithoutPassword } = user.toObject();
       return userWithoutPassword as UserResponse;
     }
-    
+
     return null;
   }
   async updatePassword(userId: string, newPasswordHash: string): Promise<void> {
-  await this.userModel.findByIdAndUpdate(
-    userId,
-    { passwordHash: newPasswordHash }
-  );
+    await this.userModel.findByIdAndUpdate(userId, {
+      passwordHash: newPasswordHash,
+    });
+  }
 }
-
-}
-

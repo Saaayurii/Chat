@@ -18,9 +18,9 @@ async function bootstrap() {
   // ✅ Глобальная валидация DTO
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,           // удаляет лишние поля
+      whitelist: true, // удаляет лишние поля
       forbidNonWhitelisted: true, // выбрасывает ошибку при лишних полях
-      transform: true,            // автоматически приводит типы
+      transform: true, // автоматически приводит типы
     }),
   );
 
@@ -49,13 +49,14 @@ async function bootstrap() {
     .build();
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
-  
+
   // Добавляем описание WebSocket эндпоинта
   swaggerDocument.paths['/chat'] = {
     get: {
       tags: ['WebSocket'],
       summary: 'Подключиться к WebSocket-чату',
-      description: 'Используйте WebSocket-протокол для подключения к real-time чату',
+      description:
+        'Используйте WebSocket-протокол для подключения к real-time чату',
       responses: {
         101: {
           description: 'WebSocket handshake successful',
@@ -102,15 +103,27 @@ async function bootstrap() {
   // 🚀 Запуск приложения
   const port = process.env.SERVER_PORT || 3000;
   await app.listen(port);
-  
+
   // 📊 Логирование информации о запуске
   console.log('🚀 Приложение запущено на порту:', port);
   console.log('📚 API Documentation: http://localhost:' + port + '/api-docs');
   console.log('🔗 Client URL:', process.env.CLIENT_URL);
-  console.log('🍪 Cookie Secret:', process.env.COOKIE_SECRET ? '✅ Настроен' : '❌ Не настроен');
-  console.log('🔐 JWT Secret:', process.env.JWT_SECRET ? '✅ Настроен' : '❌ Не настроен');
-  console.log('📧 Resend API:', process.env.RESEND_API_KEY ? '✅ Настроен' : '❌ Не настроен');
-  console.log('🗄️ MongoDB:', process.env.MONGO_URI ? '✅ Подключено' : '❌ Не настроено');
+  console.log(
+    '🍪 Cookie Secret:',
+    process.env.COOKIE_SECRET ? '✅ Настроен' : '❌ Не настроен',
+  );
+  console.log(
+    '🔐 JWT Secret:',
+    process.env.JWT_SECRET ? '✅ Настроен' : '❌ Не настроен',
+  );
+  console.log(
+    '📧 Resend API:',
+    process.env.RESEND_API_KEY ? '✅ Настроен' : '❌ Не настроен',
+  );
+  console.log(
+    '🗄️ MongoDB:',
+    process.env.MONGO_URI ? '✅ Подключено' : '❌ Не настроено',
+  );
 }
 
 bootstrap();

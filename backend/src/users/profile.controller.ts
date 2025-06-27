@@ -24,19 +24,9 @@ import { JwtAuthGuard } from '../common/guards/auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserDocument } from '../database/schemas/user.schema';
 import { UpdateProfileDto } from './dto/update-profile.dto/update-profile.dto';
+import { MulterFile } from './interfaces/multer-file.interface';
 
-// Типы для Multer
-interface MulterFile {
-  fieldname: string;
-  originalname: string;
-  encoding: string;
-  mimetype: string;
-  size: number;
-  destination: string;
-  filename: string;
-  path: string;
-  buffer: Buffer;
-}
+
 
 @ApiTags('Профиль пользователя')
 @Controller('profile')
@@ -60,7 +50,10 @@ export class ProfileController {
     @CurrentUser() user: UserDocument,
     @Body() updateProfileDto: UpdateProfileDto,
   ) {
-    return this.usersService.updateProfile(user._id.toString(), updateProfileDto);
+    return this.usersService.updateProfile(
+      user._id.toString(),
+      updateProfileDto,
+    );
   }
 
   @Put('avatar')

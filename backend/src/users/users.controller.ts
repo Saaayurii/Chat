@@ -48,7 +48,10 @@ export class UsersController {
   @ApiOperation({ summary: 'Создать нового пользователя (только админ)' })
   @ApiResponse({ status: 201, description: 'Пользователь успешно создан' })
   @ApiResponse({ status: 403, description: 'Недостаточно прав доступа' })
-  @ApiResponse({ status: 409, description: 'Пользователь с таким email уже существует' })
+  @ApiResponse({
+    status: 409,
+    description: 'Пользователь с таким email уже существует',
+  })
   async createUser(@Body() createUserDto: CreateUserDto) {
     return this.usersService.createUser(createUserDto);
   }
@@ -67,10 +70,29 @@ export class UsersController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.OPERATOR)
   @ApiOperation({ summary: 'Получить список пользователей' })
-  @ApiQuery({ name: 'page', required: false, description: 'Номер страницы', example: 1 })
-  @ApiQuery({ name: 'limit', required: false, description: 'Количество на странице', example: 10 })
-  @ApiQuery({ name: 'role', required: false, enum: UserRole, description: 'Фильтр по роли' })
-  @ApiQuery({ name: 'search', required: false, description: 'Поиск по email или имени' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Номер страницы',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Количество на странице',
+    example: 10,
+  })
+  @ApiQuery({
+    name: 'role',
+    required: false,
+    enum: UserRole,
+    description: 'Фильтр по роли',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Поиск по email или имени',
+  })
   @ApiResponse({ status: 200, description: 'Список пользователей получен' })
   async findAllUsers(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
@@ -85,7 +107,11 @@ export class UsersController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.OPERATOR)
   @ApiOperation({ summary: 'Получить список операторов' })
-  @ApiQuery({ name: 'online', required: false, description: 'Только онлайн операторы' })
+  @ApiQuery({
+    name: 'online',
+    required: false,
+    description: 'Только онлайн операторы',
+  })
   @ApiResponse({ status: 200, description: 'Список операторов получен' })
   async findOperators(@Query('online') online?: boolean) {
     return this.usersService.findOperators(online);
@@ -129,7 +155,9 @@ export class UsersController {
   @Put(':id/block')
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Заблокировать/разблокировать пользователя (только админ)' })
+  @ApiOperation({
+    summary: 'Заблокировать/разблокировать пользователя (только админ)',
+  })
   @ApiParam({ name: 'id', description: 'ID пользователя' })
   @ApiResponse({ status: 200, description: 'Статус блокировки изменен' })
   async toggleUserBlock(
@@ -161,6 +189,10 @@ export class UsersController {
     @Body() deleteUserDto: DeleteUserDto,
     @CurrentUser() currentUser: UserDocument,
   ) {
-    return this.usersService.deleteUser(id, deleteUserDto, currentUser._id.toString());
+    return this.usersService.deleteUser(
+      id,
+      deleteUserDto,
+      currentUser._id.toString(),
+    );
   }
 }

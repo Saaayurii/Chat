@@ -50,7 +50,6 @@ async function bootstrap() {
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
 
-
   // 🌐 Swagger UI на /api-docs
   SwaggerModule.setup('api-docs', app, swaggerDocument);
 

@@ -16,16 +16,6 @@ import { UpdateProfileDto } from './dto/update-profile.dto/update-profile.dto';
 import { DeleteUserDto } from './dto/delete-user.dto/delete-user.dto';
 import { UserResponse } from './interfaces/user-response.interface';
 
-// Интерфейс для файла без Express.Multer
-interface UploadedFile {
-  fieldname: string;
-  originalname: string;
-  encoding: string;
-  mimetype: string;
-  size: number;
-  buffer: Buffer;
-}
-
 @Injectable()
 export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}

@@ -1,16 +1,15 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
-
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
-// import { ChatModule } from './chat/chat.module';
-// import { QuestionsModule } from './questions/questions.module';
-// import { ComplaintsModule } from './complaints/complaints.module';
-// import { RatingsModule } from './ratings/ratings.module';
-// import { BlacklistModule } from './blacklist/blacklist.module';
-// import { EmailModule } from './email/email.module';
 import { DatabaseModule } from './database/database.module';
+import { ChatModule } from './chat/chat.module';
+import { QuestionsModule } from './questions/questions.module';
+import { ComplaintsModule } from './complaints/complaints.module';
+import { RatingsModule } from './ratings/ratings.module';
+import { BlacklistModule } from './blacklist/blacklist.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -18,7 +17,6 @@ import { DatabaseModule } from './database/database.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    // Direct connection approach
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {
@@ -47,14 +45,14 @@ import { DatabaseModule } from './database/database.module';
       inject: [ConfigService],
     }),
     AuthModule,
-    // ChatModule,
+    ChatModule,
     UsersModule,
-    // QuestionsModule,
-    // ComplaintsModule,
-    // RatingsModule,
-    // BlacklistModule,
-    // EmailModule,
-     DatabaseModule,
+    QuestionsModule,
+    ComplaintsModule,
+    RatingsModule,
+    BlacklistModule,
+    EmailModule,
+    DatabaseModule,
   ],
 })
 export class AppModule {}

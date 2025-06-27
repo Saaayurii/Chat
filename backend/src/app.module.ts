@@ -4,14 +4,13 @@ import { MongooseModule } from '@nestjs/mongoose';
 
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
-// import { UsersModule } from './modules/auth/models/user.model';
 // import { ChatModule } from './chat/chat.module';
 // import { QuestionsModule } from './questions/questions.module';
 // import { ComplaintsModule } from './complaints/complaints.module';
 // import { RatingsModule } from './ratings/ratings.module';
 // import { BlacklistModule } from './blacklist/blacklist.module';
 // import { EmailModule } from './email/email.module';
-// import { DatabaseModule } from './database/database.module';
+import { DatabaseModule } from './database/database.module';
 
 @Module({
   imports: [
@@ -55,7 +54,7 @@ import { UsersModule } from './users/users.module';
     // RatingsModule,
     // BlacklistModule,
     // EmailModule,
-    // DatabaseModule,
+     DatabaseModule,
   ],
 })
 export class AppModule {}

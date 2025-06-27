@@ -15,7 +15,7 @@ import { BlacklistEntry, BlacklistEntrySchema } from './schemas/blacklist-entry.
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        uri: configService.get<string>('MONGODB_URI'),
+        uri: configService.get<string>('MONGO_URI'),
         useNewUrlParser: true,
         useUnifiedTopology: true,
         // Настройки для продакшена

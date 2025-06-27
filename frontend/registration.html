@@ -14,21 +14,29 @@
             <h2>Регистрация</h2>
             <form id="registrationForm" novalidate>
                 <div class="form-group">
-                    <label for="name">Имя:</label>
-                    <input type="text" id="name">
-                    <div class="error-message" id="nameError">Введите имя</div>
+                    <label for="name">Полное имя:</label>
+                    <input type="text" id="name" placeholder="Андрей Иванов">
+                    <div class="error-message" id="nameError">Введите полное имя</div>
+                </div>
+
+                <!-- ✅ ДОБАВЛЕНО: Поле username -->
+                <div class="form-group">
+                    <label for="username">Имя пользователя:</label>
+                    <input type="text" id="username" placeholder="andrey_123">
+                    <div class="error-message" id="usernameError">Введите имя пользователя</div>
+                    <small style="color: #666; font-size: 12px;">Только латинские буквы, цифры, _ и -, минимум 3 символа</small>
                 </div>
 
                 <div class="form-group">
                     <label for="email">Email:</label>
-                    <input type="email" id="email">
+                    <input type="email" id="email" placeholder="user@example.com">
                     <div class="error-message" id="emailError">Введите корректный email</div>
                 </div>
 
                 <div class="form-group">
                     <label for="password">Пароль:</label>
                     <div class="password-container">
-                        <input type="password" id="password">
+                        <input type="password" id="password" placeholder="MyPassword123!">
                         <span class="toggle-password">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
                                 class="bi bi-eye-slash" viewBox="0 0 16 16">
@@ -42,12 +50,13 @@
                         </span>
                     </div>
                     <div class="error-message" id="passwordError"></div>
+                    <small style="color: #666; font-size: 12px;">Минимум 8 символов: заглавная, строчная, цифра, спецсимвол (@$!%*?&)</small>
                 </div>
 
                 <div class="form-group">
                     <label for="passwordConfirm">Повторите пароль:</label>
                     <div class="password-container">
-                        <input type="password" id="passwordConfirm">
+                        <input type="password" id="passwordConfirm" placeholder="Повторите пароль">
                     </div>
                     <div class="error-message" id="passwordConfirmError">Пароли не совпадают</div>
                 </div>
@@ -58,7 +67,7 @@
                 <div class="links">
                     <a href="reset.html">Забыли пароль?</a>
                     <br>
-                    <a href="index.html">Вход</a>
+                    <a href="index.html">Уже есть аккаунт? Войти</a>
                 </div>
             </form>
         </div>
@@ -67,11 +76,13 @@
     <script>
         const registrationForm = document.getElementById('registrationForm');
         const nameInput = document.getElementById('name');
+        const usernameInput = document.getElementById('username'); // ✅ Добавлено
         const emailInput = document.getElementById('email');
         const passwordInput = document.getElementById('password');
         const passwordConfirmInput = document.getElementById('passwordConfirm');
 
         const nameError = document.getElementById('nameError');
+        const usernameError = document.getElementById('usernameError'); // ✅ Добавлено
         const emailError = document.getElementById('emailError');
         const passwordError = document.getElementById('passwordError');
         const passwordConfirmError = document.getElementById('passwordConfirmError');
@@ -81,6 +92,7 @@
             element.textContent = message;
             element.style.display = 'block';
         }
+
         function hideError(element) {
             element.style.display = 'none';
             element.textContent = '';
@@ -91,50 +103,89 @@
             return re.test(String(email).toLowerCase());
         }
 
+        // ✅ Добавлена валидация username
+        function validateUsername(username) {
+            const re = /^[a-zA-Z0-9_-]+$/;
+            return re.test(username) && username.length >= 3;
+        }
+
+        // ✅ Добавлена валидация пароля
+        function validatePassword(password) {
+            const re = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
+            return password.length >= 8 && re.test(password);
+        }
+
         registrationForm.addEventListener('submit', async (event) => {
             event.preventDefault();
             formError.style.display = 'none';
 
             let isValid = true;
 
+            // Валидация полного имени
             if (!nameInput.value.trim()) {
-                showError(nameError, 'Введите имя');
+                showError(nameError, 'Введите полное имя');
                 isValid = false;
             } else {
                 hideError(nameError);
             }
 
-            if (!validateEmail(emailInput.value)) {
+            // ✅ Валидация username
+            if (!usernameInput.value.trim()) {
+                showError(usernameError, 'Введите имя пользователя');
+                isValid = false;
+            } else if (!validateUsername(usernameInput.value.trim())) {
+                showError(usernameError, 'Имя пользователя должно содержать минимум 3 символа и только латинские буквы, цифры, _ и -');
+                isValid = false;
+            } else {
+                hideError(usernameError);
+            }
+
+            // Валидация email
+            if (!emailInput.value.trim()) {
+                showError(emailError, 'Введите email');
+                isValid = false;
+            } else if (!validateEmail(emailInput.value)) {
                 showError(emailError, 'Введите корректный email');
                 isValid = false;
             } else {
                 hideError(emailError);
             }
 
-            if (passwordInput.value.length < 6) {
-                showError(passwordError, 'Пароль должен содержать минимум 6 символов');
+            // ✅ Улучшенная валидация пароля
+            if (!passwordInput.value) {
+                showError(passwordError, 'Введите пароль');
+                isValid = false;
+            } else if (!validatePassword(passwordInput.value)) {
+                showError(passwordError, 'Пароль должен содержать минимум 8 символов, заглавную букву, строчную букву, цифру и спецсимвол (@$!%*?&)');
                 isValid = false;
             } else {
                 hideError(passwordError);
             }
 
-            if (passwordInput.value !== passwordConfirmInput.value) {
+            // Валидация подтверждения пароля
+            if (!passwordConfirmInput.value) {
+                showError(passwordConfirmError, 'Повторите пароль');
+                isValid = false;
+            } else if (passwordInput.value !== passwordConfirmInput.value) {
                 showError(passwordConfirmError, 'Пароли не совпадают');
                 isValid = false;
             } else {
-                if (passwordInput.value.length >= 6) {
-                    hideError(passwordConfirmError);
-                }
+                hideError(passwordConfirmError);
             }
 
             if (!isValid) {
                 return;
             }
 
+            // ✅ ИСПРАВЛЕННЫЙ payload с username и fullName
             const registrationData = {
-                email: emailInput.value,
-                password: passwordInput.value
+                email: emailInput.value.trim(),
+                username: usernameInput.value.trim(),
+                password: passwordInput.value,
+                fullName: nameInput.value.trim()
             };
+
+            console.log('Отправляем данные:', registrationData); // Для отладки
 
             try {
                 const response = await fetch('http://localhost:3000/auth/register', {
@@ -145,49 +196,70 @@
                     body: JSON.stringify(registrationData)
                 });
 
+                const result = await response.json();
+
                 if (response.ok) {
-                    const result = await response.json();
                     console.log('Регистрация успешна:', result);
+                    alert('Регистрация успешна! Проверьте email для подтверждения аккаунта.');
                     window.location.href = 'index.html';
                 } else {
-                    const errorData = await response.json();
-                    console.error('Ошибка регистрации:', errorData);
-                    showError(formError, errorData.message || `Ошибка ${response.status}. Попробуйте еще раз.`);
+                    console.error('Ошибка регистрации:', result);
+                    
+                    // ✅ Улучшенное отображение ошибок
+                    let errorMessage = '';
+                    if (Array.isArray(result.message)) {
+                        errorMessage = result.message.join('\n');
+                    } else if (result.message) {
+                        errorMessage = result.message;
+                    } else {
+                        errorMessage = `Ошибка ${response.status}. Попробуйте еще раз.`;
+                    }
+                    
+                    showError(formError, errorMessage);
                 }
             } catch (error) {
-                console.error('Сетевая ошибка или ошибка выполнения запроса:', error);
+                console.error('Сетевая ошибка:', error);
                 showError(formError, 'Не удалось подключиться к серверу. Проверьте ваше соединение.');
             }
         });
 
+        // ✅ Обработчики для скрытия ошибок при вводе
         nameInput.addEventListener('input', () => hideError(nameError));
+        usernameInput.addEventListener('input', () => hideError(usernameError)); // ✅ Добавлено
         emailInput.addEventListener('input', () => hideError(emailError));
+        
         passwordInput.addEventListener('input', () => {
             hideError(passwordError);
             if (passwordConfirmInput.value && passwordInput.value !== passwordConfirmInput.value) {
-                 showError(passwordConfirmError, 'Пароли не совпадают');
+                showError(passwordConfirmError, 'Пароли не совпадают');
             } else if (passwordConfirmInput.value) {
-                 hideError(passwordConfirmError);
+                hideError(passwordConfirmError);
             }
         });
+        
         passwordConfirmInput.addEventListener('input', () => {
-             if (passwordInput.value !== passwordConfirmInput.value) {
-                 showError(passwordConfirmError, 'Пароли не совпадают');
+            if (passwordInput.value !== passwordConfirmInput.value) {
+                showError(passwordConfirmError, 'Пароли не совпадают');
             } else {
-                 hideError(passwordConfirmError);
+                hideError(passwordConfirmError);
             }
         });
 
+        // Показать/скрыть пароль
         document.querySelectorAll('.toggle-password').forEach(toggle => {
             toggle.addEventListener('click', () => {
                 const passwordField = toggle.previousElementSibling;
                 const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
                 passwordField.setAttribute('type', type);
-                toggle.querySelector('svg').classList.toggle('bi-eye-slash');
-                toggle.querySelector('svg').classList.toggle('bi-eye');
+                
+                const svg = toggle.querySelector('svg');
+                if (type === 'text') {
+                    svg.innerHTML = `<path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/>`;
+                } else {
+                    svg.innerHTML = `<path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7 7 0 0 0-2.79.588l.77.771A6 6 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755q-.247.248-.517.486z"/><path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829"/><path d="M3.35 5.47q-.27.24-.518.487A13 13 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7 7 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12z"/>`;
+                }
             });
         });
-
     </script>
 </body>
 

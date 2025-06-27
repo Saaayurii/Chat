@@ -78,7 +78,7 @@ async function bootstrap() {
 
   // 📊 Логирование информации о запуске
   console.log('🚀 Приложение запущено на порту:', port);
-  console.log('📚 API Documentation: http://localhost:' + port + '/api-docs');
+  console.log('📚 API Documentation:', process.env.API_DOCUMENTATION);
   console.log('🔗 Client URL:', process.env.CLIENT_URL);
   console.log(
     '🍪 Cookie Secret:',

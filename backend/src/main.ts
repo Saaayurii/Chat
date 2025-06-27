@@ -50,34 +50,6 @@ async function bootstrap() {
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
 
-  // Добавляем описание WebSocket эндпоинта
-  swaggerDocument.paths['/chat'] = {
-    get: {
-      tags: ['WebSocket'],
-      summary: 'Подключиться к WebSocket-чату',
-      description:
-        'Используйте WebSocket-протокол для подключения к real-time чату',
-      responses: {
-        101: {
-          description: 'WebSocket handshake successful',
-        },
-      },
-    },
-  };
-
-  // Добавляем описание WebSocket эндпоинта
-  swaggerDocument.paths['/users'] = {
-    get: {
-      tags: ['Users'],
-      summary: 'API Users',
-      description: 'Все API Users',
-      responses: {
-        101: {
-          description: 'WebSocket handshake successful',
-        },
-      },
-    },
-  };
 
   // 🌐 Swagger UI на /api-docs
   SwaggerModule.setup('api-docs', app, swaggerDocument);

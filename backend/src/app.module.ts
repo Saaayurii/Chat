@@ -2,7 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 
-import { AuthModule } from './modules/auth/auth.module';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
 // import { UsersModule } from './modules/auth/models/user.model';
 // import { ChatModule } from './chat/chat.module';
 // import { QuestionsModule } from './questions/questions.module';
@@ -48,7 +49,7 @@ import { AuthModule } from './modules/auth/auth.module';
     }),
     AuthModule,
     // ChatModule,
-    // UsersModule,
+    UsersModule,
     // QuestionsModule,
     // ComplaintsModule,
     // RatingsModule,

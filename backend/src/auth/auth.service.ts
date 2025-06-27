@@ -21,7 +21,6 @@ import { ForgotPasswordDto, ResetPasswordDto } from './dto/reset-password.dto/re
 import { AuthResponse } from './interfaces/auth-response.interface';
 
 
-
 @Injectable()
 export class AuthService {
   private resend: Resend;

@@ -27,7 +27,6 @@ import { UpdateProfileDto } from './dto/update-profile.dto/update-profile.dto';
 import { MulterFile } from './interfaces/multer-file.interface';
 
 
-
 @ApiTags('Профиль пользователя')
 @Controller('profile')
 @UseGuards(JwtAuthGuard)

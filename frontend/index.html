@@ -116,8 +116,8 @@
                     const result = await response.json();
                     console.log('Авторизация успешна:', result);
 
-                    if (result.accessToken) {
-                        localStorage.setItem('accessToken', result.accessToken);
+                    if (result.access_token) {
+                        localStorage.setItem('access_token', result.access_token);
                         
                         // Сохраняем данные пользователя
                         // Адаптируем под структуру ответа сервера

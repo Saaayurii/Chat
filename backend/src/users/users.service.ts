@@ -297,14 +297,67 @@ export class UsersService {
     userId: string,
     file: UploadedFile,
   ): Promise<{ avatarUrl: string }> {
-    // TODO: Реализовать загрузку файла в хранилище (AWS S3, Cloudinary и т.д.)
-    const avatarUrl = `/uploads/avatars/${userId}-${Date.now()}-${file.originalname}`;
+    // Проверяем, что это изображение
+    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedImageTypes.includes(file.mimetype)) {
+      throw new BadRequestException('Допустимы только изображения (JPEG, PNG, GIF, WEBP)');
+    }
 
-    await this.userModel.findByIdAndUpdate(userId, {
-      $set: { 'profile.avatarUrl': avatarUrl },
-    });
+    // Проверяем размер файла (максимум 2MB для аватаров)
+    const maxSize = 2 * 1024 * 1024; // 2MB
+    if (file.size > maxSize) {
+      throw new BadRequestException('Размер изображения не должен превышать 2MB');
+    }
 
-    return { avatarUrl };
+    // Генерируем безопасное имя файла
+    const fileExtension = this.getFileExtension(file.originalname);
+    const safeFileName = `${userId}-${Date.now()}-avatar${fileExtension}`;
+    const uploadPath = `uploads/avatars/${safeFileName}`;
+
+    try {
+      // Сохраняем файл в файловую систему
+      await this.saveFileToSystem(file, uploadPath);
+
+      // Обновляем URL аватара в базе данных
+      await this.userModel.findByIdAndUpdate(userId, {
+        $set: { 'profile.avatarUrl': `/${uploadPath}` },
+      });
+
+      return { avatarUrl: `/${uploadPath}` };
+    } catch (error) {
+      throw new BadRequestException('Ошибка при загрузке аватара');
+    }
+  }
+
+  private getFileExtension(filename: string): string {
+    const extension = filename.substring(filename.lastIndexOf('.'));
+    // Белый список расширений для аватаров
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    if (!allowedExtensions.includes(extension.toLowerCase())) {
+      return '.jpg'; // Дефолтное расширение
+    }
+    return extension.toLowerCase();
+  }
+
+  private async saveFileToSystem(file: UploadedFile, uploadPath: string): Promise<void> {
+    const fs = require('fs').promises;
+    const path = require('path');
+    
+    // Создаем директорию если не существует
+    const dirPath = path.dirname(uploadPath);
+    await fs.mkdir(dirPath, { recursive: true });
+
+    // Сохраняем файл
+    if (file.buffer) {
+      await fs.writeFile(uploadPath, file.buffer);
+    } else if (file.path) {
+      // Если файл сохранен во временной директории
+      await fs.copyFile(file.path, uploadPath);
+      // Удаляем временный файл
+      await fs.unlink(file.path);
+    } else {
+      throw new Error('Файл не содержит данных');
+    }
   }
 
   async toggleUserBlock(

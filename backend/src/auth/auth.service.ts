@@ -162,9 +162,7 @@ export class AuthService {
       const newPasswordHash = await bcrypt.hash(resetPasswordDto.newPassword, saltRounds);
 
       // Обновляем пароль в базе данных
-      await this.usersService.updateUser(user._id.toString(), {
-        // Нужно добавить метод для обновления пароля в UsersService
-      });
+      await this.usersService.updatePassword(user._id.toString(), newPasswordHash);
 
       return { message: 'Пароль успешно изменен! Теперь вы можете войти с новым паролем.' };
     } catch (error) {

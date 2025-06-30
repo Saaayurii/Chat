@@ -1,4 +1,3 @@
-// src/database/schemas/user.schema.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
@@ -9,7 +8,6 @@ export enum UserRole {
   OPERATOR = 'operator',
   VISITOR = 'visitor',
 }
-
 @Schema({ 
   timestamps: true,
   collection: 'users'
@@ -17,7 +15,6 @@ export enum UserRole {
 export class User {
   // MongoDB автоматически добавляет _id, но для TypeScript нужно объявить
   _id: Types.ObjectId;
-
   @Prop({ 
     required: true, 
     unique: true,

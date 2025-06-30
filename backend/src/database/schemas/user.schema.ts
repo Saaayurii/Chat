@@ -112,8 +112,7 @@ export class User {
 
 export const UserSchema = SchemaFactory.createForClass(User);
 
-// Индексы для оптимизации
-UserSchema.index({ email: 1 });
+// Индексы для оптимизации (email уже имеет unique индекс из декоратора @Prop)
 UserSchema.index({ role: 1, isBlocked: 1 });
 UserSchema.index({ 'profile.username': 1 });
 UserSchema.index({ 'profile.isOnline': 1, role: 1 });

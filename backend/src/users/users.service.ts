@@ -316,7 +316,7 @@ export class UsersService {
 
     try {
       // Сохраняем файл в файловую систему
-      await this.saveFileToSystem(file, uploadPath);
+      // await this.saveFileToSystem(file, uploadPath);
 
       // Обновляем URL аватара в базе данных
       await this.userModel.findByIdAndUpdate(userId, {
@@ -339,26 +339,26 @@ export class UsersService {
     return extension.toLowerCase();
   }
 
-  private async saveFileToSystem(file: UploadedFile, uploadPath: string): Promise<void> {
-    const fs = require('fs').promises;
-    const path = require('path');
+  // private async saveFileToSystem(file: UploadedFile, uploadPath: string): Promise<void> {
+  //   const fs = require('fs').promises;
+  //   const path = require('path');
     
-    // Создаем директорию если не существует
-    const dirPath = path.dirname(uploadPath);
-    await fs.mkdir(dirPath, { recursive: true });
+  //   // Создаем директорию если не существует
+  //   const dirPath = path.dirname(uploadPath);
+  //   await fs.mkdir(dirPath, { recursive: true });
 
-    // Сохраняем файл
-    if (file.buffer) {
-      await fs.writeFile(uploadPath, file.buffer);
-    } else if (file.path) {
-      // Если файл сохранен во временной директории
-      await fs.copyFile(file.path, uploadPath);
-      // Удаляем временный файл
-      await fs.unlink(file.path);
-    } else {
-      throw new Error('Файл не содержит данных');
-    }
-  }
+  //   // Сохраняем файл
+  //   if (file.buffer) {
+  //     await fs.writeFile(uploadPath, file.buffer);
+  //   } else if (file.path) {
+  //     // Если файл сохранен во временной директории
+  //     await fs.copyFile(file.path, uploadPath);
+  //     // Удаляем временный файл
+  //     await fs.unlink(file.path);
+  //   } else {
+  //     throw new Error('Файл не содержит данных');
+  //   }
+  // }
 
   async toggleUserBlock(
     userId: string,

@@ -23,9 +23,9 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 export default function ProfilePage() {
   const { user: currentUser, setAuth } = useAuthStore();
   const queryClient = useQueryClient();
-  const [isEditing, setIsEditing] = useState(false);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const {0: isEditing, 1: setIsEditing} = useState(false);
+  const {0: avatarFile, 1: setAvatarFile} = useState<File | null>(null);
+  const {0: avatarPreview, 1: setAvatarPreview} = useState<string | null>(null);
 
   const { data: user, isLoading } = useQuery({
     queryKey: ['profile'],
@@ -44,10 +44,10 @@ export default function ProfilePage() {
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      username: user?.profile.username || '',
-      fullName: user?.profile.fullName || '',
-      phone: user?.profile.phone || '',
-      bio: user?.profile.bio || '',
+      username: user?.profile?.username || '',
+      fullName: user?.profile?.fullName || '',
+      phone: user?.profile?.phone || '',
+      bio: user?.profile?.bio || '',
     }
   });
 
@@ -100,22 +100,19 @@ export default function ProfilePage() {
   const handleEdit = () => {
     setIsEditing(true);
     reset({
-      username: user?.profile.username || '',
-      fullName: user?.profile.fullName || '',
-      phone: user?.profile.phone || '',
-      bio: user?.profile.bio || '',
+      username: user?.profile?.username || '',
+      fullName: user?.profile?.fullName || '',
+      phone: user?.profile?.phone || '',
+      bio: user?.profile?.bio || '',
     });
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Radix.Spinner size="3" />
-      </div>
-    );
-  }
+  return isLoading ? (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <Radix.Spinner size="3" />
+    </div>
+  ) : (
 
-  return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
@@ -134,10 +131,10 @@ export default function ProfilePage() {
                   <div className="w-32 h-32 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
                     {avatarPreview ? (
                       <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
-                    ) : user?.profile.avatarUrl ? (
+                    ) : user?.profile?.avatarUrl ? (
                       <img 
-                        src={user.profile.avatarUrl} 
-                        alt={user.profile.fullName || user.profile.username}
+                        src={user.profile?.avatarUrl} 
+                        alt={user.profile?.fullName || user.profile?.username}
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -167,7 +164,7 @@ export default function ProfilePage() {
                 )}
 
                 <h2 className="mt-4 text-xl font-semibold text-gray-900">
-                  {user?.profile.fullName || user?.profile.username}
+                  {user?.profile?.fullName || user?.profile?.username}
                 </h2>
                 <p className="text-gray-500">{user?.email}</p>
                 
@@ -328,14 +325,14 @@ export default function ProfilePage() {
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Имя пользователя
                         </label>
-                        <p className="text-gray-900">{user?.profile.username}</p>
+                        <p className="text-gray-900">{user?.profile?.username}</p>
                       </div>
                       
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Полное имя
                         </label>
-                        <p className="text-gray-900">{user?.profile.fullName || 'Не указано'}</p>
+                        <p className="text-gray-900">{user?.profile?.fullName || 'Не указано'}</p>
                       </div>
                     </div>
 
@@ -350,14 +347,14 @@ export default function ProfilePage() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Телефон
                       </label>
-                      <p className="text-gray-900">{user?.profile.phone || 'Не указан'}</p>
+                      <p className="text-gray-900">{user?.profile?.phone || 'Не указан'}</p>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         О себе
                       </label>
-                      <p className="text-gray-900">{user?.profile.bio || 'Не указано'}</p>
+                      <p className="text-gray-900">{user?.profile?.bio || 'Не указано'}</p>
                     </div>
 
                     <div>

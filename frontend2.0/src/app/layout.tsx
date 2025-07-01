@@ -19,6 +19,16 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Система чата",
   description: "Система чата для поддержки клиентов",
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: '32x32', type: 'image/x-icon' },
+      { url: '/favicon.svg', type: 'image/svg+xml' }
+    ],
+    apple: '/apple-touch-icon.png',
+  },
+  keywords: ['чат', 'поддержка', 'клиенты', 'оператор', 'система'],
+  authors: [{ name: 'Система чата' }],
+  viewport: 'width=device-width, initial-scale=1',
 };
 
 export default function RootLayout({

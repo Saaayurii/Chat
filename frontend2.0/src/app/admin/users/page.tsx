@@ -11,10 +11,10 @@ import * as Radix from '@radix-ui/themes';
 export default function AdminUsersPage() {
   const { user: currentUser } = useAuthStore();
   const queryClient = useQueryClient();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedRole, setSelectedRole] = useState<UserRole | ''>('');
-  const [page, setPage] = useState(1);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const {0: searchQuery, 1: setSearchQuery} = useState('');
+  const {0: selectedRole, 1: setSelectedRole} = useState<UserRole | ''>('');
+  const {0: page, 1: setPage} = useState(1);
+  const {0: showCreateModal, 1: setShowCreateModal} = useState(false);
 
   const { data: usersData, isLoading } = useQuery({
     queryKey: ['users', page, selectedRole, searchQuery],
@@ -52,42 +52,20 @@ export default function AdminUsersPage() {
   });
 
   const handleBlockUser = (userId: string) => {
-    if (confirm('Вы уверены, что хотите изменить статус блокировки пользователя?')) {
-      blockUserMutation.mutate(userId);
-    }
+    confirm('Вы уверены, что хотите изменить статус блокировки пользователя?') ? blockUserMutation.mutate(userId) : null;
   };
 
   const handleDeleteUser = (userId: string) => {
     const reason = prompt('Укажите причину удаления:');
-    if (reason) {
-      deleteUserMutation.mutate({ userId, reason });
-    }
+    reason ? deleteUserMutation.mutate({ userId, reason }) : null;
   };
 
   const getRoleColor = (role: UserRole) => {
-    switch (role) {
-      case UserRole.ADMIN:
-        return 'red';
-      case UserRole.OPERATOR:
-        return 'blue';
-      case UserRole.VISITOR:
-        return 'gray';
-      default:
-        return 'gray';
-    }
+    return role === UserRole.ADMIN ? 'red' : role === UserRole.OPERATOR ? 'blue' : 'gray';
   };
 
   const getRoleLabel = (role: UserRole) => {
-    switch (role) {
-      case UserRole.ADMIN:
-        return 'Администратор';
-      case UserRole.OPERATOR:
-        return 'Оператор';
-      case UserRole.VISITOR:
-        return 'Посетитель';
-      default:
-        return role;
-    }
+    return role === UserRole.ADMIN ? 'Администратор' : role === UserRole.OPERATOR ? 'Оператор' : role === UserRole.VISITOR ? 'Посетитель' : role;
   };
 
   return (
@@ -203,17 +181,13 @@ export default function AdminUsersPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                            {user.profile.avatarUrl ? (
-                              <img
-                                src={user.profile.avatarUrl}
-                                alt={user.profile.fullName || user.profile.username}
-                                className="w-10 h-10 rounded-full"
-                              />
-                            ) : (
-                              <span className="text-gray-500 font-medium">
-                                {((user.profile.fullName || user.profile.username) ?? '').charAt(0).toUpperCase()}
-                              </span>
-                            )}
+                            {user.profile.avatarUrl ? <img
+                              src={user.profile.avatarUrl}
+                              alt={user.profile.fullName || user.profile.username}
+                              className="w-10 h-10 rounded-full"
+                            /> : <span className="text-gray-500 font-medium">
+                              {((user.profile.fullName || user.profile.username) ?? '').charAt(0).toUpperCase()}
+                            </span>}
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">
@@ -236,16 +210,12 @@ export default function AdminUsersPage() {
                           >
                             {user.isActivated ? 'Активирован' : 'Не активирован'}
                           </Radix.Badge>
-                          {user.isBlocked && (
-                            <Radix.Badge color="red" variant="soft">
-                              Заблокирован
-                            </Radix.Badge>
-                          )}
-                          {user.profile.isOnline && (
-                            <Radix.Badge color="green" variant="soft">
-                              Онлайн
-                            </Radix.Badge>
-                          )}
+                          {user.isBlocked ? <Radix.Badge color="red" variant="soft">
+                            Заблокирован
+                          </Radix.Badge> : null}
+                          {user.profile.isOnline ? <Radix.Badge color="green" variant="soft">
+                            Онлайн
+                          </Radix.Badge> : null}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -255,25 +225,19 @@ export default function AdminUsersPage() {
                         <div className="flex space-x-2">
                           <button
                             onClick={() => handleBlockUser(user._id)}
-                            className={`p-2 rounded-lg ${
-                              user.isBlocked 
-                                ? 'text-green-600 hover:bg-green-50' 
-                                : 'text-red-600 hover:bg-red-50'
-                            }`}
+                            className={`p-2 rounded-lg ${user.isBlocked ? 'text-green-600 hover:bg-green-50' : 'text-red-600 hover:bg-red-50'}`}
                             title={user.isBlocked ? 'Разблокировать' : 'Заблокировать'}
                           >
                             {user.isBlocked ? <Shield className="w-4 h-4" /> : <ShieldOff className="w-4 h-4" />}
                           </button>
                           
-                          {!user.isActivated && (
-                            <button
-                              onClick={() => activateUserMutation.mutate(user._id)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                              title="Активировать"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-                          )}
+                          {!user.isActivated ? <button
+                            onClick={() => activateUserMutation.mutate(user._id)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                            title="Активировать"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button> : null}
                           
                           <button
                             onClick={() => handleDeleteUser(user._id)}

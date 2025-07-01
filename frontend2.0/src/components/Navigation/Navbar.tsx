@@ -61,7 +61,7 @@ export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const {0: isMobileMenuOpen, 1: setIsMobileMenuOpen} = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -73,34 +73,14 @@ export default function Navbar() {
   );
 
   const getRoleColor = (role: string) => {
-    switch (role) {
-      case UserRole.ADMIN:
-        return 'red';
-      case UserRole.OPERATOR:
-        return 'blue';
-      case UserRole.VISITOR:
-        return 'gray';
-      default:
-        return 'gray';
-    }
+    return role === UserRole.ADMIN ? 'red' : role === UserRole.OPERATOR ? 'blue' : 'gray';
   };
 
   const getRoleLabel = (role: string) => {
-    switch (role) {
-      case UserRole.ADMIN:
-        return 'Администратор';
-      case UserRole.OPERATOR:
-        return 'Оператор';
-      case UserRole.VISITOR:
-        return 'Посетитель';
-      default:
-        return role;
-    }
+    return role === UserRole.ADMIN ? 'Администратор' : role === UserRole.OPERATOR ? 'Оператор' : role === UserRole.VISITOR ? 'Посетитель' : role;
   };
 
-  if (!user) return null;
-
-  return (
+  return !user ? null : (
     <nav className="bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
@@ -153,7 +133,7 @@ export default function Navbar() {
                 
                 <div className="flex flex-col">
                   <span className="text-sm font-medium text-gray-900">
-                    {user.profile?.fullName || user.profile?.username || 'Пользователь'}
+                    {user.email || user.profile?.username || 'Пользователь'}
                   </span>
                   <Radix.Badge 
                     color={getRoleColor(user.role) as any} 
@@ -180,11 +160,7 @@ export default function Navbar() {
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className="p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"
               >
-                {isMobileMenuOpen ? (
-                  <X className="w-6 h-6" />
-                ) : (
-                  <Menu className="w-6 h-6" />
-                )}
+                {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
             </div>
           </div>
@@ -192,7 +168,7 @@ export default function Navbar() {
       </div>
 
       {/* Mobile menu */}
-      {isMobileMenuOpen && (
+      {isMobileMenuOpen ? (
         <div className="md:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t border-gray-200">
             {/* User info mobile */}
@@ -261,7 +237,7 @@ export default function Navbar() {
             </button>
           </div>
         </div>
-      )}
+      ) : null}
     </nav>
   );
 }

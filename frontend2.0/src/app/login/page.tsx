@@ -19,7 +19,7 @@ type LoginFormData = LoginData;
 
 export default function LoginPage() {
   const router = useRouter();
-  const [showPassword, setShowPassword] = useState(false);
+  const {0: showPassword, 1: setShowPassword} = useState(false);
   const { setAuth } = useAuthStore();
 
   const {
@@ -37,19 +37,28 @@ export default function LoginPage() {
       return response.data;
     },
     onSuccess: (result) => {
-      if (result.access_token) {
+      result.access_token ? (() => {
         const userData = {
           id: result.user?._id || result.user?.id,
           _id: result.user?._id || result.user?.id,
           email: result.user?.email,
-          role: result.user?.role
+          role: result.user?.role,
+          isActivated: result.user?.isActivated || false,
+          isBlocked: result.user?.isBlocked || false,
+          blacklistedByAdmin: result.user?.blacklistedByAdmin || false,
+          blacklistedByOperator: result.user?.blacklistedByOperator || false,
+          profile: result.user?.profile || {
+            username: result.user?.email?.split('@')[0] || '',
+            lastSeenAt: new Date(),
+            isOnline: true
+          },
+          createdAt: result.user?.createdAt || new Date(),
+          updatedAt: result.user?.updatedAt || new Date()
         };
         
         setAuth(result.access_token, userData);
         router.push('/admin/statistics');
-      } else {
-        setError('root', { message: 'Не удалось получить токен доступа.' });
-      }
+      })() : setError('root', { message: 'Не удалось получить токен доступа.' });
     },
     onError: (error: any) => {
       const message = error.response?.data?.message || 
@@ -82,9 +91,7 @@ export default function LoginPage() {
                 {...register('email')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
               />
-              {errors.email && (
-                <div className="text-red-500 text-sm mt-1">{errors.email.message}</div>
-              )}
+              {errors.email ? <div className="text-red-500 text-sm mt-1">{errors.email.message}</div> : null}
             </div>
 
             <div>
@@ -106,9 +113,7 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
-              {errors.password && (
-                <div className="text-red-500 text-sm mt-1">{errors.password.message}</div>
-              )}
+              {errors.password ? <div className="text-red-500 text-sm mt-1">{errors.password.message}</div> : null}
             </div>
 
             <button
@@ -119,9 +124,7 @@ export default function LoginPage() {
               {loginMutation.isPending ? 'Вход...' : 'Войти'}
             </button>
 
-            {errors.root && (
-              <div className="text-red-500 text-sm text-center mt-4">{errors.root.message}</div>
-            )}
+            {errors.root ? <div className="text-red-500 text-sm text-center mt-4">{errors.root.message}</div> : null}
 
             <div className="text-center space-y-2">
               <a 

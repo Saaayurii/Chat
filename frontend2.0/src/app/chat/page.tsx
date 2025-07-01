@@ -13,7 +13,7 @@ export default function ChatPage() {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const {0: selectedConversation, 1: setSelectedConversation} = useState<string | null>(null);
   const {0: newMessage, 1: setNewMessage} = useState('');
@@ -80,7 +80,10 @@ export default function ChatPage() {
       })() : null;
       
       // Сбрасываем таймер
-      typingTimeoutRef.current ? clearTimeout(typingTimeoutRef.current) : null;
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
       
       // Автоматически убираем статус "печатает" через 3 секунды
       typingTimeoutRef.current = setTimeout(() => {
@@ -109,7 +112,10 @@ export default function ChatPage() {
   // Очистка таймера при размонтировании
   useEffect(() => {
     return () => {
-      typingTimeoutRef.current ? clearTimeout(typingTimeoutRef.current) : null;
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
     };
   }, []);
 
@@ -130,11 +136,7 @@ export default function ChatPage() {
             <div className="flex items-center space-x-2">
               {/* WebSocket статус */}
               <div className="flex items-center">
-                {isConnected ? <Wifi className="w-4 h-4 text-green-500" title="Подключено" /> : isConnecting ? <Radix.Spinner size="1" /> : <WifiOff 
-                  className="w-4 h-4 text-red-500 cursor-pointer" 
-                  title="Не подключено. Нажмите для переподключения"
-                  onClick={reconnect}
-                />}
+                {isConnected ? <Wifi className="w-4 h-4 text-green-500" /> : isConnecting ? <Radix.Spinner size="1" /> : <div className="cursor-pointer" title="Не подключено. Нажмите для переподключения" onClick={reconnect}><WifiOff className="w-4 h-4 text-red-500" /></div>}
               </div>
               <button className="p-2 hover:bg-gray-100 rounded-lg">
                 <Plus className="w-5 h-5" />

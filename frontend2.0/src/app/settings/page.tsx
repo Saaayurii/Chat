@@ -26,12 +26,12 @@ type PasswordFormData = z.infer<typeof passwordSchema>;
 
 export default function SettingsPage() {
   const { user } = useAuthStore();
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const {0: showCurrentPassword, 1: setShowCurrentPassword} = useState(false);
+  const {0: showNewPassword, 1: setShowNewPassword} = useState(false);
+  const {0: showConfirmPassword, 1: setShowConfirmPassword} = useState(false);
 
   // Настройки уведомлений
-  const [notifications, setNotifications] = useState({
+  const {0: notifications, 1: setNotifications} = useState({
     email: true,
     push: true,
     desktop: false,
@@ -40,7 +40,7 @@ export default function SettingsPage() {
   });
 
   // Настройки приватности
-  const [privacy, setPrivacy] = useState({
+  const {0: privacy, 1: setPrivacy} = useState({
     showOnlineStatus: true,
     allowDirectMessages: true,
     showLastSeen: false
@@ -118,9 +118,7 @@ export default function SettingsPage() {
                       {showCurrentPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>
-                  {errors.currentPassword && (
-                    <p className="text-red-500 text-sm mt-1">{errors.currentPassword.message}</p>
-                  )}
+                  {errors.currentPassword ? <p className="text-red-500 text-sm mt-1">{errors.currentPassword.message}</p> : null}
                 </div>
 
                 <div>
@@ -141,9 +139,7 @@ export default function SettingsPage() {
                       {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>
-                  {errors.newPassword && (
-                    <p className="text-red-500 text-sm mt-1">{errors.newPassword.message}</p>
-                  )}
+                  {errors.newPassword ? <p className="text-red-500 text-sm mt-1">{errors.newPassword.message}</p> : null}
                 </div>
 
                 <div>
@@ -164,9 +160,7 @@ export default function SettingsPage() {
                       {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>
-                  {errors.confirmPassword && (
-                    <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>
-                  )}
+                  {errors.confirmPassword ? <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p> : null}
                 </div>
 
                 <button

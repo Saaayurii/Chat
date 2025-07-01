@@ -173,8 +173,7 @@ export default function ProfilePage() {
                   variant="soft"
                   className="mt-2"
                 >
-                  {user?.role === 'admin' ? 'Администратор' : 
-                   user?.role === 'operator' ? 'Оператор' : 'Посетитель'}
+                  {user?.role === 'admin' ? 'Администратор' : user?.role === 'operator' ? 'Оператор' : 'Посетитель'}
                 </Radix.Badge>
               </div>
 

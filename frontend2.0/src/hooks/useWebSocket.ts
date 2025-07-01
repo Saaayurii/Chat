@@ -29,32 +29,32 @@ export const useWebSocket = (url: string, options: UseWebSocketOptions = {}) => 
   const { token, isAuthenticated } = useAuthStore();
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttemptsRef = useRef(0);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  const [isConnected, setIsConnected] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const {0: isConnected, 1: setIsConnected} = useState(false);
+  const {0: isConnecting, 1: setIsConnecting} = useState(false);
+  const {0: error, 1: setError} = useState<string | null>(null);
 
   const connect = useCallback(() => {
-    if (!isAuthenticated || !token) {
+    !isAuthenticated || !token ? (() => {
       console.warn('WebSocket: Not authenticated');
       return;
-    }
+    })() : null;
 
-    if (wsRef.current?.readyState === WebSocket.CONNECTING) {
+    wsRef.current?.readyState === WebSocket.CONNECTING ? (() => {
       return;
-    }
+    })() : null;
 
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
+    wsRef.current?.readyState === WebSocket.OPEN ? (() => {
       return;
-    }
+    })() : null;
 
     setIsConnecting(true);
     setError(null);
 
     try {
       // Добавляем токен в URL для аутентификации
-      const wsUrl = `${url}?token=${encodeURIComponent(token)}`;
+      const wsUrl = `${url}?token=${encodeURIComponent(token || '')}`;
       wsRef.current = new WebSocket(wsUrl);
 
       wsRef.current.onopen = () => {
@@ -83,12 +83,10 @@ export const useWebSocket = (url: string, options: UseWebSocketOptions = {}) => 
         wsRef.current = null;
         onDisconnect?.();
 
-        // Автоматическое переподключение
-        if (
-          event.code !== 1000 && // Не переподключаемся при нормальном закрытии
-          reconnectAttemptsRef.current < maxReconnectAttempts &&
-          isAuthenticated
-        ) {
+          // Автоматическое переподключение
+        if (event.code !== 1000 && // Не переподключаемся при нормальном закрытии
+            reconnectAttemptsRef.current < maxReconnectAttempts &&
+            isAuthenticated) {
           reconnectAttemptsRef.current++;
           console.log(
             `WebSocket: Attempting to reconnect (${reconnectAttemptsRef.current}/${maxReconnectAttempts})`
@@ -117,14 +115,12 @@ export const useWebSocket = (url: string, options: UseWebSocketOptions = {}) => 
   }, [url, token, isAuthenticated, onMessage, onConnect, onDisconnect, onError, reconnectInterval, maxReconnectAttempts]);
 
   const disconnect = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-    }
+    reconnectTimeoutRef.current ? clearTimeout(reconnectTimeoutRef.current) : null;
 
-    if (wsRef.current) {
+    wsRef.current ? (() => {
       wsRef.current.close(1000, 'Manual disconnect');
       wsRef.current = null;
-    }
+    })() : null;
 
     setIsConnected(false);
     setIsConnecting(false);
@@ -133,10 +129,10 @@ export const useWebSocket = (url: string, options: UseWebSocketOptions = {}) => 
   }, []);
 
   const sendMessage = useCallback((type: string, data: any) => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+    !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN ? (() => {
       console.warn('WebSocket: Connection not ready');
       return false;
-    }
+    })() : null;
 
     try {
       const message = {
@@ -145,7 +141,7 @@ export const useWebSocket = (url: string, options: UseWebSocketOptions = {}) => 
         timestamp: new Date().toISOString()
       };
       
-      wsRef.current.send(JSON.stringify(message));
+      wsRef.current?.send(JSON.stringify(message));
       return true;
     } catch (error) {
       console.error('WebSocket: Failed to send message', error);
@@ -160,11 +156,7 @@ export const useWebSocket = (url: string, options: UseWebSocketOptions = {}) => 
   }, [connect, disconnect]);
 
   useEffect(() => {
-    if (isAuthenticated && token) {
-      connect();
-    } else {
-      disconnect();
-    }
+    isAuthenticated && token ? connect() : disconnect();
 
     return () => {
       disconnect();
@@ -174,9 +166,7 @@ export const useWebSocket = (url: string, options: UseWebSocketOptions = {}) => 
   // Очистка при размонтировании
   useEffect(() => {
     return () => {
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
+      reconnectTimeoutRef.current ? clearTimeout(reconnectTimeoutRef.current) : null;
       disconnect();
     };
   }, [disconnect]);

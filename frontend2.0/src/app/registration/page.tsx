@@ -29,8 +29,8 @@ type RegistrationFormData = RegistrationData & { passwordConfirm: string };
 
 export default function RegistrationPage() {
   const router = useRouter();
-  const [showPassword, setShowPassword] = useState(false);
-  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+  const {0: showPassword, 1: setShowPassword} = useState(false);
+  const {0: showPasswordConfirm, 1: setShowPasswordConfirm} = useState(false);
 
   const {
     register,
@@ -52,15 +52,7 @@ export default function RegistrationPage() {
       router.push('/login');
     },
     onError: (error: any) => {
-      let errorMessage = '';
-      if (Array.isArray(error.response?.data?.message)) {
-        errorMessage = error.response.data.message.join('\n');
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else {
-        errorMessage = `Ошибка ${error.response?.status}. Попробуйте еще раз.` ||
-          'Не удалось подключиться к серверу. Проверьте ваше соединение.';
-      }
+      const errorMessage = Array.isArray(error.response?.data?.message) ? error.response.data.message.join('\n') : error.response?.data?.message ? error.response.data.message : `Ошибка ${error.response?.status}. Попробуйте еще раз.` || 'Не удалось подключиться к серверу. Проверьте ваше соединение.';
       setError('root', { message: errorMessage });
     }
   });
@@ -89,9 +81,7 @@ export default function RegistrationPage() {
                 {...register('fullName')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
               />
-              {errors.fullName && (
-                <div className="text-red-500 text-sm mt-1">{errors.fullName.message}</div>
-              )}
+              {errors.fullName ? <div className="text-red-500 text-sm mt-1">{errors.fullName.message}</div> : null}
             </div>
 
             <div>
@@ -108,9 +98,7 @@ export default function RegistrationPage() {
               <small className="text-gray-600 text-xs">
                 Только латинские буквы, цифры, _ и -, минимум 3 символа
               </small>
-              {errors.username && (
-                <div className="text-red-500 text-sm mt-1">{errors.username.message}</div>
-              )}
+              {errors.username ? <div className="text-red-500 text-sm mt-1">{errors.username.message}</div> : null}
             </div>
 
             <div>
@@ -124,9 +112,7 @@ export default function RegistrationPage() {
                 {...register('email')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
               />
-              {errors.email && (
-                <div className="text-red-500 text-sm mt-1">{errors.email.message}</div>
-              )}
+              {errors.email ? <div className="text-red-500 text-sm mt-1">{errors.email.message}</div> : null}
             </div>
 
             <div>
@@ -152,9 +138,7 @@ export default function RegistrationPage() {
               <small className="text-gray-600 text-xs">
                 Минимум 8 символов: заглавная, строчная, цифра, спецсимвол (@$!%*?&)
               </small>
-              {errors.password && (
-                <div className="text-red-500 text-sm mt-1">{errors.password.message}</div>
-              )}
+              {errors.password ? <div className="text-red-500 text-sm mt-1">{errors.password.message}</div> : null}
             </div>
 
             <div>
@@ -177,9 +161,7 @@ export default function RegistrationPage() {
                   {showPasswordConfirm ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
-              {errors.passwordConfirm && (
-                <div className="text-red-500 text-sm mt-1">{errors.passwordConfirm.message}</div>
-              )}
+              {errors.passwordConfirm ? <div className="text-red-500 text-sm mt-1">{errors.passwordConfirm.message}</div> : null}
             </div>
 
             <button
@@ -190,11 +172,9 @@ export default function RegistrationPage() {
               {registrationMutation.isPending ? 'Регистрация...' : 'Зарегистрироваться'}
             </button>
 
-            {errors.root && (
-              <div className="text-red-500 text-sm text-center mt-4 whitespace-pre-line">
-                {errors.root.message}
-              </div>
-            )}
+            {errors.root ? <div className="text-red-500 text-sm text-center mt-4 whitespace-pre-line">
+              {errors.root.message}
+            </div> : null}
 
             <div className="text-center space-y-2">
               <a 

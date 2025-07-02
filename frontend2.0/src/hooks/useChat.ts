@@ -1,33 +1,8 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useWebSocket } from './useWebSocket';
+import { useSocketIO } from './useSocketIO';
 import { useAuthStore } from '@/store/authStore';
 import { Message, Conversation } from '@/types';
-
-interface ChatWebSocketData {
-  // Типы сообщений WebSocket
-  NEW_MESSAGE: {
-    message: Message;
-    conversationId: string;
-  };
-  MESSAGE_READ: {
-    messageId: string;
-    conversationId: string;
-    userId: string;
-  };
-  USER_TYPING: {
-    conversationId: string;
-    userId: string;
-    isTyping: boolean;
-  };
-  CONVERSATION_UPDATED: {
-    conversation: Conversation;
-  };
-  USER_ONLINE: {
-    userId: string;
-    isOnline: boolean;
-  };
-}
 
 interface TypingUsers {
   [conversationId: string]: string[]; // userId[]
@@ -36,55 +11,67 @@ interface TypingUsers {
 export const useChat = () => {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
-  const {0: typingUsers, 1: setTypingUsers} = useState<TypingUsers>({});
-  const {0: onlineUsers, 1: setOnlineUsers} = useState<Set<string>>(new Set());
+  const [typingUsers, setTypingUsers] = useState<TypingUsers>({});
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
 
-  const handleWebSocketMessage = useCallback((message: any) => {
+  const handlersRef = useRef({
+    handleNewMessage: null as any,
+    handleMessageRead: null as any,
+    handleUserTyping: null as any,
+    handleConversationUpdated: null as any,
+    handleUserOnline: null as any
+  });
+
+  const handleSocketIOMessage = useCallback((message: any) => {
     const { type, data } = message;
+    const handlers = handlersRef.current;
 
-    type === 'NEW_MESSAGE' ? handleNewMessage(data as ChatWebSocketData['NEW_MESSAGE']) :
-    type === 'MESSAGE_READ' ? handleMessageRead(data as ChatWebSocketData['MESSAGE_READ']) :
-    type === 'USER_TYPING' ? handleUserTyping(data as ChatWebSocketData['USER_TYPING']) :
-    type === 'CONVERSATION_UPDATED' ? handleConversationUpdated(data as ChatWebSocketData['CONVERSATION_UPDATED']) :
-    type === 'USER_ONLINE' ? handleUserOnline(data as ChatWebSocketData['USER_ONLINE']) :
-    console.log('Unknown WebSocket message type:', type);
+    type === 'new-message' ? handlers.handleNewMessage?.(data) :
+    type === 'message-read' ? handlers.handleMessageRead?.(data) :
+    type === 'user-typing' ? handlers.handleUserTyping?.({...data, isTyping: true}) :
+    type === 'user-stopped-typing' ? handlers.handleUserTyping?.({...data, isTyping: false}) :
+    type === 'conversation-updated' ? handlers.handleConversationUpdated?.(data) :
+    type === 'user-online' ? handlers.handleUserOnline?.(data) :
+    type === 'connected' ? console.log('Connected to chat:', data) :
+    type === 'room-joined' ? console.log('Joined room:', data) :
+    type === 'error' ? console.error('Chat error:', data) :
+    console.log('Unknown SocketIO event:', type, data);
   }, []);
 
   const {
     isConnected,
     isConnecting,
     error: wsError,
-    sendMessage,
+    emit,
     reconnect
-  } = useWebSocket(
-    `${process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001'}/chat`,
-    {
-      onMessage: handleWebSocketMessage,
-      onConnect: () => {
-        console.log('Chat WebSocket connected');
-        // Присоединяемся к комнатам пользователя
-        user?.id ? sendMessage('JOIN_USER_ROOMS', { userId: user.id }) : null;
-      },
-      onDisconnect: () => {
-        console.log('Chat WebSocket disconnected');
-      }
+  } = useSocketIO('/chat', {
+    onMessage: handleSocketIOMessage,
+    onConnect: () => {
+      console.log('Chat Socket.IO connected');
+    },
+    onDisconnect: () => {
+      console.log('Chat Socket.IO disconnected');
     }
-  );
+  });
 
-  const handleNewMessage = useCallback((data: ChatWebSocketData['NEW_MESSAGE']) => {
-    const { message, conversationId } = data;
+  const handleNewMessage = useCallback((message: Message) => {
+    const conversationId = message.conversationId;
     
     // Обновляем кэш сообщений
     queryClient.setQueryData(
       ['messages', conversationId],
       (oldData: any) => {
-        !oldData ? { data: [message], total: 1 } : (() => {
-          const existingMessage = oldData.data.find((m: Message) => m._id === message._id);
-          return existingMessage ? oldData : {
-            ...oldData,
-            data: [...oldData.data, message]
-          };
-        })();
+        if (!oldData) {
+          return { data: [message], total: 1 };
+        }
+        const existingMessage = oldData.data.find((m: Message) => m._id === message._id);
+        if (existingMessage) {
+          return oldData;
+        }
+        return {
+          ...oldData,
+          data: [...oldData.data, message]
+        };
       }
     );
 
@@ -92,7 +79,8 @@ export const useChat = () => {
     queryClient.setQueryData(
       ['conversations'],
       (oldData: Conversation[]) => {
-        !oldData ? oldData : oldData.map(conv => 
+        if (!oldData) return oldData;
+        return oldData.map(conv => 
           conv._id === conversationId ? {
             ...conv,
             lastMessage: {
@@ -108,14 +96,15 @@ export const useChat = () => {
     );
   }, [queryClient, user?.id]);
 
-  const handleMessageRead = useCallback((data: ChatWebSocketData['MESSAGE_READ']) => {
+  const handleMessageRead = useCallback((data: { messageId: string; conversationId: string; userId: string }) => {
     const { messageId, conversationId, userId } = data;
     
     // Обновляем статус прочтения сообщения
     queryClient.setQueryData(
       ['messages', conversationId],
       (oldData: any) => {
-        !oldData ? oldData : {
+        if (!oldData) return oldData;
+        return {
           ...oldData,
           data: oldData.data.map((message: Message) => 
             message._id === messageId ? {
@@ -132,45 +121,52 @@ export const useChat = () => {
     );
   }, [queryClient]);
 
-  const handleUserTyping = useCallback((data: ChatWebSocketData['USER_TYPING']) => {
+  const handleUserTyping = useCallback((data: { conversationId: string; userId: string; username?: string; isTyping: boolean }) => {
     const { conversationId, userId, isTyping } = data;
     
     // Не показываем что текущий пользователь печатает
-    userId === user?.id ? (() => { return; })() : null;
+    if (userId === user?.id) {
+      return;
+    }
     
     setTypingUsers(prev => {
       const currentTyping = prev[conversationId] || [];
       
-      return isTyping ? !currentTyping.includes(userId) ? {
-        ...prev,
-        [conversationId]: [...currentTyping, userId]
-      } : prev : {
-        ...prev,
-        [conversationId]: currentTyping.filter(id => id !== userId)
-      };
+      if (isTyping) {
+        if (!currentTyping.includes(userId)) {
+          return {
+            ...prev,
+            [conversationId]: [...currentTyping, userId]
+          };
+        }
+        return prev;
+      } else {
+        return {
+          ...prev,
+          [conversationId]: currentTyping.filter(id => id !== userId)
+        };
+      }
     });
   }, [user?.id]);
 
-  const handleConversationUpdated = useCallback((data: ChatWebSocketData['CONVERSATION_UPDATED']) => {
-    const { conversation } = data;
-    
+  const handleConversationUpdated = useCallback((conversation: Conversation) => {
     // Обновляем список бесед
     queryClient.setQueryData(
       ['conversations'],
       (oldData: Conversation[]) => {
-        !oldData ? oldData : (() => {
-          const index = oldData.findIndex(conv => conv._id === conversation._id);
-          return index !== -1 ? (() => {
-            const newData = [...oldData];
-            newData[index] = conversation;
-            return newData;
-          })() : [conversation, ...oldData];
-        })();
+        if (!oldData) return oldData;
+        const index = oldData.findIndex(conv => conv._id === conversation._id);
+        if (index !== -1) {
+          const newData = [...oldData];
+          newData[index] = conversation;
+          return newData;
+        }
+        return [conversation, ...oldData];
       }
     );
   }, [queryClient]);
 
-  const handleUserOnline = useCallback((data: ChatWebSocketData['USER_ONLINE']) => {
+  const handleUserOnline = useCallback((data: { userId: string; isOnline: boolean }) => {
     const { userId, isOnline } = data;
     
     setOnlineUsers(prev => {
@@ -180,54 +176,53 @@ export const useChat = () => {
     });
   }, []);
 
-  // Функции для отправки WebSocket сообщений
+  // Функции для отправки Socket.IO сообщений
   const sendChatMessage = useCallback((conversationId: string, text: string, type = 'text') => {
-    return sendMessage('SEND_MESSAGE', {
+    return emit('send-message', {
       conversationId,
       text,
       type
     });
-  }, [sendMessage]);
+  }, [emit]);
 
   const markAsRead = useCallback((conversationId: string, messageId: string) => {
-    return sendMessage('MARK_AS_READ', {
+    return emit('mark-as-read', {
       conversationId,
       messageId
     });
-  }, [sendMessage]);
+  }, [emit]);
 
   const setTyping = useCallback((conversationId: string, isTyping: boolean) => {
-    return sendMessage('SET_TYPING', {
-      conversationId,
-      isTyping
+    return emit(isTyping ? 'typing-start' : 'typing-stop', {
+      conversationId
     });
-  }, [sendMessage]);
+  }, [emit]);
 
   const joinConversation = useCallback((conversationId: string) => {
-    return sendMessage('JOIN_CONVERSATION', {
+    return emit('join-room', {
       conversationId
     });
-  }, [sendMessage]);
+  }, [emit]);
 
   const leaveConversation = useCallback((conversationId: string) => {
-    return sendMessage('LEAVE_CONVERSATION', {
+    return emit('leave-room', {
       conversationId
     });
-  }, [sendMessage]);
+  }, [emit]);
 
-  // Очистка таймеров набора текста
+  // Очистка таймеров набора текста - оптимизированная версия
+  const typingTimersRef = useRef<{ [key: string]: NodeJS.Timeout }>({});
+  
   useEffect(() => {
-    const timers: { [key: string]: NodeJS.Timeout } = {};
+    // Очищаем старые таймеры
+    Object.values(typingTimersRef.current).forEach(timer => clearTimeout(timer));
+    typingTimersRef.current = {};
     
+    // Создаем новые таймеры только для активных пользователей
     Object.entries(typingUsers).forEach(([conversationId, users]) => {
       users.forEach(userId => {
         const key = `${conversationId}-${userId}`;
-        if (timers[key]) {
-          clearTimeout(timers[key]);
-        }
-        
-        // Автоматически убираем статус "печатает" через 3 секунды
-        timers[key] = setTimeout(() => {
+        typingTimersRef.current[key] = setTimeout(() => {
           setTypingUsers(prev => ({
             ...prev,
             [conversationId]: prev[conversationId]?.filter(id => id !== userId) || []
@@ -237,9 +232,18 @@ export const useChat = () => {
     });
 
     return () => {
-      Object.values(timers).forEach(timer => clearTimeout(timer));
+      Object.values(typingTimersRef.current).forEach(timer => clearTimeout(timer));
     };
   }, [typingUsers]);
+
+  // Обновляем ссылки на обработчики
+  useEffect(() => {
+    handlersRef.current.handleNewMessage = handleNewMessage;
+    handlersRef.current.handleMessageRead = handleMessageRead;
+    handlersRef.current.handleUserTyping = handleUserTyping;
+    handlersRef.current.handleConversationUpdated = handleConversationUpdated;
+    handlersRef.current.handleUserOnline = handleUserOnline;
+  }, [handleNewMessage, handleMessageRead, handleUserTyping, handleConversationUpdated, handleUserOnline]);
 
   return {
     // WebSocket состояние

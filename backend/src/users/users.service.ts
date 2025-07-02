@@ -15,6 +15,7 @@ import { UpdateUserDto } from './dto/update-user.dto/update-user.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto/update-profile.dto';
 import { DeleteUserDto } from './dto/delete-user.dto/delete-user.dto';
 import { UserResponse } from './interfaces/user-response.interface';
+import { UploadedFile } from './interfaces/uploaded-file.interface';
 
 @Injectable()
 export class UsersService {
@@ -585,6 +586,27 @@ export class UsersService {
   async updatePassword(userId: string, newPasswordHash: string): Promise<void> {
     await this.userModel.findByIdAndUpdate(userId, {
       passwordHash: newPasswordHash,
+    });
+  }
+
+  async findById(userId: string): Promise<UserDocument | null> {
+    return this.userModel.findById(userId).exec();
+  }
+
+  async suspendUser(operatorId: string, suspensionEndDate: Date): Promise<void> {
+    await this.userModel.findByIdAndUpdate(operatorId, {
+      isBlocked: true,
+      blockedReason: 'Приостановлен по жалобе',
+      blockedUntil: suspensionEndDate,
+      blockedAt: new Date(),
+    });
+  }
+
+  async updateUserBlockStatus(userId: string, isBlocked: boolean): Promise<void> {
+    await this.userModel.findByIdAndUpdate(userId, {
+      isBlocked,
+      ...(isBlocked && { blockedAt: new Date() }),
+      ...(!isBlocked && { blockedAt: null, blockedReason: null, blockedUntil: null }),
     });
   }
 }

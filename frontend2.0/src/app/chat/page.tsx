@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, Send, Plus, Paperclip, MoreVertical, Wifi, WifiOff } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
@@ -15,10 +15,10 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  const {0: selectedConversation, 1: setSelectedConversation} = useState<string | null>(null);
-  const {0: newMessage, 1: setNewMessage} = useState('');
-  const {0: searchQuery, 1: setSearchQuery} = useState('');
-  const {0: isTyping, 1: setIsTyping} = useState(false);
+  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+  const [newMessage, setNewMessage] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
 
   // WebSocket chat hook
   const {
@@ -54,55 +54,68 @@ export default function ChatPage() {
   });
 
   const handleSendMessage = () => {
-    !newMessage.trim() || !selectedConversation ? null : (() => {
-      // Отправляем через WebSocket
-      const success = sendChatMessage(selectedConversation, newMessage);
-      
-      success ? (() => {
-        setNewMessage('');
-        setIsTyping(false);
-        setTyping(selectedConversation, false);
-      })() : null;
-    })();
+    if (!newMessage.trim() || !selectedConversation) return;
+    
+    // Отправляем через Socket.IO
+    const success = sendChatMessage(selectedConversation, newMessage);
+    
+    if (success) {
+      setNewMessage('');
+      setIsTyping(false);
+      setTyping(selectedConversation, false);
+    }
   };
 
   const handleMessageChange = (value: string) => {
     setNewMessage(value);
     
-    !selectedConversation ? null : (() => {
-      // Управление статусом "печатает"
-      value.trim() && !isTyping ? (() => {
-        setIsTyping(true);
-        setTyping(selectedConversation, true);
-      })() : !value.trim() && isTyping ? (() => {
+    if (!selectedConversation) return;
+    
+    // Управление статусом "печатает"
+    if (value.trim() && !isTyping) {
+      setIsTyping(true);
+      setTyping(selectedConversation, true);
+    } else if (!value.trim() && isTyping) {
+      setIsTyping(false);
+      setTyping(selectedConversation, false);
+    }
+    
+    // Сбрасываем таймер
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+    
+    // Автоматически убираем статус "печатает" через 3 секунды
+    typingTimeoutRef.current = setTimeout(() => {
+      if (isTyping) {
         setIsTyping(false);
         setTyping(selectedConversation, false);
-      })() : null;
-      
-      // Сбрасываем таймер
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-        typingTimeoutRef.current = null;
       }
-      
-      // Автоматически убираем статус "печатает" через 3 секунды
-      typingTimeoutRef.current = setTimeout(() => {
-        isTyping ? (() => {
-          setIsTyping(false);
-          setTyping(selectedConversation, false);
-        })() : null;
-      }, 3000);
-    })();
+    }, 3000);
   };
+
+  // Стабильные функции для беседы
+  const handleJoinConversation = useCallback((conversationId: string) => {
+    joinConversation(conversationId);
+  }, [joinConversation]);
+
+  const handleLeaveConversation = useCallback((conversationId: string) => {
+    leaveConversation(conversationId);
+  }, [leaveConversation]);
 
   // Присоединяемся к беседе при выборе
   useEffect(() => {
-    selectedConversation ? joinConversation(selectedConversation) : null;
+    if (selectedConversation) {
+      handleJoinConversation(selectedConversation);
+    }
     
     return () => {
-      selectedConversation ? leaveConversation(selectedConversation) : null;
+      if (selectedConversation) {
+        handleLeaveConversation(selectedConversation);
+      }
     };
-  }, [selectedConversation, joinConversation, leaveConversation]);
+  }, [selectedConversation, handleJoinConversation, handleLeaveConversation]);
 
   // Автоскролл к последнему сообщению
   useEffect(() => {
@@ -119,27 +132,40 @@ export default function ChatPage() {
     };
   }, []);
 
-  const filteredConversations = conversations?.filter(conv => 
-    // Фильтрация по последнему сообщению или участникам
-    conv.lastMessage?.text.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
+  // Мемоизируем фильтрацию бесед для оптимизации
+  const filteredConversations = useMemo(() => {
+    if (!conversations) return [];
+    if (!searchQuery.trim()) return conversations;
+    
+    const query = searchQuery.toLowerCase();
+    return conversations.filter(conv => 
+      conv.lastMessage?.text.toLowerCase().includes(query) ||
+      conv.participants?.some((p: any) => 
+        p.profile?.username?.toLowerCase().includes(query) ||
+        p.profile?.fullName?.toLowerCase().includes(query)
+      )
+    );
+  }, [conversations, searchQuery]);
 
-  const currentTypingUsers = selectedConversation ? typingUsers[selectedConversation] || [] : [];
+  // Мемоизируем текущих печатающих пользователей
+  const currentTypingUsers = useMemo(() => {
+    return selectedConversation ? typingUsers[selectedConversation] || [] : [];
+  }, [selectedConversation, typingUsers]);
 
   return (
-    <div className="h-screen flex bg-gray-50">
+    <div className="h-screen flex bg-gray-50 dark:bg-dark-950">
       {/* Sidebar - список чатов */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
-        <div className="p-4 border-b border-gray-200">
+      <div className="w-80 bg-white dark:bg-dark-900 border-r border-gray-200 dark:border-dark-800 flex flex-col">
+        <div className="p-4 border-b border-gray-200 dark:border-dark-800">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Чаты</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Чаты</h2>
             <div className="flex items-center space-x-2">
               {/* WebSocket статус */}
               <div className="flex items-center">
                 {isConnected ? <Wifi className="w-4 h-4 text-green-500" /> : isConnecting ? <Radix.Spinner size="1" /> : <div className="cursor-pointer" title="Не подключено. Нажмите для переподключения" onClick={reconnect}><WifiOff className="w-4 h-4 text-red-500" /></div>}
               </div>
-              <button className="p-2 hover:bg-gray-100 rounded-lg">
-                <Plus className="w-5 h-5" />
+              <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+                <Plus className="w-5 h-5 text-gray-600 dark:text-dark-300" />
               </button>
             </div>
           </div>
@@ -150,7 +176,7 @@ export default function ChatPage() {
               placeholder="Поиск чатов..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-dark-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-dark-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-dark-400"
             />
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
           </div>
@@ -183,20 +209,24 @@ export default function ChatPage() {
                       Беседа {conversation.type}
                     </h3>
                     <span className="text-xs text-gray-500">
-                      {conversation.lastMessage?.timestamp ? new Date(conversation.lastMessage.timestamp).toLocaleTimeString() : null}
+                      {conversation.lastMessage?.timestamp && new Date(conversation.lastMessage.timestamp).toLocaleTimeString()}
                     </span>
                   </div>
                   
-                  {conversation.lastMessage ? <p className="text-sm text-gray-600 truncate">
-                    {conversation.lastMessage.text}
-                  </p> : null}
+                  {conversation.lastMessage && (
+                    <p className="text-sm text-gray-600 truncate">
+                      {conversation.lastMessage.text}
+                    </p>
+                  )}
                   
-                  {conversation.unreadMessagesCount > 0 ? <div className="flex justify-between items-center mt-2">
-                    <div></div>
-                    <Radix.Badge color="blue" variant="solid">
-                      {conversation.unreadMessagesCount}
-                    </Radix.Badge>
-                  </div> : null}
+                  {conversation.unreadMessagesCount > 0 && (
+                    <div className="flex justify-between items-center mt-2">
+                      <div></div>
+                      <Radix.Badge color="blue" variant="solid">
+                        {conversation.unreadMessagesCount}
+                      </Radix.Badge>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -215,9 +245,11 @@ export default function ChatPage() {
                   <h3 className="font-semibold">Беседа</h3>
                   <div className="flex items-center space-x-2">
                     <p className="text-sm text-gray-500">Участники: активны</p>
-                    {!isConnected ? <Radix.Badge color="red" variant="soft">
-                      Не подключен
-                    </Radix.Badge> : null}
+                    {!isConnected && (
+                      <Radix.Badge color="red" variant="soft">
+                        Не подключен
+                      </Radix.Badge>
+                    )}
                   </div>
                 </div>
                 <button className="p-2 hover:bg-gray-100 rounded-lg">
@@ -226,9 +258,11 @@ export default function ChatPage() {
               </div>
               
               {/* Показываем кто печатает */}
-              {currentTypingUsers.length > 0 ? <div className="mt-2 text-sm text-gray-500 italic">
-                {currentTypingUsers.length === 1 ? 'Пользователь печатает...' : `${currentTypingUsers.length} пользователей печатают...`}
-              </div> : null}
+              {currentTypingUsers.length > 0 && (
+                <div className="mt-2 text-sm text-gray-500 italic">
+                  {currentTypingUsers.length === 1 ? 'Пользователь печатает...' : `${currentTypingUsers.length} пользователей печатают...`}
+                </div>
+              )}
             </div>
 
             {/* Messages area */}
@@ -265,11 +299,15 @@ export default function ChatPage() {
                         </p>
                         
                         {/* Статус прочтения */}
-                        {message.senderId === user?.id ? <div className="flex items-center space-x-1">
-                          {message.readBy.length > 1 ? <Radix.Badge size="1" variant="soft" color={message.senderId === user?.id ? 'blue' : 'gray'}>
-                            ✓ {message.readBy.length - 1}
-                          </Radix.Badge> : null}
-                        </div> : null}
+                        {message.senderId === user?.id && (
+                          <div className="flex items-center space-x-1">
+                            {message.readBy.length > 1 && (
+                              <Radix.Badge size="1" variant="soft" color="blue">
+                                ✓ {message.readBy.length - 1}
+                              </Radix.Badge>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -31,9 +31,9 @@ export const useWebSocket = (url: string, options: UseWebSocketOptions = {}) => 
   const reconnectAttemptsRef = useRef(0);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  const {0: isConnected, 1: setIsConnected} = useState(false);
-  const {0: isConnecting, 1: setIsConnecting} = useState(false);
-  const {0: error, 1: setError} = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const connect = useCallback(() => {
     !isAuthenticated || !token ? (() => {

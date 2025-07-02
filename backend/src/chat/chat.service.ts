@@ -4,6 +4,9 @@ import { Model, Types } from 'mongoose';
 import { Conversation, ConversationDocument } from '../database/schemas/conversation.schema';
 import { Message, MessageDocument, MessageType, MessageStatus } from '../database/schemas/message.schema';
 import { SendMessageDto } from './dto/send-message.dto/send-message.dto';
+import { CreateConversationDto } from './dto/create-conversation.dto/create-conversation.dto';
+import { UploadAttachmentDto } from './dto/upload-attachment.dto';
+import { UploadedFile } from '../common/interfaces/uploaded-file.interface';
 
 @Injectable()
 export class ChatService {
@@ -80,7 +83,7 @@ export class ChatService {
       }
     });
 
-    return savedMessage.populate(['senderId', 'conversationId']);
+    return savedMessage.populate('senderId', 'email profile.username profile.avatarUrl');
   }
 
   async getConversationMessages(conversationId: string, userId: string, limit = 50, skip = 0) {
@@ -123,13 +126,14 @@ export class ChatService {
     });
   }
 
-  async createConversation(createData: any) {
+  async createConversation(createData: CreateConversationDto) {
     const conversation = new this.conversationModel({
       participants: createData.participantIds.map(id => new Types.ObjectId(id)),
       type: createData.type,
       title: createData.title,
       description: createData.description,
       createdBy: new Types.ObjectId(createData.createdBy),
+      relatedQuestionId: createData.relatedQuestionId ? new Types.ObjectId(createData.relatedQuestionId) : undefined,
       unreadByParticipant: new Map(
         createData.participantIds.map(id => [id, 0])
       ),
@@ -164,7 +168,7 @@ export class ChatService {
       .exec();
   }
 
-  async uploadAttachment(conversationId: string, userId: string, file: any, uploadDto: any) {
+  async uploadAttachment(conversationId: string, userId: string, file: UploadedFile, uploadDto: UploadAttachmentDto) {
     // Проверяем доступ к беседе
     const canAccess = await this.canUserJoinConversation(userId, conversationId);
     if (!canAccess) {
@@ -189,10 +193,11 @@ export class ChatService {
       readBy: [new Types.ObjectId(userId)],
     });
 
-    return message.save();
+    const savedMessage = await message.save();
+    return savedMessage.populate('senderId', 'email profile.username profile.avatarUrl');
   }
 
-  private async saveAttachment(file: any, userId: string): Promise<string> {
+  private async saveAttachment(file: UploadedFile, userId: string): Promise<string> {
     // Упрощенное сохранение файла (в продакшене использовать облачное хранилище)
     const timestamp = Date.now();
     const fileName = `${userId}-${timestamp}-${file.originalname}`;

@@ -47,6 +47,15 @@ export class Conversation {
   @Prop({ type: Types.ObjectId, ref: 'Question' })
   relatedQuestionId?: Types.ObjectId;
 
+  @Prop({ type: String })
+  title?: string;
+
+  @Prop({ type: String })
+  description?: string;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  createdBy: Types.ObjectId;
+
   @Prop({
     type: {
       text: { type: String, required: true },

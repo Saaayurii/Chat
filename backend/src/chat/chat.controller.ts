@@ -22,6 +22,7 @@ import { GetMessagesDto } from './dto/get-messages.dto';
 import { MarkMessagesReadDto } from './dto/mark-read.dto';
 import { UploadAttachmentDto } from './dto/upload-attachment.dto';
 import { AttachmentValidationPipe } from '../common/pipes/attachment-validation.pipe';
+import { AuthenticatedRequest } from '../common/interfaces/auth-request.interface';
 import { UploadedFile as FileInterface } from '../common/interfaces/uploaded-file.interface';
 
 @ApiTags('Chat')
@@ -37,15 +38,15 @@ export class ChatController {
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
   async createConversation(
     @Body() createConversationDto: CreateConversationDto,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     // Добавляем создателя беседы к участникам
-    const participantIds = [...new Set([req.user.id, ...createConversationDto.participantIds])];
+    const participantIds = [...new Set([req.user._id, ...createConversationDto.participantIds])];
     
     return this.chatService.createConversation({
       ...createConversationDto,
       participantIds,
-      createdBy: req.user.id,
+      createdBy: req.user._id,
     });
   }
 
@@ -55,11 +56,11 @@ export class ChatController {
   async getMessages(
     @Param('conversationId') conversationId: string,
     @Query() query: GetMessagesDto,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.chatService.getConversationMessages(
       conversationId,
-      req.user.id,
+      req.user._id,
       query.limit,
       query.skip,
     );
@@ -70,9 +71,9 @@ export class ChatController {
   @ApiResponse({ status: 200, description: 'Сообщения помечены как прочитанные' })
   async markMessagesAsRead(
     @Param('conversationId') conversationId: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
-    await this.chatService.markMessagesAsRead(conversationId, req.user.id);
+    await this.chatService.markMessagesAsRead(conversationId, req.user._id);
     return { message: 'Сообщения помечены как прочитанные' };
   }
 
@@ -84,16 +85,16 @@ export class ChatController {
     @Param('conversationId') conversationId: string,
     @Body() uploadDto: UploadAttachmentDto,
     @UploadedFile(AttachmentValidationPipe) file: FileInterface,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
-    return this.chatService.uploadAttachment(conversationId, req.user.id, file, uploadDto);
+    return this.chatService.uploadAttachment(conversationId, req.user._id, file, uploadDto);
   }
 
   @Get('conversations')
   @ApiOperation({ summary: 'Получить список бесед пользователя' })
   @ApiResponse({ status: 200, description: 'Список бесед' })
-  async getUserConversations(@Request() req: any) {
-    return this.chatService.getUserConversations(req.user.id);
+  async getUserConversations(@Request() req: AuthenticatedRequest) {
+    return this.chatService.getUserConversations(req.user._id);
   }
 
   @Get('conversations/:conversationId')
@@ -101,8 +102,8 @@ export class ChatController {
   @ApiResponse({ status: 200, description: 'Информация о беседе' })
   async getConversation(
     @Param('conversationId') conversationId: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
-    return this.chatService.getConversation(conversationId, req.user.id);
+    return this.chatService.getConversation(conversationId, req.user._id);
   }
 }

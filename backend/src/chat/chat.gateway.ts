@@ -16,7 +16,7 @@ import { JoinRoomDto } from './dto/join-room.dto/join-room.dto';
 
 @WebSocketGateway({
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:3001',
+    origin: process.env.CLIENT_URL,
     credentials: true,
   },
   namespace: '/chat',
@@ -142,5 +142,25 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.to(`conversation:${data.conversationId}`).emit('user-stopped-typing', {
       userId: user.id,
     });
+  }
+
+  @SubscribeMessage('leave-room')
+  async handleLeaveRoom(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { conversationId: string },
+  ) {
+    try {
+      const user = client.data.user;
+      const { conversationId } = data;
+
+      // Покидаем комнату беседы
+      await client.leave(`conversation:${conversationId}`);
+      
+      client.emit('room-left', { conversationId });
+      this.logger.log(`User ${user.email} left conversation ${conversationId}`);
+    } catch (error) {
+      this.logger.error('Leave room error:', error);
+      client.emit('error', { message: 'Failed to leave room' });
+    }
   }
 }

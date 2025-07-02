@@ -50,18 +50,16 @@ export class Message {
   text: string;
 
   @Prop([{
-    originalName: { type: String, required: true },
     fileName: { type: String, required: true },
-    mimeType: { type: String, required: true },
-    size: { type: Number, required: true },
-    url: { type: String, required: true }
+    fileUrl: { type: String, required: true },
+    fileSize: { type: Number, required: true },
+    mimeType: { type: String, required: true }
   }])
   attachments?: {
-    originalName: string;
     fileName: string;
+    fileUrl: string;
+    fileSize: number;
     mimeType: string;
-    size: number;
-    url: string;
   }[];
 
   @Prop({ 
@@ -100,7 +98,7 @@ export class Message {
     action: string;
     fromUserId?: Types.ObjectId;
     toUserId?: Types.ObjectId;
-    metadata?: any;
+    metadata?: Record<string, unknown>;
   };
 
   createdAt: Date;

@@ -55,7 +55,7 @@ async function bootstrap() {
 
   // 🔐 CORS настройки для безопасности
   app.enableCors({
-    origin: process.env.CLIENT_URL || 'http://localhost:3001', // Конкретный домен
+    origin: process.env.CLIENT_URL, // Конкретный домен
     credentials: true, // Разрешить cookies
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [
@@ -72,7 +72,7 @@ async function bootstrap() {
   app.useWebSocketAdapter(new IoAdapter(app));
 
   // 🚀 Запуск приложения
-  const port = process.env.SERVER_PORT || 3000;
+  const port = process.env.SERVER_PORT || 3003;
   await app.listen(port);
 
   // 📊 Логирование информации о запуске

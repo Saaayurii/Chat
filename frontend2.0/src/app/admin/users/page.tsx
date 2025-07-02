@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, Plus, Edit2, Trash2, Shield, ShieldOff, Eye, UserPlus } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
@@ -11,19 +11,30 @@ import * as Radix from '@radix-ui/themes';
 export default function AdminUsersPage() {
   const { user: currentUser } = useAuthStore();
   const queryClient = useQueryClient();
-  const {0: searchQuery, 1: setSearchQuery} = useState('');
-  const {0: selectedRole, 1: setSelectedRole} = useState<UserRole | ''>('');
-  const {0: page, 1: setPage} = useState(1);
-  const {0: showCreateModal, 1: setShowCreateModal} = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [selectedRole, setSelectedRole] = useState<UserRole | ''>('');
+  const [page, setPage] = useState(1);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Дебаунс для поиска
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      setPage(1); // Сбрасываем страницу при новом поиске
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const { data: usersData, isLoading } = useQuery({
-    queryKey: ['users', page, selectedRole, searchQuery],
+    queryKey: ['users', page, selectedRole, debouncedSearchQuery],
     queryFn: async () => {
       const response = await usersAPI.getUsers({
         page,
         limit: 20,
         role: selectedRole || undefined,
-        search: searchQuery || undefined
+        search: debouncedSearchQuery || undefined
       });
       return response.data;
     }

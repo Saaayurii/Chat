@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { UploadedFile } from '../interfaces/uploaded-file.interface';
 
-interface FileValidationOptions {
+export interface FileValidationOptions {
   maxSize?: number; // в байтах
   allowedMimeTypes?: string[];
   allowedExtensions?: string[];

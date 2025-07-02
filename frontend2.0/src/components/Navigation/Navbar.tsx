@@ -16,6 +16,7 @@ import {
 import { useAuthStore } from '@/store/authStore';
 import { UserRole } from '@/types';
 import * as Radix from '@radix-ui/themes';
+import ThemeToggle from '@/components/ThemeToggle';
 
 interface NavItem {
   name: string;
@@ -61,7 +62,7 @@ export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
-  const {0: isMobileMenuOpen, 1: setIsMobileMenuOpen} = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -81,7 +82,7 @@ export default function Navbar() {
   };
 
   return !user ? null : (
-    <nav className="bg-white shadow-sm border-b border-gray-200">
+    <nav className="bg-white dark:bg-dark-950 shadow-sm border-b border-gray-200 dark:border-dark-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           {/* Logo and navigation */}
@@ -114,10 +115,12 @@ export default function Navbar() {
 
           {/* User menu */}
           <div className="flex items-center">
-            {/* User info */}
+            {/* Theme toggle and User info */}
             <div className="hidden md:flex md:items-center md:space-x-4">
+              <ThemeToggle />
+              
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-gray-200 dark:bg-dark-800 rounded-full flex items-center justify-center">
                   {user.profile?.avatarUrl ? (
                     <img
                       src={user.profile.avatarUrl}
@@ -125,14 +128,14 @@ export default function Navbar() {
                       className="w-8 h-8 rounded-full"
                     />
                   ) : (
-                    <span className="text-sm font-medium text-gray-600">
+                    <span className="text-sm font-medium text-gray-600 dark:text-dark-300">
                       {((user.profile?.fullName || user.profile?.username || user.email) ?? '').charAt(0).toUpperCase()}
                     </span>
                   )}
                 </div>
                 
                 <div className="flex flex-col">
-                  <span className="text-sm font-medium text-gray-900">
+                  <span className="text-sm font-medium text-gray-900 ">
                     {user.email || user.profile?.username || 'Пользователь'}
                   </span>
                   <Radix.Badge 
@@ -147,11 +150,16 @@ export default function Navbar() {
 
               <button
                 onClick={handleLogout}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 text-gray-500 dark:text-dark-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 title="Выйти"
               >
                 <LogOut className="w-5 h-5" />
               </button>
+            </div>
+
+            {/* Mobile theme toggle */}
+            <div className="md:hidden mr-2">
+              <ThemeToggle />
             </div>
 
             {/* Mobile menu button */}

@@ -6,7 +6,46 @@ import {
   PaginatedResponse, 
   StatisticsData,
   PaginationParams,
-  UserRole 
+  UserRole,
+  // Email types
+  SendEmailData,
+  SendTemplateEmailData,
+  // Questions types
+  Question,
+  CreateQuestionData,
+  AssignOperatorData,
+  TransferQuestionData,
+  CloseQuestionData,
+  UpdateQuestionData,
+  QuestionStats,
+  QuestionStatus,
+  QuestionPriority,
+  // Complaints types
+  Complaint,
+  CreateComplaintData,
+  ReviewComplaintData,
+  UpdateComplaintData,
+  ComplaintStats,
+  ComplaintStatus,
+  ComplaintType,
+  ComplaintSeverity,
+  // Blacklist types
+  BlacklistEntry,
+  CreateBlacklistEntryData,
+  ApproveBlacklistEntryData,
+  RevokeBlacklistEntryData,
+  UpdateBlacklistEntryData,
+  BlacklistStats,
+  BlacklistStatus,
+  BlacklistReason,
+  BlacklistType,
+  // Ratings types
+  Rating,
+  CreateRatingData,
+  UpdateRatingVisibilityData,
+  HideRatingData,
+  OperatorRatingStats,
+  RatingStats
 } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -226,6 +265,242 @@ export const chatAPI = {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
   },
+};
+
+// Email API
+export const emailAPI = {
+  sendEmail: (data: SendEmailData) =>
+    api.post('/email/send', data),
+
+  sendTemplateEmail: (data: SendTemplateEmailData) =>
+    api.post('/email/send-template', data),
+
+  sendWelcomeEmail: (email: string, username: string) =>
+    api.post('/email/welcome', { email, username }),
+
+  sendPasswordResetEmail: (email: string, resetUrl: string) =>
+    api.post('/email/password-reset', { email, resetUrl }),
+
+  sendEmailVerification: (email: string, verificationUrl: string) =>
+    api.post('/email/email-verification', { email, verificationUrl }),
+
+  sendOperatorAssignedEmail: (email: string, operatorName: string, questionText: string) =>
+    api.post('/email/operator-assigned', { email, operatorName, questionText }),
+
+  sendQuestionAnsweredEmail: (email: string, questionText: string, answer: string) =>
+    api.post('/email/question-answered', { email, questionText, answer }),
+
+  sendComplaintReceivedEmail: (email: string, complaintId: string) =>
+    api.post('/email/complaint-received', { email, complaintId }),
+
+  sendBlacklistNotificationEmail: (email: string, reason: string, duration?: string) =>
+    api.post('/email/blacklist-notification', { email, reason, duration }),
+
+  sendRatingRequestEmail: (email: string, operatorName: string, ratingUrl: string) =>
+    api.post('/email/rating-request', { email, operatorName, ratingUrl }),
+};
+
+// Questions API
+export const questionsAPI = {
+  createQuestion: (data: CreateQuestionData) =>
+    api.post<Question>('/questions', data),
+
+  getQuestions: (params?: PaginationParams & {
+    status?: QuestionStatus;
+    priority?: QuestionPriority;
+    category?: string;
+    operatorId?: string;
+    search?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }) =>
+    api.get<{ questions: Question[]; total: number }>('/questions', { params }),
+
+  getMyQuestions: () =>
+    api.get<Question[]>('/questions/my'),
+
+  getQuestionById: (id: string) =>
+    api.get<Question>(`/questions/${id}`),
+
+  assignOperator: (id: string, data: AssignOperatorData) =>
+    api.put<Question>(`/questions/${id}/assign`, data),
+
+  transferQuestion: (id: string, data: TransferQuestionData) =>
+    api.put<Question>(`/questions/${id}/transfer`, data),
+
+  closeQuestion: (id: string, data: CloseQuestionData) =>
+    api.put<Question>(`/questions/${id}/close`, data),
+
+  markFirstResponse: (id: string) =>
+    api.put(`/questions/${id}/first-response`),
+
+  incrementMessagesCount: (id: string) =>
+    api.put(`/questions/${id}/increment-messages`),
+
+  updateQuestion: (id: string, data: UpdateQuestionData) =>
+    api.put<Question>(`/questions/${id}`, data),
+
+  deleteQuestion: (id: string) =>
+    api.delete(`/questions/${id}`),
+
+  getOperatorWorkload: (operatorId: string) =>
+    api.get<{ activeQuestions: number; totalQuestions: number; closedToday: number }>(`/questions/operator/${operatorId}/workload`),
+
+  getQuestionStats: () =>
+    api.get<QuestionStats>('/questions/stats'),
+};
+
+// Complaints API
+export const complaintsAPI = {
+  createComplaint: (data: CreateComplaintData) =>
+    api.post<Complaint>('/complaints', data),
+
+  getComplaints: (params?: PaginationParams & {
+    status?: ComplaintStatus;
+    type?: ComplaintType;
+    severity?: ComplaintSeverity;
+    operatorId?: string;
+    visitorId?: string;
+    search?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }) =>
+    api.get<{ complaints: Complaint[]; total: number }>('/complaints', { params }),
+
+  getMyComplaints: () =>
+    api.get<Complaint[]>('/complaints/my'),
+
+  getComplaintById: (id: string) =>
+    api.get<Complaint>(`/complaints/${id}`),
+
+  getComplaintsByOperator: (operatorId: string) =>
+    api.get<Complaint[]>(`/complaints/operator/${operatorId}`),
+
+  getOperatorComplaintHistory: (operatorId: string) =>
+    api.get<{
+      complaints: Complaint[];
+      totalComplaints: number;
+      resolvedComplaints: number;
+      warningsCount: number;
+      suspensionsCount: number;
+    }>(`/complaints/operator/${operatorId}/history`),
+
+  reviewComplaint: (id: string, data: ReviewComplaintData) =>
+    api.put<Complaint>(`/complaints/${id}/review`, data),
+
+  updateComplaint: (id: string, data: UpdateComplaintData) =>
+    api.put<Complaint>(`/complaints/${id}`, data),
+
+  deleteComplaint: (id: string) =>
+    api.delete(`/complaints/${id}`),
+
+  getComplaintStats: () =>
+    api.get<ComplaintStats>('/complaints/stats'),
+};
+
+// Blacklist API
+export const blacklistAPI = {
+  createBlacklistEntry: (data: CreateBlacklistEntryData) =>
+    api.post<BlacklistEntry>('/blacklist', data),
+
+  getBlacklistEntries: (params?: PaginationParams & {
+    status?: BlacklistStatus;
+    reason?: BlacklistReason;
+    type?: BlacklistType;
+    userId?: string;
+    blockedBy?: string;
+    approvedByAdmin?: boolean;
+    search?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }) =>
+    api.get<{ entries: BlacklistEntry[]; total: number }>('/blacklist', { params }),
+
+  getBlacklistEntryById: (id: string) =>
+    api.get<BlacklistEntry>(`/blacklist/${id}`),
+
+  getBlacklistEntriesByUser: (userId: string) =>
+    api.get<BlacklistEntry[]>(`/blacklist/user/${userId}`),
+
+  checkUserBlacklist: (userId: string) =>
+    api.get<{ isBlacklisted: boolean }>(`/blacklist/check/${userId}`),
+
+  approveBlacklistEntry: (id: string, data: ApproveBlacklistEntryData) =>
+    api.put<BlacklistEntry>(`/blacklist/${id}/approve`, data),
+
+  revokeBlacklistEntry: (id: string, data: RevokeBlacklistEntryData) =>
+    api.put<BlacklistEntry>(`/blacklist/${id}/revoke`, data),
+
+  updateBlacklistEntry: (id: string, data: UpdateBlacklistEntryData) =>
+    api.put<BlacklistEntry>(`/blacklist/${id}`, data),
+
+  deleteBlacklistEntry: (id: string) =>
+    api.delete(`/blacklist/${id}`),
+
+  processExpiredEntries: () =>
+    api.post('/blacklist/process-expired'),
+
+  getBlacklistStats: () =>
+    api.get<BlacklistStats>('/blacklist/stats'),
+};
+
+// Ratings API
+export const ratingsAPI = {
+  createRating: (data: CreateRatingData) =>
+    api.post<Rating>('/ratings', data),
+
+  getRatings: (params?: PaginationParams & {
+    operatorId?: string;
+    visitorId?: string;
+    minRating?: number;
+    maxRating?: number;
+    isVisible?: boolean;
+    search?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }) =>
+    api.get<{ ratings: Rating[]; total: number }>('/ratings', { params }),
+
+  getMyRatings: () =>
+    api.get<Rating[]>('/ratings/my'),
+
+  getRatingById: (id: string) =>
+    api.get<Rating>(`/ratings/${id}`),
+
+  getOperatorRatings: (operatorId: string, params?: PaginationParams & {
+    includeHidden?: boolean;
+    dateFrom?: string;
+    dateTo?: string;
+  }) =>
+    api.get<OperatorRatingStats>(`/ratings/operator/${operatorId}`, { params }),
+
+  getOperatorStats: (operatorId: string) =>
+    api.get<{
+      averageRating: number;
+      totalRatings: number;
+      ratingBreakdown: Record<string, number>;
+      detailedAverages: {
+        avgProfessionalism: number;
+        avgResponseTime: number;
+        avgHelpfulness: number;
+        avgCommunication: number;
+        avgProblemResolution: number;
+      };
+    }>(`/ratings/operator/${operatorId}/stats`),
+
+  hideRating: (id: string, data: HideRatingData) =>
+    api.put<Rating>(`/ratings/${id}/hide`, data),
+
+  updateRatingVisibility: (id: string, data: UpdateRatingVisibilityData) =>
+    api.put<Rating>(`/ratings/${id}/visibility`, data),
+
+  deleteRating: (id: string) =>
+    api.delete(`/ratings/${id}`),
+
+  getRatingStats: () =>
+    api.get<RatingStats>('/ratings/stats'),
 };
 
 export default api;

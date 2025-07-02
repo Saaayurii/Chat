@@ -11,7 +11,12 @@ import {
   Menu, 
   X,
   User,
-  Shield
+  Shield,
+  HelpCircle,
+  AlertTriangle,
+  Ban,
+  Star,
+  Mail
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { UserRole } from '@/types';
@@ -44,6 +49,70 @@ const navigation: NavItem[] = [
     icon: Users,
     roles: [UserRole.ADMIN]
   },
+  // Admin-specific management pages
+  {
+    name: 'Вопросы',
+    href: '/admin/questions',
+    icon: HelpCircle,
+    roles: [UserRole.ADMIN]
+  },
+  {
+    name: 'Жалобы',
+    href: '/admin/complaints',
+    icon: AlertTriangle,
+    roles: [UserRole.ADMIN]
+  },
+  {
+    name: 'Черный список',
+    href: '/admin/blacklist',
+    icon: Ban,
+    roles: [UserRole.ADMIN]
+  },
+  {
+    name: 'Оценки',
+    href: '/admin/ratings',
+    icon: Star,
+    roles: [UserRole.ADMIN]
+  },
+  {
+    name: 'Email уведомления',
+    href: '/admin/emails',
+    icon: Mail,
+    roles: [UserRole.ADMIN]
+  },
+  // Operator-specific pages
+  {
+    name: 'Мои вопросы',
+    href: '/operator/questions',
+    icon: HelpCircle,
+    roles: [UserRole.OPERATOR]
+  },
+  {
+    name: 'Мои оценки',
+    href: '/operator/ratings',
+    icon: Star,
+    roles: [UserRole.OPERATOR]
+  },
+  // User-specific pages
+  {
+    name: 'Мои вопросы',
+    href: '/user/questions',
+    icon: HelpCircle,
+    roles: [UserRole.VISITOR]
+  },
+  {
+    name: 'Мои жалобы',
+    href: '/user/complaints',
+    icon: AlertTriangle,
+    roles: [UserRole.VISITOR]
+  },
+  {
+    name: 'Мои оценки',
+    href: '/user/ratings',
+    icon: Star,
+    roles: [UserRole.VISITOR]
+  },
+  // Common pages
   {
     name: 'Профиль',
     href: '/profile',
@@ -86,26 +155,26 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           {/* Logo and navigation */}
-          <div className="flex">
+          <div className="flex overflow-x-auto">
             <div className="flex-shrink-0 flex items-center">
-              <h1 className="text-xl font-semibold text-gray-900">ChatSystem</h1>
+              <h1 className="text-lg font-semibold text-gray-900">ChatSystem</h1>
             </div>
             
             {/* Desktop navigation */}
-            <div className="hidden md:ml-8 md:flex md:space-x-8">
+            <div className="hidden md:ml-8 md:flex md:space-x-4">
               {filteredNavigation.map((item) => {
                 const isActive = pathname === item.href;
                 return (
                   <button
-                    key={item.name}
+                    key={item.href} // Use href as key to avoid duplicates
                     onClick={() => router.push(item.href)}
-                    className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors ${
+                    className={`inline-flex items-center px-2 pt-1 border-b-2 text-xs font-medium transition-colors ${
                       isActive
                         ? 'border-blue-500 text-blue-600'
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }`}
                   >
-                    <item.icon className="w-4 h-4 mr-2" />
+                    <item.icon className="w-3 h-3 mr-1" />
                     {item.name}
                   </button>
                 );
@@ -215,7 +284,7 @@ export default function Navbar() {
               const isActive = pathname === item.href;
               return (
                 <button
-                  key={item.name}
+                  key={item.href} // Use href as key to avoid duplicates
                   onClick={() => {
                     router.push(item.href);
                     setIsMobileMenuOpen(false);

@@ -129,24 +129,54 @@ export const useChat = () => {
       return;
     }
     
-    setTypingUsers(prev => {
-      const currentTyping = prev[conversationId] || [];
-      
-      if (isTyping) {
+    if (isTyping) {
+      setTypingUsers(prev => {
+        const currentTyping = prev[conversationId] || [];
         if (!currentTyping.includes(userId)) {
+          // Устанавливаем таймер для автоматической очистки
+          const key = `${conversationId}-${userId}`;
+          if (typingTimersRef.current[key]) {
+            clearTimeout(typingTimersRef.current[key]);
+          }
+          typingTimersRef.current[key] = setTimeout(() => {
+            setTypingUsers(prevState => ({
+              ...prevState,
+              [conversationId]: prevState[conversationId]?.filter(id => id !== userId) || []
+            }));
+            delete typingTimersRef.current[key];
+          }, 3000);
+          
           return {
             ...prev,
             [conversationId]: [...currentTyping, userId]
           };
         }
+        // Обновляем таймер если пользователь все еще печатает
+        const key = `${conversationId}-${userId}`;
+        if (typingTimersRef.current[key]) {
+          clearTimeout(typingTimersRef.current[key]);
+        }
+        typingTimersRef.current[key] = setTimeout(() => {
+          setTypingUsers(prevState => ({
+            ...prevState,
+            [conversationId]: prevState[conversationId]?.filter(id => id !== userId) || []
+          }));
+          delete typingTimersRef.current[key];
+        }, 3000);
         return prev;
-      } else {
-        return {
-          ...prev,
-          [conversationId]: currentTyping.filter(id => id !== userId)
-        };
+      });
+    } else {
+      // Очищаем таймер и убираем пользователя из списка печатающих
+      const key = `${conversationId}-${userId}`;
+      if (typingTimersRef.current[key]) {
+        clearTimeout(typingTimersRef.current[key]);
+        delete typingTimersRef.current[key];
       }
-    });
+      setTypingUsers(prev => ({
+        ...prev,
+        [conversationId]: (prev[conversationId] || []).filter(id => id !== userId)
+      }));
+    }
   }, [user?.id]);
 
   const handleConversationUpdated = useCallback((conversation: Conversation) => {
@@ -210,40 +240,54 @@ export const useChat = () => {
     });
   }, [emit]);
 
-  // Очистка таймеров набора текста - оптимизированная версия
+  // Очистка таймеров набора текста - исправленная версия
   const typingTimersRef = useRef<{ [key: string]: NodeJS.Timeout }>({});
   
-  useEffect(() => {
-    // Очищаем старые таймеры
-    Object.values(typingTimersRef.current).forEach(timer => clearTimeout(timer));
-    typingTimersRef.current = {};
+  // Функция очистки таймера для конкретного пользователя
+  const clearTypingTimer = useCallback((conversationId: string, userId: string) => {
+    const key = `${conversationId}-${userId}`;
+    if (typingTimersRef.current[key]) {
+      clearTimeout(typingTimersRef.current[key]);
+      delete typingTimersRef.current[key];
+    }
+  }, []);
+  
+  // Функция установки таймера для конкретного пользователя
+  const setTypingTimer = useCallback((conversationId: string, userId: string) => {
+    const key = `${conversationId}-${userId}`;
     
-    // Создаем новые таймеры только для активных пользователей
-    Object.entries(typingUsers).forEach(([conversationId, users]) => {
-      users.forEach(userId => {
-        const key = `${conversationId}-${userId}`;
-        typingTimersRef.current[key] = setTimeout(() => {
-          setTypingUsers(prev => ({
-            ...prev,
-            [conversationId]: prev[conversationId]?.filter(id => id !== userId) || []
-          }));
-        }, 3000);
-      });
-    });
-
+    // Очищаем существующий таймер если он есть
+    if (typingTimersRef.current[key]) {
+      clearTimeout(typingTimersRef.current[key]);
+      delete typingTimersRef.current[key];
+    }
+    
+    // Устанавливаем новый таймер
+    typingTimersRef.current[key] = setTimeout(() => {
+      setTypingUsers(prev => ({
+        ...prev,
+        [conversationId]: prev[conversationId]?.filter(id => id !== userId) || []
+      }));
+      delete typingTimersRef.current[key];
+    }, 3000);
+  }, []);
+  
+  // Очистка всех таймеров при размонтировании
+  useEffect(() => {
     return () => {
       Object.values(typingTimersRef.current).forEach(timer => clearTimeout(timer));
+      typingTimersRef.current = {};
     };
-  }, [typingUsers]);
+  }, []);
 
-  // Обновляем ссылки на обработчики
+  // Обновляем ссылки на обработчики - стабилизированная версия
   useEffect(() => {
     handlersRef.current.handleNewMessage = handleNewMessage;
     handlersRef.current.handleMessageRead = handleMessageRead;
     handlersRef.current.handleUserTyping = handleUserTyping;
     handlersRef.current.handleConversationUpdated = handleConversationUpdated;
     handlersRef.current.handleUserOnline = handleUserOnline;
-  }, [handleNewMessage, handleMessageRead, handleUserTyping, handleConversationUpdated, handleUserOnline]);
+  }); // Убираем зависимости чтобы обновлять каждый рендер без циклов
 
   return {
     // WebSocket состояние

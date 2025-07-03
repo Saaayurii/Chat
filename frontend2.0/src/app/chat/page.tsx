@@ -53,7 +53,7 @@ export default function ChatPage() {
     enabled: !!selectedConversation
   });
 
-  const handleSendMessage = () => {
+  const handleSendMessage = useCallback(() => {
     if (!newMessage.trim() || !selectedConversation) return;
     
     // Отправляем через Socket.IO
@@ -63,10 +63,16 @@ export default function ChatPage() {
       setNewMessage('');
       setIsTyping(false);
       setTyping(selectedConversation, false);
+      
+      // Очищаем таймер печатания
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
     }
-  };
+  }, [newMessage, selectedConversation, sendChatMessage, setTyping]);
 
-  const handleMessageChange = (value: string) => {
+  const handleMessageChange = useCallback((value: string) => {
     setNewMessage(value);
     
     if (!selectedConversation) return;
@@ -87,40 +93,35 @@ export default function ChatPage() {
     }
     
     // Автоматически убираем статус "печатает" через 3 секунды
-    typingTimeoutRef.current = setTimeout(() => {
-      if (isTyping) {
+    if (value.trim()) {
+      typingTimeoutRef.current = setTimeout(() => {
         setIsTyping(false);
         setTyping(selectedConversation, false);
-      }
-    }, 3000);
-  };
+      }, 3000);
+    }
+  }, [selectedConversation, isTyping, setTyping]);
 
-  // Стабильные функции для беседы
-  const handleJoinConversation = useCallback((conversationId: string) => {
-    joinConversation(conversationId);
-  }, [joinConversation]);
-
-  const handleLeaveConversation = useCallback((conversationId: string) => {
-    leaveConversation(conversationId);
-  }, [leaveConversation]);
-
-  // Присоединяемся к беседе при выборе
+  // Присоединяемся к беседе при выборе - исправленная версия
   useEffect(() => {
     if (selectedConversation) {
-      handleJoinConversation(selectedConversation);
+      joinConversation(selectedConversation);
+      
+      return () => {
+        leaveConversation(selectedConversation);
+      };
     }
-    
-    return () => {
-      if (selectedConversation) {
-        handleLeaveConversation(selectedConversation);
-      }
-    };
-  }, [selectedConversation, handleJoinConversation, handleLeaveConversation]);
+  }, [selectedConversation, joinConversation, leaveConversation]);
 
-  // Автоскролл к последнему сообщению
+  // Автоскролл к последнему сообщению - оптимизированная версия
+  const messagesLength = messages?.data?.length;
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages?.data]);
+    if (messagesLength && messagesLength > 0) {
+      const timer = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [messagesLength]);
 
   // Очистка таймера при размонтировании
   useEffect(() => {
@@ -132,19 +133,30 @@ export default function ChatPage() {
     };
   }, []);
 
-  // Мемоизируем фильтрацию бесед для оптимизации
+  // Мемоизируем фильтрацию бесед для оптимизации - улучшенная версия
   const filteredConversations = useMemo(() => {
-    if (!conversations) return [];
+    if (!conversations || !Array.isArray(conversations)) return [];
     if (!searchQuery.trim()) return conversations;
     
     const query = searchQuery.toLowerCase();
-    return conversations.filter(conv => 
-      conv.lastMessage?.text.toLowerCase().includes(query) ||
-      conv.participants?.some((p: any) => 
-        p.profile?.username?.toLowerCase().includes(query) ||
-        p.profile?.fullName?.toLowerCase().includes(query)
-      )
-    );
+    return conversations.filter(conv => {
+      // Проверяем текст последнего сообщения
+      if (conv.lastMessage?.text?.toLowerCase().includes(query)) {
+        return true;
+      }
+      
+      // Проверяем участников
+      if (conv.participants && Array.isArray(conv.participants)) {
+        return conv.participants.some((p: any) => {
+          if (!p || typeof p !== 'object') return false;
+          const username = p.profile?.username?.toLowerCase() || '';
+          const fullName = p.profile?.fullName?.toLowerCase() || '';
+          return username.includes(query) || fullName.includes(query);
+        });
+      }
+      
+      return false;
+    });
   }, [conversations, searchQuery]);
 
   // Мемоизируем текущих печатающих пользователей

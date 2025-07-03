@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { 
   BarChart3, 
@@ -16,7 +16,8 @@ import {
   AlertTriangle,
   Ban,
   Star,
-  Mail
+  Mail,
+  ChevronDown
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { UserRole } from '@/types';
@@ -28,9 +29,16 @@ interface NavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   roles: UserRole[];
+  category?: string;
 }
 
-const navigation: NavItem[] = [
+interface NavCategory {
+  name: string;
+  items: NavItem[];
+  roles: UserRole[];
+}
+
+const mainNavigation: NavItem[] = [
   {
     name: 'Статистика',
     href: '/admin/statistics',
@@ -48,8 +56,10 @@ const navigation: NavItem[] = [
     href: '/admin/users',
     icon: Users,
     roles: [UserRole.ADMIN]
-  },
-  // Admin-specific management pages
+  }
+];
+
+const adminManagementItems: NavItem[] = [
   {
     name: 'Вопросы',
     href: '/admin/questions',
@@ -79,8 +89,10 @@ const navigation: NavItem[] = [
     href: '/admin/emails',
     icon: Mail,
     roles: [UserRole.ADMIN]
-  },
-  // Operator-specific pages
+  }
+];
+
+const operatorItems: NavItem[] = [
   {
     name: 'Мои вопросы',
     href: '/operator/questions',
@@ -92,8 +104,10 @@ const navigation: NavItem[] = [
     href: '/operator/ratings',
     icon: Star,
     roles: [UserRole.OPERATOR]
-  },
-  // User-specific pages
+  }
+];
+
+const userItems: NavItem[] = [
   {
     name: 'Мои вопросы',
     href: '/user/questions',
@@ -111,8 +125,10 @@ const navigation: NavItem[] = [
     href: '/user/ratings',
     icon: Star,
     roles: [UserRole.VISITOR]
-  },
-  // Common pages
+  }
+];
+
+const commonItems: NavItem[] = [
   {
     name: 'Профиль',
     href: '/profile',
@@ -132,15 +148,89 @@ export default function Navbar() {
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(null);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleLogout = () => {
     logout();
     router.push('/login');
   };
 
-  const filteredNavigation = navigation.filter(item => 
-    user?.role && item.roles.includes(user.role as UserRole)
-  );
+  const getNavigationCategories = () => {
+    const categories: NavCategory[] = [];
+    
+    // Main navigation items
+    const filteredMain = mainNavigation.filter(item => 
+      user?.role && item.roles.includes(user.role as UserRole)
+    );
+    
+    // Dropdown categories based on user role
+    if (user?.role === UserRole.ADMIN) {
+      const filteredAdmin = adminManagementItems.filter(item => 
+        item.roles.includes(user.role as UserRole)
+      );
+      if (filteredAdmin.length > 0) {
+        categories.push({
+          name: 'Управление',
+          items: filteredAdmin,
+          roles: [UserRole.ADMIN]
+        });
+      }
+    }
+    
+    if (user?.role === UserRole.OPERATOR) {
+      const filteredOperator = operatorItems.filter(item => 
+        item.roles.includes(user.role as UserRole)
+      );
+      if (filteredOperator.length > 0) {
+        categories.push({
+          name: 'Мои задачи',
+          items: filteredOperator,
+          roles: [UserRole.OPERATOR]
+        });
+      }
+    }
+    
+    if (user?.role === UserRole.VISITOR) {
+      const filteredUser = userItems.filter(item => 
+        item.roles.includes(user.role as UserRole)
+      );
+      if (filteredUser.length > 0) {
+        categories.push({
+          name: 'Мои данные',
+          items: filteredUser,
+          roles: [UserRole.VISITOR]
+        });
+      }
+    }
+    
+    // Common items
+    const filteredCommon = commonItems.filter(item => 
+      user?.role && item.roles.includes(user.role as UserRole)
+    );
+    if (filteredCommon.length > 0) {
+      categories.push({
+        name: 'Общее',
+        items: filteredCommon,
+        roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.VISITOR]
+      });
+    }
+    
+    return { mainItems: filteredMain, categories };
+  };
+  
+  const { mainItems, categories } = getNavigationCategories();
 
   const getRoleColor = (role: string) => {
     return role === UserRole.ADMIN ? 'red' : role === UserRole.OPERATOR ? 'blue' : 'gray';
@@ -155,30 +245,80 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           {/* Logo and navigation */}
-          <div className="flex overflow-x-auto">
+          <div className="flex">
             <div className="flex-shrink-0 flex items-center">
-              <h1 className="text-lg font-semibold text-gray-900">ChatSystem</h1>
+              <h1 className="text-lg font-semibold text-gray-900 dark:text-white">ChatSystem</h1>
             </div>
             
             {/* Desktop navigation */}
-            <div className="hidden md:ml-8 md:flex md:space-x-4">
-              {filteredNavigation.map((item) => {
+            <div className="hidden md:ml-8 md:flex md:items-center md:space-x-4">
+              {/* Main navigation items */}
+              {mainItems.map((item) => {
                 const isActive = pathname === item.href;
                 return (
                   <button
-                    key={item.href} // Use href as key to avoid duplicates
+                    key={item.href}
                     onClick={() => router.push(item.href)}
-                    className={`inline-flex items-center px-2 pt-1 border-b-2 text-xs font-medium transition-colors ${
+                    className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                       isActive
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        ? 'bg-white text-white dark:bg-black dark:text-white'
+                        : 'text-black dark:text-black hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
                   >
-                    <item.icon className="w-3 h-3 mr-1" />
+                    <item.icon className="w-4 h-4 mr-2" />
                     {item.name}
                   </button>
                 );
               })}
+              
+              {/* Dropdown categories */}
+              <div ref={dropdownRef} className="flex space-x-4">
+                {categories.map((category) => {
+                  const hasActiveItem = category.items.some(item => pathname === item.href);
+                  return (
+                    <div key={category.name} className="relative">
+                      <button
+                        onClick={() => setDropdownOpen(dropdownOpen === category.name ? null : category.name)}
+                        className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                          hasActiveItem
+                            ? 'bg-black text-white dark:bg-white dark:text-black'
+                            : 'text-black dark:text-black hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        {category.name}
+                        <ChevronDown className={`w-4 h-4 ml-1 transition-transform ${
+                          dropdownOpen === category.name ? 'rotate-180' : ''
+                        }`} />
+                      </button>
+                      
+                      {dropdownOpen === category.name && (
+                        <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-md shadow-lg z-50">
+                          {category.items.map((item) => {
+                            const isActive = pathname === item.href;
+                            return (
+                              <button
+                                key={item.href}
+                                onClick={() => {
+                                  router.push(item.href);
+                                  setDropdownOpen(null);
+                                }}
+                                className={`w-full flex items-center px-4 py-2 text-sm transition-colors first:rounded-t-md last:rounded-b-md ${
+                                  isActive
+                                    ? 'bg-black text-white dark:bg-white dark:text-black'
+                                    : 'text-black dark:text-black hover:bg-gray-50 dark:hover:bg-gray-700'
+                                }`}
+                              >
+                                <item.icon className="w-4 h-4 mr-3" />
+                                {item.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
@@ -219,7 +359,7 @@ export default function Navbar() {
 
               <button
                 onClick={handleLogout}
-                className="p-2 text-gray-500 dark:text-dark-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                className="p-2 text-gray-500 dark:text-dark-400 hover:text-gray-700 dark:hover:text-black hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 title="Выйти"
               >
                 <LogOut className="w-5 h-5" />
@@ -280,19 +420,20 @@ export default function Navbar() {
             </div>
 
             {/* Navigation items mobile */}
-            {filteredNavigation.map((item) => {
+            {/* Main items */}
+            {mainItems.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <button
-                  key={item.href} // Use href as key to avoid duplicates
+                  key={item.href}
                   onClick={() => {
                     router.push(item.href);
                     setIsMobileMenuOpen(false);
                   }}
                   className={`w-full flex items-center px-3 py-2 rounded-md text-base font-medium transition-colors ${
                     isActive
-                      ? 'bg-blue-50 text-blue-700'
-                      : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+                      ? 'bg-white text-white dark:bg-black dark:text-black'
+                      : 'text-black dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                 >
                   <item.icon className="w-5 h-5 mr-3" />
@@ -300,6 +441,35 @@ export default function Navbar() {
                 </button>
               );
             })}
+            
+            {/* Category items */}
+            {categories.map((category) => (
+              <div key={category.name} className="mt-4">
+                <div className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  {category.name}
+                </div>
+                {category.items.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <button
+                      key={item.href}
+                      onClick={() => {
+                        router.push(item.href);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center px-6 py-2 rounded-md text-base font-medium transition-colors ${
+                        isActive
+                          ? 'bg-white text-white dark:bg-black dark:text-black'
+                          : 'text-black dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <item.icon className="w-5 h-5 mr-3" />
+                      {item.name}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
 
             {/* Logout mobile */}
             <button

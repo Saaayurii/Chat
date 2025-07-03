@@ -123,8 +123,10 @@ export interface CreateUserData {
   email: string;
   username: string;
   password: string;
-  fullName: string;
-  role: UserRole;
+  fullName?: string;
+  phone?: string;
+  bio?: string;
+  role?: UserRole;
 }
 
 export interface CreateOperatorData {

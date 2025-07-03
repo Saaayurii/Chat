@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/authStore';
 import { usersAPI } from '@/core/api';
 import { User, UserRole } from '@/types';
 import * as Radix from '@radix-ui/themes';
+import CreateUserModal from '@/components/Users/CreateUserModal';
 
 export default function AdminUsersPage() {
   const { user: currentUser } = useAuthStore();
@@ -91,7 +92,7 @@ export default function AdminUsersPage() {
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               <UserPlus className="w-4 h-4 mr-2" />
               Добавить пользователя
@@ -180,14 +181,14 @@ export default function AdminUsersPage() {
                       <span className="ml-2">Загрузка пользователей...</span>
                     </td>
                   </tr>
-                ) : usersData?.data.length === 0 ? (
+                ) : !usersData?.data || usersData.data.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                       Пользователи не найдены
                     </td>
                   </tr>
                 ) : (
-                  usersData?.data.map((user) => (
+                  usersData.data.map((user) => (
                     <tr key={user._id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
@@ -317,6 +318,12 @@ export default function AdminUsersPage() {
             </div>
           )}
         </div>
+        
+        {/* Create User Modal */}
+        <CreateUserModal 
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+        />
       </div>
     </div>
   );

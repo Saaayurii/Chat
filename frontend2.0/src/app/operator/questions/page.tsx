@@ -17,7 +17,7 @@ export default function OperatorQuestionsPage() {
   }, [user, isLoading, router]);
 
   if (isLoading) {
-    return <div className="flex justify-center items-center min-h-screen">Загрузка...</div>;
+    return <div className="flex justify-center items-center min-h-screen bg-background text-muted-foreground">Загрузка...</div>;
   }
 
   if (!user || user.role !== UserRole.OPERATOR) {
@@ -25,8 +25,10 @@ export default function OperatorQuestionsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <QuestionsManagement userRole={UserRole.OPERATOR} showCreateForm={false} />
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8">
+        <QuestionsManagement userRole={UserRole.OPERATOR} showCreateForm={false} />
+      </div>
     </div>
   );
 }

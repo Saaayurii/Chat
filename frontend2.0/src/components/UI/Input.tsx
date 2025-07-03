@@ -1,50 +1,25 @@
-'use client';
+import * as React from "react"
 
-import { InputHTMLAttributes, forwardRef } from 'react';
+import { cn } from "@/lib/utils"
 
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label?: string;
-  error?: string;
-  fullWidth?: boolean;
-}
+export interface InputProps
+  extends React.InputHTMLAttributes<HTMLInputElement> {}
 
-const Input = forwardRef<HTMLInputElement, InputProps>(({
-  label,
-  error,
-  fullWidth = false,
-  className = '',
-  ...props
-}, ref) => {
-  const baseClasses = 'border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors';
-  const errorClasses = error ? 'border-red-500 focus:ring-red-500' : 'border-gray-300';
-  const widthClasses = fullWidth ? 'w-full' : '';
-  
-  const classes = [
-    baseClasses,
-    errorClasses,
-    widthClasses,
-    className
-  ].filter(Boolean).join(' ');
-
-  return (
-    <div className={fullWidth ? 'w-full' : ''}>
-      {label && (
-        <label className="block text-sm font-medium mb-1 text-gray-700">
-          {label}
-        </label>
-      )}
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ className, type, ...props }, ref) => {
+    return (
       <input
+        type={type}
+        className={cn(
+          "flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+          className
+        )}
         ref={ref}
-        className={classes}
         {...props}
       />
-      {error && (
-        <p className="mt-1 text-sm text-red-600">{error}</p>
-      )}
-    </div>
-  );
-});
+    )
+  }
+)
+Input.displayName = "Input"
 
-Input.displayName = 'Input';
-
-export default Input;
+export { Input }

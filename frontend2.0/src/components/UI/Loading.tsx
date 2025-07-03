@@ -20,7 +20,7 @@ export default function Loading({
   const spinner = (
     <div className="flex flex-col items-center justify-center">
       <svg 
-        className={`animate-spin ${sizeClasses[size]} text-blue-500`} 
+        className={`animate-spin ${sizeClasses[size]} text-primary`} 
         fill="none" 
         viewBox="0 0 24 24"
       >
@@ -39,14 +39,14 @@ export default function Loading({
         />
       </svg>
       {text && (
-        <p className="mt-2 text-gray-600 text-sm">{text}</p>
+        <p className="mt-2 text-muted-foreground text-sm">{text}</p>
       )}
     </div>
   );
 
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 bg-white bg-opacity-75 flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-background/75 backdrop-blur-sm flex items-center justify-center z-50">
         {spinner}
       </div>
     );

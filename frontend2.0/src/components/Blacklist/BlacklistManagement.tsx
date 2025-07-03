@@ -5,34 +5,36 @@ import dynamic from 'next/dynamic';
 import { BlacklistEntry, CreateBlacklistEntryData, ApproveBlacklistEntryData, RevokeBlacklistEntryData, UserRole } from '@/types';
 import { useAuthStore } from '@/store/authStore';
 import { useBlacklistManagement } from '@/hooks/useBlacklistManagement';
+import { Alert, Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/UI';
+import Button from '../UI/Button';
 
 const BlacklistFilter = dynamic(() => import('./BlacklistFilter'), {
-  loading: () => <div className="bg-gray-50 p-4 rounded-lg animate-pulse h-16" />
+  loading: () => <div className="bg-muted p-4 rounded-lg animate-pulse h-16" />
 });
 
 const BlacklistList = dynamic(() => import('./BlacklistList'), {
   loading: () => <div className="space-y-4 animate-pulse">
     {[...Array(3)].map((_, i) => (
-      <div key={i} className="border rounded-lg p-4 h-32 bg-gray-50" />
+      <div key={i} className="border border-border rounded-lg p-4 h-32 bg-muted" />
     ))}
   </div>
 });
 
 const CreateEntryForm = dynamic(() => import('./CreateEntryForm'), {
-  loading: () => <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4 animate-pulse h-96" />
+  loading: () => <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="bg-card p-6 rounded-lg max-w-md w-full mx-4 animate-pulse h-96 border border-border shadow-lg" />
   </div>
 });
 
 const ApproveEntryForm = dynamic(() => import('./ApproveEntryForm'), {
-  loading: () => <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4 animate-pulse h-64" />
+  loading: () => <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="bg-card p-6 rounded-lg max-w-md w-full mx-4 animate-pulse h-64 border border-border shadow-lg" />
   </div>
 });
 
 const RevokeEntryForm = dynamic(() => import('./RevokeEntryForm'), {
-  loading: () => <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4 animate-pulse h-48" />
+  loading: () => <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="bg-card p-6 rounded-lg max-w-md w-full mx-4 animate-pulse h-48 border border-border shadow-lg" />
   </div>
 });
 
@@ -107,62 +109,91 @@ export default function BlacklistManagement({
 
   if (!canManageBlacklist) {
     return (
-      <div className="text-center p-8">
-        <p className="text-gray-600">У вас нет прав для просмотра черного списка</p>
-      </div>
+      <Card className="max-w-md mx-auto">
+        <CardContent className="text-center p-8">
+          <p className="text-muted-foreground">У вас нет прав для просмотра черного списка</p>
+        </CardContent>
+      </Card>
     );
   }
 
   if (loading && entries.length === 0) {
-    return <div className="flex justify-center p-8">Загрузка...</div>;
+    return (
+      <div className="flex justify-center p-8">
+        <div className="text-muted-foreground">Загрузка...</div>
+      </div>
+    );
   }
 
   return (
-    <Suspense fallback={<div className="flex justify-center p-8">Загрузка...</div>}>
+    <Suspense fallback={<div className="flex justify-center p-8"><div className="text-muted-foreground">Загрузка...</div></div>}>
       <div className="space-y-6">
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          <Alert variant="destructive">
             {error}
-          </div>
+          </Alert>
         )}
 
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold">Управление черным списком</h2>
-          {showCreateForm && (
-            <button
-              onClick={() => setShowForm(true)}
-              className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-            >
-              Заблокировать пользователя
-            </button>
-          )}
-        </div>
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-2xl font-bold text-foreground">Управление черным списком</CardTitle>
+              {showCreateForm && (
+                <Button
+                  onClick={() => setShowForm(true)}
+                  variant="destructive"
+                  className="hover:bg-destructive/90 focus:ring-2 focus:ring-destructive focus:ring-offset-2"
+                >
+                  Заблокировать пользователя
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
 
-        <BlacklistFilter
-          statusFilter={statusFilter}
-          reasonFilter={reasonFilter}
-          typeFilter={typeFilter}
-          searchQuery={searchQuery}
-          onStatusFilterChange={setStatusFilter}
-          onReasonFilterChange={setReasonFilter}
-          onTypeFilterChange={setTypeFilter}
-          onSearchQueryChange={setSearchQuery}
-        />
+            <BlacklistFilter
+              statusFilter={statusFilter}
+              reasonFilter={reasonFilter}
+              typeFilter={typeFilter}
+              searchQuery={searchQuery}
+              onStatusFilterChange={setStatusFilter}
+              onReasonFilterChange={setReasonFilter}
+              onTypeFilterChange={setTypeFilter}
+              onSearchQueryChange={setSearchQuery}
+            />
 
-        <BlacklistList
-          entries={entries}
-          userRole={user?.role}
-          onApprove={handleApproveEntry}
-          onRevoke={handleRevokeEntry}
-        />
+            <BlacklistList
+              entries={entries}
+              userRole={user?.role}
+              onApprove={handleApproveEntry}
+              onRevoke={handleRevokeEntry}
+            />
 
-        {totalPages > 1 && (
-          <div className="flex justify-center gap-2">
-            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 border rounded disabled:opacity-50">Назад</button>
-            <span className="px-3 py-1">Страница {currentPage} из {totalPages}</span>
-            <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1 border rounded disabled:opacity-50">Вперед</button>
-          </div>
-        )}
+            {totalPages > 1 && (
+              <div className="flex justify-center gap-2">
+                <Button 
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+                  disabled={currentPage === 1} 
+                  variant="outline"
+                  className="hover:bg-accent hover:text-accent-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Назад
+                </Button>
+                <span className="px-3 py-2 text-sm text-muted-foreground self-center">
+                  Страница {currentPage} из {totalPages}
+                </span>
+                <Button 
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+                  disabled={currentPage === totalPages} 
+                  variant="outline"
+                  className="hover:bg-accent hover:text-accent-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Вперед
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {showForm && (
           <CreateEntryForm

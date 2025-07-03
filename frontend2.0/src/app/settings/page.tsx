@@ -81,19 +81,19 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Настройки</h1>
-          <p className="text-gray-600">Управляйте настройками вашего аккаунта</p>
+          <h1 className="text-2xl font-bold text-foreground">Настройки</h1>
+          <p className="text-muted-foreground">Управляйте настройками вашего аккаунта</p>
         </div>
 
         <div className="space-y-8">
           {/* Смена пароля */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900 flex items-center">
+          <div className="bg-card rounded-lg shadow border border-border">
+            <div className="px-6 py-4 border-b border-border">
+              <h3 className="text-lg font-medium text-foreground flex items-center">
                 <Lock className="w-5 h-5 mr-2" />
                 Безопасность
               </h3>
@@ -101,72 +101,72 @@ export default function SettingsPage() {
             <div className="p-6">
               <form onSubmit={handleSubmit(onSubmitPassword)} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Текущий пароль
                   </label>
                   <div className="relative">
                     <input
                       type={showCurrentPassword ? 'text' : 'password'}
                       {...register('currentPassword')}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black pr-10"
+                      className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground pr-10"
                     />
                     <button
                       type="button"
                       onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground"
                     >
                       {showCurrentPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>
-                  {errors.currentPassword ? <p className="text-red-500 text-sm mt-1">{errors.currentPassword.message}</p> : null}
+                  {errors.currentPassword ? <p className="text-destructive text-sm mt-1">{errors.currentPassword.message}</p> : null}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Новый пароль
                   </label>
                   <div className="relative">
                     <input
                       type={showNewPassword ? 'text' : 'password'}
                       {...register('newPassword')}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black pr-10"
+                      className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground pr-10"
                     />
                     <button
                       type="button"
                       onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground"
                     >
                       {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>
-                  {errors.newPassword ? <p className="text-red-500 text-sm mt-1">{errors.newPassword.message}</p> : null}
+                  {errors.newPassword ? <p className="text-destructive text-sm mt-1">{errors.newPassword.message}</p> : null}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Подтвердите новый пароль
                   </label>
                   <div className="relative">
                     <input
                       type={showConfirmPassword ? 'text' : 'password'}
                       {...register('confirmPassword')}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black pr-10"
+                      className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground pr-10"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground"
                     >
                       {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>
-                  {errors.confirmPassword ? <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p> : null}
+                  {errors.confirmPassword ? <p className="text-destructive text-sm mt-1">{errors.confirmPassword.message}</p> : null}
                 </div>
 
                 <button
                   type="submit"
                   disabled={changePasswordMutation.isPending}
-                  className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                  className="flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
                 >
                   <Save className="w-4 h-4 mr-2" />
                   {changePasswordMutation.isPending ? 'Сохранение...' : 'Изменить пароль'}
@@ -176,9 +176,9 @@ export default function SettingsPage() {
           </div>
 
           {/* Уведомления */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900 flex items-center">
+          <div className="bg-card rounded-lg shadow border border-border">
+            <div className="px-6 py-4 border-b border-border">
+              <h3 className="text-lg font-medium text-foreground flex items-center">
                 <Bell className="w-5 h-5 mr-2" />
                 Уведомления
               </h3>
@@ -186,8 +186,8 @@ export default function SettingsPage() {
             <div className="p-6 space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-sm font-medium text-gray-900">Email уведомления</h4>
-                  <p className="text-sm text-gray-500">Получать уведомления на email</p>
+                  <h4 className="text-sm font-medium text-foreground">Email уведомления</h4>
+                  <p className="text-sm text-muted-foreground">Получать уведомления на email</p>
                 </div>
                 <Radix.Switch 
                   checked={notifications.email}
@@ -197,8 +197,8 @@ export default function SettingsPage() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-sm font-medium text-gray-900">Push уведомления</h4>
-                  <p className="text-sm text-gray-500">Получать push уведомления в браузере</p>
+                  <h4 className="text-sm font-medium text-foreground">Push уведомления</h4>
+                  <p className="text-sm text-muted-foreground">Получать push уведомления в браузере</p>
                 </div>
                 <Radix.Switch 
                   checked={notifications.push}
@@ -208,8 +208,8 @@ export default function SettingsPage() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-sm font-medium text-gray-900">Уведомления на рабочем столе</h4>
-                  <p className="text-sm text-gray-500">Показывать уведомления на рабочем столе</p>
+                  <h4 className="text-sm font-medium text-foreground">Уведомления на рабочем столе</h4>
+                  <p className="text-sm text-muted-foreground">Показывать уведомления на рабочем столе</p>
                 </div>
                 <Radix.Switch 
                   checked={notifications.desktop}
@@ -219,8 +219,8 @@ export default function SettingsPage() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-sm font-medium text-gray-900">Новые сообщения</h4>
-                  <p className="text-sm text-gray-500">Уведомления о новых сообщениях</p>
+                  <h4 className="text-sm font-medium text-foreground">Новые сообщения</h4>
+                  <p className="text-sm text-muted-foreground">Уведомления о новых сообщениях</p>
                 </div>
                 <Radix.Switch 
                   checked={notifications.newMessages}
@@ -230,8 +230,8 @@ export default function SettingsPage() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-sm font-medium text-gray-900">Системные обновления</h4>
-                  <p className="text-sm text-gray-500">Уведомления об обновлениях системы</p>
+                  <h4 className="text-sm font-medium text-foreground">Системные обновления</h4>
+                  <p className="text-sm text-muted-foreground">Уведомления об обновлениях системы</p>
                 </div>
                 <Radix.Switch 
                   checked={notifications.systemUpdates}
@@ -242,9 +242,9 @@ export default function SettingsPage() {
           </div>
 
           {/* Приватность */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900 flex items-center">
+          <div className="bg-card rounded-lg shadow border border-border">
+            <div className="px-6 py-4 border-b border-border">
+              <h3 className="text-lg font-medium text-foreground flex items-center">
                 <Shield className="w-5 h-5 mr-2" />
                 Приватность
               </h3>
@@ -252,8 +252,8 @@ export default function SettingsPage() {
             <div className="p-6 space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-sm font-medium text-gray-900">Показывать статус онлайн</h4>
-                  <p className="text-sm text-gray-500">Другие пользователи смогут видеть, что вы онлайн</p>
+                  <h4 className="text-sm font-medium text-foreground">Показывать статус онлайн</h4>
+                  <p className="text-sm text-muted-foreground">Другие пользователи смогут видеть, что вы онлайн</p>
                 </div>
                 <Radix.Switch 
                   checked={privacy.showOnlineStatus}
@@ -263,8 +263,8 @@ export default function SettingsPage() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-sm font-medium text-gray-900">Разрешить личные сообщения</h4>
-                  <p className="text-sm text-gray-500">Позволить другим пользователям писать вам напрямую</p>
+                  <h4 className="text-sm font-medium text-foreground">Разрешить личные сообщения</h4>
+                  <p className="text-sm text-muted-foreground">Позволить другим пользователям писать вам напрямую</p>
                 </div>
                 <Radix.Switch 
                   checked={privacy.allowDirectMessages}
@@ -274,8 +274,8 @@ export default function SettingsPage() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-sm font-medium text-gray-900">Показывать время последнего посещения</h4>
-                  <p className="text-sm text-gray-500">Другие увидят, когда вы были онлайн в последний раз</p>
+                  <h4 className="text-sm font-medium text-foreground">Показывать время последнего посещения</h4>
+                  <p className="text-sm text-muted-foreground">Другие увидят, когда вы были онлайн в последний раз</p>
                 </div>
                 <Radix.Switch 
                   checked={privacy.showLastSeen}
@@ -286,24 +286,24 @@ export default function SettingsPage() {
           </div>
 
           {/* Информация об аккаунте */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Информация об аккаунте</h3>
+          <div className="bg-card rounded-lg shadow border border-border">
+            <div className="px-6 py-4 border-b border-border">
+              <h3 className="text-lg font-medium text-foreground">Информация об аккаунте</h3>
             </div>
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">ID пользователя</label>
-                  <p className="text-sm text-gray-900 font-mono">{user?.id}</p>
+                  <label className="block text-sm font-medium text-foreground">ID пользователя</label>
+                  <p className="text-sm text-foreground font-mono">{user?.id}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Дата регистрации</label>
-                  <p className="text-sm text-gray-900">
+                  <label className="block text-sm font-medium text-foreground">Дата регистрации</label>
+                  <p className="text-sm text-foreground">
                     {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Неизвестно'}
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Статус активации</label>
+                  <label className="block text-sm font-medium text-foreground">Статус активации</label>
                   <Radix.Badge 
                     color={user?.isActivated ? 'green' : 'orange'} 
                     variant="soft"
@@ -312,8 +312,8 @@ export default function SettingsPage() {
                   </Radix.Badge>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Последнее обновление</label>
-                  <p className="text-sm text-gray-900">
+                  <label className="block text-sm font-medium text-foreground">Последнее обновление</label>
+                  <p className="text-sm text-foreground">
                     {user?.updatedAt ? new Date(user.updatedAt).toLocaleDateString() : 'Неизвестно'}
                   </p>
                 </div>

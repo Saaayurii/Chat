@@ -18,9 +18,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const showNavbar = isAuthenticated && !isPublicRoute;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {showNavbar && <Navbar />}
-      <main className={showNavbar ? '' : 'min-h-screen'}>
+      <main className={showNavbar ? 'pt-0' : 'min-h-screen'}>
         {children}
       </main>
     </div>

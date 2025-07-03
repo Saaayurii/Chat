@@ -17,7 +17,14 @@ export default function AdminEmailsPage() {
   }, [user, isLoading, router]);
 
   if (isLoading) {
-    return <div className="flex justify-center items-center min-h-screen">Загрузка...</div>;
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground mt-4">Загрузка...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!user || user.role !== UserRole.ADMIN) {
@@ -25,7 +32,7 @@ export default function AdminEmailsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 bg-background min-h-screen">
       <EmailNotifications userRole={UserRole.ADMIN} />
     </div>
   );

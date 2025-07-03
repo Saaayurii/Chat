@@ -17,7 +17,7 @@ export default function OperatorRatingsPage() {
   }, [user, isLoading, router]);
 
   if (isLoading) {
-    return <div className="flex justify-center items-center min-h-screen">Загрузка...</div>;
+    return <div className="flex justify-center items-center min-h-screen bg-background text-muted-foreground">Загрузка...</div>;
   }
 
   if (!user || user.role !== UserRole.OPERATOR) {
@@ -25,12 +25,14 @@ export default function OperatorRatingsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <RatingsManagement 
-        userRole={UserRole.OPERATOR} 
-        showCreateForm={false}
-        operatorId={user._id}
-      />
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8">
+        <RatingsManagement 
+          userRole={UserRole.OPERATOR} 
+          showCreateForm={false}
+          operatorId={user._id}
+        />
+      </div>
     </div>
   );
 }

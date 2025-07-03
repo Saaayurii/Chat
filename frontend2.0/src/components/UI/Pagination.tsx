@@ -64,7 +64,7 @@ export default function Pagination({
                 1
               </Button>
               {visiblePages[0] > 2 && (
-                <span className="px-2 text-gray-500">...</span>
+                <span className="px-2 text-muted-foreground">...</span>
               )}
             </>
           )}
@@ -84,7 +84,7 @@ export default function Pagination({
           {visiblePages[visiblePages.length - 1] < totalPages && (
             <>
               {visiblePages[visiblePages.length - 1] < totalPages - 1 && (
-                <span className="px-2 text-gray-500">...</span>
+                <span className="px-2 text-muted-foreground">...</span>
               )}
               <Button
                 variant="secondary"
@@ -100,7 +100,7 @@ export default function Pagination({
       )}
 
       {!showPageNumbers && (
-        <span className="px-3 py-1 text-sm">
+        <span className="px-3 py-1 text-sm text-muted-foreground">
           Страница {currentPage} из {totalPages}
         </span>
       )}

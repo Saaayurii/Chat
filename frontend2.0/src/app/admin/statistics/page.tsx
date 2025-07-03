@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, LogOut, BarChart3, MessageSquare, Users, Settings } from 'lucide-react';
+import { BarChart3, MessageSquare, Users } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
 import { usersAPI } from '@/core/api';
 import { User, UserRole } from '@/types';
+import { SearchInput } from '@/components/UI/SearchInput';
 
 export default function AdminStatisticsPage() {
   const router = useRouter();
@@ -47,19 +48,17 @@ export default function AdminStatisticsPage() {
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar */}
           <aside className="w-full lg:w-80">
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Операторы</h2>
+            <div className="bg-white dark:bg-dark-900 rounded-lg shadow p-6">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Операторы</h2>
               
               {/* Search */}
-              <div className="relative mb-6">
-                <input
-                  type="text"
+              <div className="mb-6">
+                <SearchInput
                   placeholder="Поиск оператора..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                  className="bg-white dark:bg-dark-800 border-gray-300 dark:border-dark-700 text-gray-900 dark:text-white"
                 />
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               </div>
 
               {/* Operators list */}
@@ -96,8 +95,8 @@ export default function AdminStatisticsPage() {
 
           {/* Main content */}
           <main className="flex-1">
-            <div className="bg-white rounded-lg shadow p-6">
-              <h1 className="text-2xl font-bold text-gray-900 mb-6">Статистика</h1>
+            <div className="bg-white dark:bg-dark-900 rounded-lg shadow p-6">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Статистика</h1>
               
               {statsLoading ? <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
@@ -151,12 +150,12 @@ export default function AdminStatisticsPage() {
 
       {/* Operators Modal */}
       {showOperatorModal ? <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-lg max-w-2xl w-full max-h-96 flex flex-col">
-          <div className="flex justify-between items-center p-6 border-b">
-            <h2 className="text-lg font-semibold">Список операторов</h2>
+        <div className="bg-white dark:bg-dark-900 rounded-lg max-w-2xl w-full max-h-96 flex flex-col">
+          <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-dark-700">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Список операторов</h2>
             <button 
               onClick={() => setShowOperatorModal(false)}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
             >
               ✕
             </button>
@@ -164,12 +163,12 @@ export default function AdminStatisticsPage() {
           <div className="flex-1 overflow-auto p-6">
             <div className="space-y-4">
               {filteredOperators.map((operator) => (
-                <div key={operator._id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div key={operator._id} className="flex items-center justify-between p-3 border border-gray-200 dark:border-dark-700 rounded-lg">
                   <div className="flex items-center">
                     <div className={`w-3 h-3 rounded-full ${operator.profile.isOnline ? 'bg-green-500' : 'bg-gray-300'} mr-3`}></div>
-                    <span className="font-medium">{operator.profile.fullName || operator.profile.username}</span>
+                    <span className="font-medium text-gray-900 dark:text-white">{operator.profile.fullName || operator.profile.username}</span>
                   </div>
-                  <span className="text-sm text-gray-500">{operator.operatorStats?.totalQuestions || 0} вопросов</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">{operator.operatorStats?.totalQuestions || 0} вопросов</span>
                 </div>
               ))}
             </div>

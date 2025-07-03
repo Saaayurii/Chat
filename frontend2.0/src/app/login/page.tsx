@@ -1,5 +1,7 @@
 'use client';
 
+import Image from "next/image";
+import Link from "next/link";
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -9,6 +11,10 @@ import { useMutation } from '@tanstack/react-query';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { authAPI, LoginData } from '@/core/api';
+
+import  Button  from "@/components/UI/Button";
+import { Input } from "@/components/UI/Input";
+import { Label } from "@/components/UI/Label";
 
 const loginSchema = z.object({
   email: z.string().email('Введите корректный email'),
@@ -73,37 +79,53 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark-950 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="bg-white dark:bg-dark-900 p-8 rounded-lg shadow-md">
-          <h2 className="text-2xl font-bold text-center text-gray-800 dark:text-white mb-6">
-            Вход в систему
-          </h2>
-          
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-dark-300 mb-2">
-                Email:
-              </label>
-              <input
-                type="email"
+    <div className="w-full min-h-screen lg:grid lg:grid-cols-2">
+      <div className="flex items-center justify-center py-12">
+        <div className="mx-auto grid w-[350px] gap-6">
+          <div className="grid gap-2 text-center">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              Вход в систему
+            </h1>
+            <p className="text-balance text-muted-foreground">
+              Введите ваш email для входа в аккаунт
+            </p>
+          </div>
+          <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="email" className="text-gray-700 dark:text-gray-300">
+                Email
+              </Label>
+              <Input
                 id="email"
+                type="email"
+                placeholder="m@example.com"
                 {...register('email')}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-dark-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-dark-800 text-gray-900 dark:text-white"
+                className="bg-white dark:bg-dark-800 border-gray-300 dark:border-dark-700 text-gray-900 dark:text-white"
               />
-              {errors.email ? <div className="text-red-500 text-sm mt-1">{errors.email.message}</div> : null}
+              {errors.email && (
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-dark-300 mb-2">
-                Пароль:
-              </label>
+            <div className="grid gap-2">
+              <div className="flex items-center">
+                <Label htmlFor="password" className="text-gray-700 dark:text-gray-300">
+                  Пароль
+                </Label>
+                <Link
+                  href="/reset"
+                  className="ml-auto inline-block text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                >
+                  Забыли пароль?
+                </Link>
+              </div>
               <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
+                <Input
                   id="password"
+                  type={showPassword ? 'text' : 'password'}
                   {...register('password')}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-dark-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10 bg-white dark:bg-dark-800 text-gray-900 dark:text-white"
+                  className="bg-white dark:bg-dark-800 border-gray-300 dark:border-dark-700 text-gray-900 dark:text-white pr-10"
                 />
                 <button
                   type="button"
@@ -113,35 +135,44 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
-              {errors.password ? <div className="text-red-500 text-sm mt-1">{errors.password.message}</div> : null}
+              {errors.password && (
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  {errors.password.message}
+                </p>
+              )}
             </div>
-
-            <button
-              type="submit"
+            <Button 
+              type="submit" 
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
               disabled={loginMutation.isPending}
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loginMutation.isPending ? 'Вход...' : 'Войти'}
-            </button>
-
-            {errors.root ? <div className="text-red-500 text-sm text-center mt-4">{errors.root.message}</div> : null}
-
-            <div className="text-center space-y-2">
-              <a 
-                href="/reset" 
-                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm"
-              >
-                Забыли пароль?
-              </a>
-              <br />
-              <a 
-                href="/registration" 
-                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm"
-              >
-                Регистрация
-              </a>
-            </div>
+            </Button>
+            {errors.root && (
+              <p className="text-sm text-red-600 dark:text-red-400 text-center">
+                {errors.root.message}
+              </p>
+            )}
           </form>
+          <div className="mt-4 text-center text-sm">
+            Нет аккаунта?{" "}
+            <Link 
+              href="/registration" 
+              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+            >
+              Регистрация
+            </Link>
+          </div>
+        </div>
+      </div>
+      <div className="hidden bg-muted lg:block">
+        <div className="h-full w-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+          <div className="text-center text-white">
+            <h2 className="text-4xl font-bold mb-4">Добро пожаловать!</h2>
+            <p className="text-xl opacity-90">
+              Войдите в систему для продолжения работы
+            </p>
+          </div>
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { questionsAPI } from '@/core/api';
 import { 
   Question, 
@@ -12,6 +12,26 @@ import {
   UserRole 
 } from '@/types';
 import { useAuthStore } from '@/store/authStore';
+import { 
+  Input, 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue,
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  Alert,
+  Badge
+} from '@/components/UI';
+import Button from '../UI/Button';
 
 interface QuestionsManagementProps {
   userRole?: UserRole;
@@ -148,314 +168,298 @@ export default function QuestionsManagement({
     }
   };
 
-  const getStatusColor = (status: QuestionStatus) => {
+  const getStatusVariant = (status: QuestionStatus) => {
     switch (status) {
-      case QuestionStatus.OPEN: return 'bg-yellow-100 text-yellow-800';
-      case QuestionStatus.ASSIGNED: return 'bg-blue-100 text-blue-800';
-      case QuestionStatus.IN_PROGRESS: return 'bg-purple-100 text-purple-800';
-      case QuestionStatus.CLOSED: return 'bg-green-100 text-green-800';
-      case QuestionStatus.TRANSFERRED: return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case QuestionStatus.OPEN: return 'secondary';
+      case QuestionStatus.ASSIGNED: return 'default';
+      case QuestionStatus.IN_PROGRESS: return 'default';
+      case QuestionStatus.CLOSED: return 'default';
+      case QuestionStatus.TRANSFERRED: return 'outline';
+      default: return 'outline';
     }
   };
 
-  const getPriorityColor = (priority: QuestionPriority) => {
+  const getPriorityVariant = (priority: QuestionPriority) => {
     switch (priority) {
-      case QuestionPriority.LOW: return 'bg-green-100 text-green-800';
-      case QuestionPriority.MEDIUM: return 'bg-yellow-100 text-yellow-800';
-      case QuestionPriority.HIGH: return 'bg-orange-100 text-orange-800';
-      case QuestionPriority.URGENT: return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case QuestionPriority.LOW: return 'default';
+      case QuestionPriority.MEDIUM: return 'secondary';
+      case QuestionPriority.HIGH: return 'default';
+      case QuestionPriority.URGENT: return 'destructive';
+      default: return 'outline';
     }
   };
 
   if (loading && questions.length === 0) {
-    return <div className="flex justify-center p-8">Загрузка...</div>;
+    return (
+      <div className="flex justify-center p-8">
+        <div className="text-muted-foreground">Загрузка...</div>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          {error}
-        </div>
-      )}
-
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">
-          {user?.role === UserRole.VISITOR ? 'Мои вопросы' : 'Управление вопросами'}
-        </h2>
-        {canCreateQuestions && showCreateForm && (
-          <button
-            onClick={() => setShowForm(true)}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-          >
-            Задать вопрос
-          </button>
+    <Suspense fallback={<div className="flex justify-center p-8"><div className="text-muted-foreground">Загрузка...</div></div>}>
+      <div className="space-y-6">
+        {error && (
+          <Alert variant="destructive">
+            {error}
+          </Alert>
         )}
-      </div>
 
-      {/* Filters */}
-      {canManageQuestions && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as QuestionStatus | '')}
-            className="border rounded px-3 py-2"
-          >
-            <option value="">Все статусы</option>
-            <option value={QuestionStatus.OPEN}>Открыт</option>
-            <option value={QuestionStatus.ASSIGNED}>Назначен</option>
-            <option value={QuestionStatus.IN_PROGRESS}>В работе</option>
-            <option value={QuestionStatus.CLOSED}>Закрыт</option>
-            <option value={QuestionStatus.TRANSFERRED}>Передан</option>
-          </select>
-
-          <select
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value as QuestionPriority | '')}
-            className="border rounded px-3 py-2"
-          >
-            <option value="">Все приоритеты</option>
-            <option value={QuestionPriority.LOW}>Низкий</option>
-            <option value={QuestionPriority.MEDIUM}>Средний</option>
-            <option value={QuestionPriority.HIGH}>Высокий</option>
-            <option value={QuestionPriority.URGENT}>Срочный</option>
-          </select>
-
-          <input
-            type="text"
-            placeholder="Категория"
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="border rounded px-3 py-2"
-          />
-
-          <input
-            type="text"
-            placeholder="Поиск..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="border rounded px-3 py-2"
-          />
-        </div>
-      )}
-
-      {/* Questions List */}
-      <div className="space-y-4">
-        {questions.map((question) => (
-          <div key={question._id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start mb-2">
-              <div className="flex-1">
-                <h3 className="font-semibold text-lg">{question.text}</h3>
-                <p className="text-gray-600">Категория: {question.category}</p>
-                {question.tags && question.tags.length > 0 && (
-                  <div className="flex gap-2 mt-2">
-                    {question.tags.map((tag, index) => (
-                      <span key={index} className="bg-gray-200 px-2 py-1 rounded text-sm">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <span className={`px-2 py-1 rounded text-sm ${getStatusColor(question.status)}`}>
-                  {question.status}
-                </span>
-                <span className={`px-2 py-1 rounded text-sm ${getPriorityColor(question.priority)}`}>
-                  {question.priority}
-                </span>
-              </div>
-            </div>
-
-            <div className="text-sm text-gray-500 mb-3">
-              <p>Создан: {new Date(question.createdAt).toLocaleString()}</p>
-              {question.assignedAt && (
-                <p>Назначен: {new Date(question.assignedAt).toLocaleString()}</p>
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-2xl font-bold text-foreground">
+                {user?.role === UserRole.VISITOR ? 'Мои вопросы' : 'Управление вопросами'}
+              </CardTitle>
+              {canCreateQuestions && showCreateForm && (
+                <Button onClick={() => setShowForm(true)}>
+                  Задать вопрос
+                </Button>
               )}
-              {question.closedAt && (
-                <p>Закрыт: {new Date(question.closedAt).toLocaleString()}</p>
-              )}
-              <p>Сообщений: {question.messagesCount}</p>
             </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
 
-            {canManageQuestions && question.status !== QuestionStatus.CLOSED && (
-              <div className="flex gap-2">
-                {question.status === QuestionStatus.OPEN && (
-                  <button
-                    onClick={() => {
-                      setSelectedQuestion(question);
-                      setShowAssignForm(true);
-                    }}
-                    className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600"
-                  >
-                    Назначить оператора
-                  </button>
-                )}
-                {question.status !== QuestionStatus.OPEN && (
-                  <button
-                    onClick={() => {
-                      setSelectedQuestion(question);
-                      setShowCloseForm(true);
-                    }}
-                    className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600"
-                  >
-                    Закрыть вопрос
-                  </button>
-                )}
+            {/* Filters */}
+            {canManageQuestions && (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
+                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as QuestionStatus | '')}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Все статусы" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Все статусы</SelectItem>
+                    <SelectItem value={QuestionStatus.OPEN}>Открыт</SelectItem>
+                    <SelectItem value={QuestionStatus.ASSIGNED}>Назначен</SelectItem>
+                    <SelectItem value={QuestionStatus.IN_PROGRESS}>В работе</SelectItem>
+                    <SelectItem value={QuestionStatus.CLOSED}>Закрыт</SelectItem>
+                    <SelectItem value={QuestionStatus.TRANSFERRED}>Передан</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={priorityFilter} onValueChange={(value) => setPriorityFilter(value as QuestionPriority | '')}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Все приоритеты" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Все приоритеты</SelectItem>
+                    <SelectItem value={QuestionPriority.LOW}>Низкий</SelectItem>
+                    <SelectItem value={QuestionPriority.MEDIUM}>Средний</SelectItem>
+                    <SelectItem value={QuestionPriority.HIGH}>Высокий</SelectItem>
+                    <SelectItem value={QuestionPriority.URGENT}>Срочный</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Input
+                  placeholder="Категория"
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className="border-input"
+                />
+
+                <Input
+                  placeholder="Поиск..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="border-input"
+                />
               </div>
             )}
-          </div>
-        ))}
-      </div>
 
-      {/* Pagination */}
-      {canManageQuestions && totalPages > 1 && (
-        <div className="flex justify-center gap-2">
-          <button
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-            className="px-3 py-1 border rounded disabled:opacity-50"
-          >
-            Назад
-          </button>
-          <span className="px-3 py-1">
-            Страница {currentPage} из {totalPages}
-          </span>
-          <button
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-            className="px-3 py-1 border rounded disabled:opacity-50"
-          >
-            Вперед
-          </button>
-        </div>
-      )}
+            {/* Questions List */}
+            <div className="space-y-4">
+              {questions.map((question) => (
+                <Card key={question._id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg text-foreground">{question.text}</h3>
+                        <p className="text-muted-foreground">Категория: {question.category}</p>
+                        {question.tags && question.tags.length > 0 && (
+                          <div className="flex gap-2 mt-2">
+                            {question.tags.map((tag, index) => (
+                              <Badge key={index} variant="secondary">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Badge variant={getStatusVariant(question.status)}>
+                          {question.status}
+                        </Badge>
+                        <Badge variant={getPriorityVariant(question.priority)}>
+                          {question.priority}
+                        </Badge>
+                      </div>
+                    </div>
 
-      {/* Create Question Form */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-            <h3 className="text-xl font-semibold mb-4">Задать вопрос</h3>
+                    <div className="text-sm text-muted-foreground mb-3">
+                      <p>Создан: {new Date(question.createdAt).toLocaleString()}</p>
+                      {question.assignedAt && (
+                        <p>Назначен: {new Date(question.assignedAt).toLocaleString()}</p>
+                      )}
+                      {question.closedAt && (
+                        <p>Закрыт: {new Date(question.closedAt).toLocaleString()}</p>
+                      )}
+                      <p>Сообщений: {question.messagesCount}</p>
+                    </div>
+
+                    {canManageQuestions && question.status !== QuestionStatus.CLOSED && (
+                      <div className="flex gap-2">
+                        {question.status === QuestionStatus.OPEN && (
+                          <Button
+                            onClick={() => {
+                              setSelectedQuestion(question);
+                              setShowAssignForm(true);
+                            }}
+                            size="sm"
+                          >
+                            Назначить оператора
+                          </Button>
+                        )}
+                        {question.status !== QuestionStatus.OPEN && (
+                          <Button
+                            onClick={() => {
+                              setSelectedQuestion(question);
+                              setShowCloseForm(true);
+                            }}
+                            size="sm"
+                            variant="outline"
+                          >
+                            Закрыть вопрос
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {canManageQuestions && totalPages > 1 && (
+              <div className="flex justify-center gap-2">
+                <Button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  variant="outline"
+                >
+                  Назад
+                </Button>
+                <span className="px-3 py-2 text-sm text-muted-foreground self-center">
+                  Страница {currentPage} из {totalPages}
+                </span>
+                <Button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  variant="outline"
+                >
+                  Вперед
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Create Question Form */}
+        <Dialog open={showForm} onOpenChange={setShowForm}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Задать вопрос</DialogTitle>
+            </DialogHeader>
             <form onSubmit={handleCreateQuestion} className="space-y-4">
               <textarea
                 placeholder="Опишите ваш вопрос..."
                 value={formData.text}
                 onChange={(e) => setFormData({ ...formData, text: e.target.value })}
-                className="w-full border rounded px-3 py-2 h-32"
+                className="w-full border border-input rounded-md px-3 py-2 h-32 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 required
               />
               
-              <select
-                value={formData.priority}
-                onChange={(e) => setFormData({ ...formData, priority: e.target.value as QuestionPriority })}
-                className="w-full border rounded px-3 py-2"
-              >
-                <option value={QuestionPriority.LOW}>Низкий приоритет</option>
-                <option value={QuestionPriority.MEDIUM}>Средний приоритет</option>
-                <option value={QuestionPriority.HIGH}>Высокий приоритет</option>
-                <option value={QuestionPriority.URGENT}>Срочный</option>
-              </select>
+              <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value as QuestionPriority })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Выберите приоритет" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={QuestionPriority.LOW}>Низкий приоритет</SelectItem>
+                  <SelectItem value={QuestionPriority.MEDIUM}>Средний приоритет</SelectItem>
+                  <SelectItem value={QuestionPriority.HIGH}>Высокий приоритет</SelectItem>
+                  <SelectItem value={QuestionPriority.URGENT}>Срочный</SelectItem>
+                </SelectContent>
+              </Select>
 
-              <input
-                type="text"
+              <Input
                 placeholder="Категория"
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full border rounded px-3 py-2"
                 required
               />
 
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 bg-blue-500 text-white py-2 rounded hover:bg-blue-600 disabled:opacity-50"
-                >
-                  {loading ? 'Отправка...' : 'Отправить'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="flex-1 bg-gray-500 text-white py-2 rounded hover:bg-gray-600"
-                >
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
                   Отмена
-                </button>
-              </div>
+                </Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? 'Отправка...' : 'Отправить'}
+                </Button>
+              </DialogFooter>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        </Dialog>
 
-      {/* Assign Operator Form */}
-      {showAssignForm && selectedQuestion && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-            <h3 className="text-xl font-semibold mb-4">Назначить оператора</h3>
+        {/* Assign Operator Form */}
+        <Dialog open={showAssignForm} onOpenChange={setShowAssignForm}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Назначить оператора</DialogTitle>
+            </DialogHeader>
             <form onSubmit={handleAssignOperator} className="space-y-4">
-              <input
-                type="text"
+              <Input
                 placeholder="ID оператора"
                 value={operatorId}
                 onChange={(e) => setOperatorId(e.target.value)}
-                className="w-full border rounded px-3 py-2"
                 required
               />
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 bg-blue-500 text-white py-2 rounded hover:bg-blue-600 disabled:opacity-50"
-                >
-                  {loading ? 'Назначение...' : 'Назначить'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowAssignForm(false)}
-                  className="flex-1 bg-gray-500 text-white py-2 rounded hover:bg-gray-600"
-                >
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setShowAssignForm(false)}>
                   Отмена
-                </button>
-              </div>
+                </Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? 'Назначение...' : 'Назначить'}
+                </Button>
+              </DialogFooter>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        </Dialog>
 
-      {/* Close Question Form */}
-      {showCloseForm && selectedQuestion && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-            <h3 className="text-xl font-semibold mb-4">Закрыть вопрос</h3>
+        {/* Close Question Form */}
+        <Dialog open={showCloseForm} onOpenChange={setShowCloseForm}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Закрыть вопрос</DialogTitle>
+            </DialogHeader>
             <form onSubmit={handleCloseQuestion} className="space-y-4">
               <textarea
                 placeholder="Комментарий к закрытию (необязательно)"
                 value={closingComment}
                 onChange={(e) => setClosingComment(e.target.value)}
-                className="w-full border rounded px-3 py-2 h-24"
+                className="w-full border border-input rounded-md px-3 py-2 h-24 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               />
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 bg-green-500 text-white py-2 rounded hover:bg-green-600 disabled:opacity-50"
-                >
-                  {loading ? 'Закрытие...' : 'Закрыть'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowCloseForm(false)}
-                  className="flex-1 bg-gray-500 text-white py-2 rounded hover:bg-gray-600"
-                >
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setShowCloseForm(false)}>
                   Отмена
-                </button>
-              </div>
+                </Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? 'Закрытие...' : 'Закрыть'}
+                </Button>
+              </DialogFooter>
             </form>
-          </div>
-        </div>
-      )}
-    </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </Suspense>
   );
 }

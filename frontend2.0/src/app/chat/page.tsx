@@ -165,19 +165,19 @@ export default function ChatPage() {
   }, [selectedConversation, typingUsers]);
 
   return (
-    <div className="h-screen flex bg-gray-50 dark:bg-dark-950">
+    <div className="h-screen flex bg-background">
       {/* Sidebar - список чатов */}
-      <div className="w-80 bg-white dark:bg-dark-900 border-r border-gray-200 dark:border-dark-800 flex flex-col">
-        <div className="p-4 border-b border-gray-200 dark:border-dark-800">
+      <div className="w-80 bg-card border-r border-border flex flex-col">
+        <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Чаты</h2>
+            <h2 className="text-lg font-semibold text-foreground">Чаты</h2>
             <div className="flex items-center space-x-2">
               {/* WebSocket статус */}
               <div className="flex items-center">
                 {isConnected ? <Wifi className="w-4 h-4 text-green-500" /> : isConnecting ? <Radix.Spinner size="1" /> : <div className="cursor-pointer" title="Не подключено. Нажмите для переподключения" onClick={reconnect}><WifiOff className="w-4 h-4 text-red-500" /></div>}
               </div>
-              <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
-                <Plus className="w-5 h-5 text-gray-600 dark:text-dark-300" />
+              <button className="p-2 hover:bg-accent rounded-lg">
+                <Plus className="w-5 h-5 text-muted-foreground" />
               </button>
             </div>
           </div>
@@ -188,9 +188,9 @@ export default function ChatPage() {
               placeholder="Поиск чатов..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-dark-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-dark-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-dark-400"
+              className="w-full pl-10 pr-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground placeholder-muted-foreground"
             />
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           </div>
         </div>
 
@@ -201,7 +201,7 @@ export default function ChatPage() {
               <span className="ml-2">Загрузка чатов...</span>
             </div>
           ) : filteredConversations.length === 0 ? (
-            <div className="p-4 text-center text-gray-500">
+            <div className="p-4 text-center text-muted-foreground">
               Нет активных чатов
             </div>
           ) : (
@@ -212,21 +212,21 @@ export default function ChatPage() {
                   onClick={() => setSelectedConversation(conversation._id)}
                   className={`p-3 rounded-lg cursor-pointer transition-colors ${
                     selectedConversation === conversation._id
-                      ? 'bg-blue-50 border-l-4 border-blue-500'
-                      : 'hover:bg-gray-50'
+                      ? 'bg-accent border-l-4 border-primary'
+                      : 'hover:bg-accent'
                   }`}
                 >
                   <div className="flex justify-between items-start mb-1">
                     <h3 className="font-medium text-sm truncate">
                       Беседа {conversation.type}
                     </h3>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-muted-foreground">
                       {conversation.lastMessage?.timestamp && new Date(conversation.lastMessage.timestamp).toLocaleTimeString()}
                     </span>
                   </div>
                   
                   {conversation.lastMessage && (
-                    <p className="text-sm text-gray-600 truncate">
+                    <p className="text-sm text-muted-foreground truncate">
                       {conversation.lastMessage.text}
                     </p>
                   )}
@@ -251,12 +251,12 @@ export default function ChatPage() {
         {selectedConversation ? (
           <>
             {/* Chat header */}
-            <div className="p-4 bg-white border-b border-gray-200">
+            <div className="p-4 bg-card border-b border-border">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-semibold">Беседа</h3>
                   <div className="flex items-center space-x-2">
-                    <p className="text-sm text-gray-500">Участники: активны</p>
+                    <p className="text-sm text-muted-foreground">Участники: активны</p>
                     {!isConnected && (
                       <Radix.Badge color="red" variant="soft">
                         Не подключен
@@ -264,14 +264,14 @@ export default function ChatPage() {
                     )}
                   </div>
                 </div>
-                <button className="p-2 hover:bg-gray-100 rounded-lg">
+                <button className="p-2 hover:bg-accent rounded-lg">
                   <MoreVertical className="w-5 h-5" />
                 </button>
               </div>
               
               {/* Показываем кто печатает */}
               {currentTypingUsers.length > 0 && (
-                <div className="mt-2 text-sm text-gray-500 italic">
+                <div className="mt-2 text-sm text-muted-foreground italic">
                   {currentTypingUsers.length === 1 ? 'Пользователь печатает...' : `${currentTypingUsers.length} пользователей печатают...`}
                 </div>
               )}
@@ -284,7 +284,7 @@ export default function ChatPage() {
                   <Radix.Spinner />
                 </div>
               ) : messages?.data?.length === 0 ? (
-                <div className="text-center text-gray-500">
+                <div className="text-center text-muted-foreground">
                   Начните общение, отправив первое сообщение
                 </div>
               ) : (
@@ -298,14 +298,14 @@ export default function ChatPage() {
                     <div
                       className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                         message.senderId === user?.id
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-white border border-gray-200'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-card border border-border'
                       }`}
                     >
                       <p className="text-sm">{message.text}</p>
                       <div className="flex items-center justify-between mt-1">
                         <p className={`text-xs ${
-                          message.senderId === user?.id ? 'text-blue-100' : 'text-gray-500'
+                          message.senderId === user?.id ? 'text-primary-foreground/70' : 'text-muted-foreground'
                         }`}>
                           {new Date(message.createdAt).toLocaleTimeString()}
                         </p>
@@ -331,10 +331,10 @@ export default function ChatPage() {
             </div>
 
             {/* Message input */}
-            <div className="p-4 bg-white border-t border-gray-200">
+            <div className="p-4 bg-card border-t border-border">
               <div className="flex items-center space-x-2">
-                <button className="p-2 hover:bg-gray-100 rounded-lg">
-                  <Paperclip className="w-5 h-5 text-gray-500" />
+                <button className="p-2 hover:bg-accent rounded-lg">
+                  <Paperclip className="w-5 h-5 text-muted-foreground" />
                 </button>
                 
                 <input
@@ -343,14 +343,14 @@ export default function ChatPage() {
                   value={newMessage}
                   onChange={(e) => handleMessageChange(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                  className="flex-1 px-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
                   disabled={!isConnected}
                 />
                 
                 <button
                   onClick={handleSendMessage}
                   disabled={!newMessage.trim() || !isConnected}
-                  className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Send className="w-5 h-5" />
                 </button>
@@ -358,15 +358,15 @@ export default function ChatPage() {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center bg-gray-50">
+          <div className="flex-1 flex items-center justify-center bg-background">
             <div className="text-center">
-              <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Search className="w-8 h-8 text-gray-400" />
+              <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                <Search className="w-8 h-8 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <h3 className="text-lg font-medium text-foreground mb-2">
                 Выберите чат
               </h3>
-              <p className="text-gray-500">
+              <p className="text-muted-foreground">
                 Выберите существующий чат или создайте новый
               </p>
             </div>

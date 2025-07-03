@@ -1,5 +1,6 @@
 'use client';
 
+import Link from "next/link";
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -8,6 +9,10 @@ import { useRouter } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import { Eye, EyeOff } from 'lucide-react';
 import { authAPI, RegistrationData } from '@/core/api';
+
+import { Button } from "@/components/UI/Button";
+import { Input } from "@/components/UI/Input";
+import { Label } from "@/components/UI/Label";
 
 const registrationSchema = z.object({
   fullName: z.string().min(1, 'Введите полное имя'),
@@ -29,8 +34,8 @@ type RegistrationFormData = RegistrationData & { passwordConfirm: string };
 
 export default function RegistrationPage() {
   const router = useRouter();
-  const {0: showPassword, 1: setShowPassword} = useState(false);
-  const {0: showPasswordConfirm, 1: setShowPasswordConfirm} = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
 
   const {
     register,
@@ -62,136 +67,165 @@ export default function RegistrationPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="bg-white p-8 rounded-lg shadow-md">
-          <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
-            Регистрация
-          </h2>
-          
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-2">
-                Полное имя:
-              </label>
-              <input
-                type="text"
+    <div className="w-full min-h-screen lg:grid lg:grid-cols-2">
+      <div className="flex items-center justify-center py-12">
+        <div className="mx-auto grid w-[400px] gap-6">
+          <div className="grid gap-2 text-center">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              Регистрация
+            </h1>
+            <p className="text-balance text-muted-foreground">
+              Создайте аккаунт для доступа к системе
+            </p>
+          </div>
+          <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="fullName" className="text-gray-700 dark:text-gray-300">
+                Полное имя
+              </Label>
+              <Input
                 id="fullName"
+                type="text"
                 placeholder="Андрей Иванов"
                 {...register('fullName')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                className="bg-white dark:bg-dark-800 border-gray-300 dark:border-dark-700 text-gray-900 dark:text-white"
               />
-              {errors.fullName ? <div className="text-red-500 text-sm mt-1">{errors.fullName.message}</div> : null}
+              {errors.fullName && (
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  {errors.fullName.message}
+                </p>
+              )}
             </div>
 
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-                Имя пользователя:
-              </label>
-              <input
-                type="text"
+            <div className="grid gap-2">
+              <Label htmlFor="username" className="text-gray-700 dark:text-gray-300">
+                Имя пользователя
+              </Label>
+              <Input
                 id="username"
+                type="text"
                 placeholder="andrey_123"
                 {...register('username')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                className="bg-white dark:bg-dark-800 border-gray-300 dark:border-dark-700 text-gray-900 dark:text-white"
               />
-              <small className="text-gray-600 text-xs">
+              <p className="text-xs text-gray-600 dark:text-gray-400">
                 Только латинские буквы, цифры, _ и -, минимум 3 символа
-              </small>
-              {errors.username ? <div className="text-red-500 text-sm mt-1">{errors.username.message}</div> : null}
+              </p>
+              {errors.username && (
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  {errors.username.message}
+                </p>
+              )}
             </div>
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email:
-              </label>
-              <input
-                type="email"
+            <div className="grid gap-2">
+              <Label htmlFor="email" className="text-gray-700 dark:text-gray-300">
+                Email
+              </Label>
+              <Input
                 id="email"
+                type="email"
                 placeholder="user@example.com"
                 {...register('email')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                className="bg-white dark:bg-dark-800 border-gray-300 dark:border-dark-700 text-gray-900 dark:text-white"
               />
-              {errors.email ? <div className="text-red-500 text-sm mt-1">{errors.email.message}</div> : null}
+              {errors.email && (
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Пароль:
-              </label>
+            <div className="grid gap-2">
+              <Label htmlFor="password" className="text-gray-700 dark:text-gray-300">
+                Пароль
+              </Label>
               <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
+                <Input
                   id="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="MyPassword123!"
                   {...register('password')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10 text-black"
+                  className="bg-white dark:bg-dark-800 border-gray-300 dark:border-dark-700 text-gray-900 dark:text-white pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 dark:text-dark-400 hover:text-gray-700 dark:hover:text-dark-300"
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
-              <small className="text-gray-600 text-xs">
+              <p className="text-xs text-gray-600 dark:text-gray-400">
                 Минимум 8 символов: заглавная, строчная, цифра, спецсимвол (@$!%*?&)
-              </small>
-              {errors.password ? <div className="text-red-500 text-sm mt-1">{errors.password.message}</div> : null}
+              </p>
+              {errors.password && (
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  {errors.password.message}
+                </p>
+              )}
             </div>
 
-            <div>
-              <label htmlFor="passwordConfirm" className="block text-sm font-medium text-gray-700 mb-2">
-                Повторите пароль:
-              </label>
+            <div className="grid gap-2">
+              <Label htmlFor="passwordConfirm" className="text-gray-700 dark:text-gray-300">
+                Повторите пароль
+              </Label>
               <div className="relative">
-                <input
-                  type={showPasswordConfirm ? 'text' : 'password'}
+                <Input
                   id="passwordConfirm"
+                  type={showPasswordConfirm ? 'text' : 'password'}
                   placeholder="Повторите пароль"
                   {...register('passwordConfirm')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10 text-black"
+                  className="bg-white dark:bg-dark-800 border-gray-300 dark:border-dark-700 text-gray-900 dark:text-white pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 dark:text-dark-400 hover:text-gray-700 dark:hover:text-dark-300"
                 >
                   {showPasswordConfirm ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
-              {errors.passwordConfirm ? <div className="text-red-500 text-sm mt-1">{errors.passwordConfirm.message}</div> : null}
+              {errors.passwordConfirm && (
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  {errors.passwordConfirm.message}
+                </p>
+              )}
             </div>
 
-            <button
-              type="submit"
+            <Button 
+              type="submit" 
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
               disabled={registrationMutation.isPending}
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {registrationMutation.isPending ? 'Регистрация...' : 'Зарегистрироваться'}
-            </button>
+            </Button>
 
-            {errors.root ? <div className="text-red-500 text-sm text-center mt-4 whitespace-pre-line">
-              {errors.root.message}
-            </div> : null}
-
-            <div className="text-center space-y-2">
-              <a 
-                href="/reset" 
-                className="text-blue-600 hover:text-blue-800 text-sm"
-              >
-                Забыли пароль?
-              </a>
-              <br />
-              <a 
-                href="/login" 
-                className="text-blue-600 hover:text-blue-800 text-sm"
-              >
-                Уже есть аккаунт? Войти
-              </a>
-            </div>
+            {errors.root && (
+              <p className="text-sm text-red-600 dark:text-red-400 text-center whitespace-pre-line">
+                {errors.root.message}
+              </p>
+            )}
           </form>
+          <div className="mt-4 text-center text-sm">
+            Уже есть аккаунт?{" "}
+            <Link 
+              href="/login" 
+              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+            >
+              Войти
+            </Link>
+          </div>
+        </div>
+      </div>
+      <div className="hidden bg-muted lg:block">
+        <div className="h-full w-full bg-gradient-to-br from-green-600 to-blue-600 flex items-center justify-center">
+          <div className="text-center text-white">
+            <h2 className="text-4xl font-bold mb-4">Присоединяйтесь!</h2>
+            <p className="text-xl opacity-90">
+              Создайте аккаунт и начните использовать систему уже сегодня
+            </p>
+          </div>
         </div>
       </div>
     </div>

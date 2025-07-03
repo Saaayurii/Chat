@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { complaintsAPI } from '@/core/api';
 import { 
   Complaint, 
@@ -12,6 +12,26 @@ import {
   UserRole 
 } from '@/types';
 import { useAuthStore } from '@/store/authStore';
+import { 
+  Input, 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue,
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  Alert,
+  Badge
+} from '@/components/UI';
+import Button from '../UI/Button';
 
 interface ComplaintsManagementProps {
   userRole?: UserRole;
@@ -140,23 +160,23 @@ export default function ComplaintsManagement({
     }
   };
 
-  const getStatusColor = (status: ComplaintStatus) => {
+  const getStatusVariant = (status: ComplaintStatus) => {
     switch (status) {
-      case ComplaintStatus.PENDING: return 'bg-yellow-100 text-yellow-800';
-      case ComplaintStatus.UNDER_REVIEW: return 'bg-blue-100 text-blue-800';
-      case ComplaintStatus.RESOLVED: return 'bg-green-100 text-green-800';
-      case ComplaintStatus.DISMISSED: return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case ComplaintStatus.PENDING: return 'secondary';
+      case ComplaintStatus.UNDER_REVIEW: return 'default';
+      case ComplaintStatus.RESOLVED: return 'default';
+      case ComplaintStatus.DISMISSED: return 'outline';
+      default: return 'outline';
     }
   };
 
-  const getSeverityColor = (severity: ComplaintSeverity) => {
+  const getSeverityVariant = (severity: ComplaintSeverity) => {
     switch (severity) {
-      case ComplaintSeverity.LOW: return 'bg-green-100 text-green-800';
-      case ComplaintSeverity.MEDIUM: return 'bg-yellow-100 text-yellow-800';
-      case ComplaintSeverity.HIGH: return 'bg-orange-100 text-orange-800';
-      case ComplaintSeverity.CRITICAL: return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case ComplaintSeverity.LOW: return 'default';
+      case ComplaintSeverity.MEDIUM: return 'secondary';
+      case ComplaintSeverity.HIGH: return 'default';
+      case ComplaintSeverity.CRITICAL: return 'destructive';
+      default: return 'outline';
     }
   };
 
@@ -173,252 +193,258 @@ export default function ComplaintsManagement({
   };
 
   if (loading && complaints.length === 0) {
-    return <div className="flex justify-center p-8">Загрузка...</div>;
+    return (
+      <div className="flex justify-center p-8">
+        <div className="text-muted-foreground">Загрузка...</div>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          {error}
-        </div>
-      )}
-
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">
-          {user?.role === UserRole.VISITOR ? 'Мои жалобы' : 'Управление жалобами'}
-        </h2>
-        {canCreateComplaints && showCreateForm && (
-          <button
-            onClick={() => setShowForm(true)}
-            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-          >
-            Подать жалобу
-          </button>
+    <Suspense fallback={<div className="flex justify-center p-8"><div className="text-muted-foreground">Загрузка...</div></div>}>
+      <div className="space-y-6">
+        {error && (
+          <Alert variant="destructive">
+            {error}
+          </Alert>
         )}
-      </div>
 
-      {/* Filters */}
-      {canManageComplaints && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as ComplaintStatus | '')}
-            className="border rounded px-3 py-2"
-          >
-            <option value="">Все статусы</option>
-            <option value={ComplaintStatus.PENDING}>Ожидает</option>
-            <option value={ComplaintStatus.UNDER_REVIEW}>На рассмотрении</option>
-            <option value={ComplaintStatus.RESOLVED}>Решена</option>
-            <option value={ComplaintStatus.DISMISSED}>Отклонена</option>
-          </select>
-
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value as ComplaintType | '')}
-            className="border rounded px-3 py-2"
-          >
-            <option value="">Все типы</option>
-            <option value={ComplaintType.INAPPROPRIATE_BEHAVIOR}>Неподобающее поведение</option>
-            <option value={ComplaintType.POOR_SERVICE}>Плохой сервис</option>
-            <option value={ComplaintType.UNPROFESSIONAL_CONDUCT}>Непрофессиональное поведение</option>
-            <option value={ComplaintType.DELAYED_RESPONSE}>Задержка ответа</option>
-            <option value={ComplaintType.INCORRECT_INFORMATION}>Неверная информация</option>
-            <option value={ComplaintType.OTHER}>Другое</option>
-          </select>
-
-          <select
-            value={severityFilter}
-            onChange={(e) => setSeverityFilter(e.target.value as ComplaintSeverity | '')}
-            className="border rounded px-3 py-2"
-          >
-            <option value="">Все уровни</option>
-            <option value={ComplaintSeverity.LOW}>Низкий</option>
-            <option value={ComplaintSeverity.MEDIUM}>Средний</option>
-            <option value={ComplaintSeverity.HIGH}>Высокий</option>
-            <option value={ComplaintSeverity.CRITICAL}>Критический</option>
-          </select>
-
-          <input
-            type="text"
-            placeholder="Поиск..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="border rounded px-3 py-2"
-          />
-        </div>
-      )}
-
-      {/* Complaints List */}
-      <div className="space-y-4">
-        {complaints.map((complaint) => (
-          <div key={complaint._id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start mb-2">
-              <div className="flex-1">
-                <h3 className="font-semibold text-lg">{getTypeDisplay(complaint.type)}</h3>
-                <p className="text-gray-700 mt-2">{complaint.complaintText}</p>
-                {complaint.adminResponse && (
-                  <div className="mt-3 p-3 bg-blue-50 rounded">
-                    <p className="font-medium text-blue-800">Ответ администратора:</p>
-                    <p className="text-blue-700">{complaint.adminResponse}</p>
-                  </div>
-                )}
-              </div>
-              <div className="flex gap-2 flex-col">
-                <span className={`px-2 py-1 rounded text-sm text-center ${getStatusColor(complaint.status)}`}>
-                  {complaint.status}
-                </span>
-                <span className={`px-2 py-1 rounded text-sm text-center ${getSeverityColor(complaint.severity)}`}>
-                  {complaint.severity}
-                </span>
-              </div>
-            </div>
-
-            <div className="text-sm text-gray-500 mb-3">
-              <p>Создана: {new Date(complaint.createdAt).toLocaleString()}</p>
-              {complaint.reviewedAt && (
-                <p>Рассмотрена: {new Date(complaint.reviewedAt).toLocaleString()}</p>
-              )}
-              {complaint.resolvedAt && (
-                <p>Решена: {new Date(complaint.resolvedAt).toLocaleString()}</p>
-              )}
-              {complaint.operatorWarned && (
-                <p className="text-orange-600">Оператор предупрежден</p>
-              )}
-              {complaint.operatorSuspended && (
-                <p className="text-red-600">Оператор заблокирован</p>
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-2xl font-bold text-foreground">
+                {user?.role === UserRole.VISITOR ? 'Мои жалобы' : 'Управление жалобами'}
+              </CardTitle>
+              {canCreateComplaints && showCreateForm && (
+                <Button
+                  onClick={() => setShowForm(true)}
+                  variant="destructive"
+                >
+                  Подать жалобу
+                </Button>
               )}
             </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
 
-            {canManageComplaints && complaint.status === ComplaintStatus.PENDING && (
-              <button
-                onClick={() => {
-                  setSelectedComplaint(complaint);
-                  setShowReviewForm(true);
-                }}
-                className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600"
-              >
-                Рассмотреть жалобу
-              </button>
+            {/* Filters */}
+            {canManageComplaints && (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
+                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as ComplaintStatus | '')}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Все статусы" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Все статусы</SelectItem>
+                    <SelectItem value={ComplaintStatus.PENDING}>Ожидает</SelectItem>
+                    <SelectItem value={ComplaintStatus.UNDER_REVIEW}>На рассмотрении</SelectItem>
+                    <SelectItem value={ComplaintStatus.RESOLVED}>Решена</SelectItem>
+                    <SelectItem value={ComplaintStatus.DISMISSED}>Отклонена</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as ComplaintType | '')}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Все типы" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Все типы</SelectItem>
+                    <SelectItem value={ComplaintType.INAPPROPRIATE_BEHAVIOR}>Неподобающее поведение</SelectItem>
+                    <SelectItem value={ComplaintType.POOR_SERVICE}>Плохой сервис</SelectItem>
+                    <SelectItem value={ComplaintType.UNPROFESSIONAL_CONDUCT}>Непрофессиональное поведение</SelectItem>
+                    <SelectItem value={ComplaintType.DELAYED_RESPONSE}>Задержка ответа</SelectItem>
+                    <SelectItem value={ComplaintType.INCORRECT_INFORMATION}>Неверная информация</SelectItem>
+                    <SelectItem value={ComplaintType.OTHER}>Другое</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={severityFilter} onValueChange={(value) => setSeverityFilter(value as ComplaintSeverity | '')}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Все уровни" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Все уровни</SelectItem>
+                    <SelectItem value={ComplaintSeverity.LOW}>Низкий</SelectItem>
+                    <SelectItem value={ComplaintSeverity.MEDIUM}>Средний</SelectItem>
+                    <SelectItem value={ComplaintSeverity.HIGH}>Высокий</SelectItem>
+                    <SelectItem value={ComplaintSeverity.CRITICAL}>Критический</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Input
+                  placeholder="Поиск..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="border-input"
+                />
+              </div>
             )}
-          </div>
-        ))}
-      </div>
 
-      {/* Pagination */}
-      {canManageComplaints && totalPages > 1 && (
-        <div className="flex justify-center gap-2">
-          <button
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-            className="px-3 py-1 border rounded disabled:opacity-50"
-          >
-            Назад
-          </button>
-          <span className="px-3 py-1">
-            Страница {currentPage} из {totalPages}
-          </span>
-          <button
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-            className="px-3 py-1 border rounded disabled:opacity-50"
-          >
-            Вперед
-          </button>
-        </div>
-      )}
+            {/* Complaints List */}
+            <div className="space-y-4">
+              {complaints.map((complaint) => (
+                <Card key={complaint._id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg text-foreground">{getTypeDisplay(complaint.type)}</h3>
+                        <p className="text-foreground mt-2">{complaint.complaintText}</p>
+                        {complaint.adminResponse && (
+                          <div className="mt-3 p-3 bg-muted/50 rounded-lg">
+                            <p className="font-medium text-foreground">Ответ администратора:</p>
+                            <p className="text-muted-foreground">{complaint.adminResponse}</p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-2 flex-col">
+                        <Badge variant={getStatusVariant(complaint.status)}>
+                          {complaint.status}
+                        </Badge>
+                        <Badge variant={getSeverityVariant(complaint.severity)}>
+                          {complaint.severity}
+                        </Badge>
+                      </div>
+                    </div>
 
-      {/* Create Complaint Form */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-            <h3 className="text-xl font-semibold mb-4">Подать жалобу</h3>
+                    <div className="text-sm text-muted-foreground mb-3">
+                      <p>Создана: {new Date(complaint.createdAt).toLocaleString()}</p>
+                      {complaint.reviewedAt && (
+                        <p>Рассмотрена: {new Date(complaint.reviewedAt).toLocaleString()}</p>
+                      )}
+                      {complaint.resolvedAt && (
+                        <p>Решена: {new Date(complaint.resolvedAt).toLocaleString()}</p>
+                      )}
+                      {complaint.operatorWarned && (
+                        <p className="text-orange-600 dark:text-orange-400">Оператор предупрежден</p>
+                      )}
+                      {complaint.operatorSuspended && (
+                        <p className="text-red-600 dark:text-red-400">Оператор заблокирован</p>
+                      )}
+                    </div>
+
+                    {canManageComplaints && complaint.status === ComplaintStatus.PENDING && (
+                      <Button
+                        onClick={() => {
+                          setSelectedComplaint(complaint);
+                          setShowReviewForm(true);
+                        }}
+                        size="sm"
+                      >
+                        Рассмотреть жалобу
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {canManageComplaints && totalPages > 1 && (
+              <div className="flex justify-center gap-2">
+                <Button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  variant="outline"
+                >
+                  Назад
+                </Button>
+                <span className="px-3 py-2 text-sm text-muted-foreground self-center">
+                  Страница {currentPage} из {totalPages}
+                </span>
+                <Button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  variant="outline"
+                >
+                  Вперед
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Create Complaint Form */}
+        <Dialog open={showForm} onOpenChange={setShowForm}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Подать жалобу</DialogTitle>
+            </DialogHeader>
             <form onSubmit={handleCreateComplaint} className="space-y-4">
-              <select
-                value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value as ComplaintType })}
-                className="w-full border rounded px-3 py-2"
-                required
-              >
-                <option value={ComplaintType.INAPPROPRIATE_BEHAVIOR}>Неподобающее поведение</option>
-                <option value={ComplaintType.POOR_SERVICE}>Плохой сервис</option>
-                <option value={ComplaintType.UNPROFESSIONAL_CONDUCT}>Непрофессиональное поведение</option>
-                <option value={ComplaintType.DELAYED_RESPONSE}>Задержка ответа</option>
-                <option value={ComplaintType.INCORRECT_INFORMATION}>Неверная информация</option>
-                <option value={ComplaintType.OTHER}>Другое</option>
-              </select>
+              <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value as ComplaintType })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Тип жалобы" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ComplaintType.INAPPROPRIATE_BEHAVIOR}>Неподобающее поведение</SelectItem>
+                  <SelectItem value={ComplaintType.POOR_SERVICE}>Плохой сервис</SelectItem>
+                  <SelectItem value={ComplaintType.UNPROFESSIONAL_CONDUCT}>Непрофессиональное поведение</SelectItem>
+                  <SelectItem value={ComplaintType.DELAYED_RESPONSE}>Задержка ответа</SelectItem>
+                  <SelectItem value={ComplaintType.INCORRECT_INFORMATION}>Неверная информация</SelectItem>
+                  <SelectItem value={ComplaintType.OTHER}>Другое</SelectItem>
+                </SelectContent>
+              </Select>
 
               <textarea
                 placeholder="Опишите суть жалобы..."
                 value={formData.complaintText}
                 onChange={(e) => setFormData({ ...formData, complaintText: e.target.value })}
-                className="w-full border rounded px-3 py-2 h-32"
+                className="w-full border border-input rounded-md px-3 py-2 h-32 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 required
               />
 
-              <input
-                type="text"
+              <Input
                 placeholder="ID оператора"
                 value={formData.operatorId}
                 onChange={(e) => setFormData({ ...formData, operatorId: e.target.value })}
-                className="w-full border rounded px-3 py-2"
                 required
               />
               
-              <select
-                value={formData.severity}
-                onChange={(e) => setFormData({ ...formData, severity: e.target.value as ComplaintSeverity })}
-                className="w-full border rounded px-3 py-2"
-              >
-                <option value={ComplaintSeverity.LOW}>Низкая серьезность</option>
-                <option value={ComplaintSeverity.MEDIUM}>Средняя серьезность</option>
-                <option value={ComplaintSeverity.HIGH}>Высокая серьезность</option>
-                <option value={ComplaintSeverity.CRITICAL}>Критическая серьезность</option>
-              </select>
+              <Select value={formData.severity} onValueChange={(value) => setFormData({ ...formData, severity: value as ComplaintSeverity })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Серьезность" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ComplaintSeverity.LOW}>Низкая серьезность</SelectItem>
+                  <SelectItem value={ComplaintSeverity.MEDIUM}>Средняя серьезность</SelectItem>
+                  <SelectItem value={ComplaintSeverity.HIGH}>Высокая серьезность</SelectItem>
+                  <SelectItem value={ComplaintSeverity.CRITICAL}>Критическая серьезность</SelectItem>
+                </SelectContent>
+              </Select>
 
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 bg-red-500 text-white py-2 rounded hover:bg-red-600 disabled:opacity-50"
-                >
-                  {loading ? 'Отправка...' : 'Отправить жалобу'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="flex-1 bg-gray-500 text-white py-2 rounded hover:bg-gray-600"
-                >
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
                   Отмена
-                </button>
-              </div>
+                </Button>
+                <Button type="submit" disabled={loading} variant="destructive">
+                  {loading ? 'Отправка...' : 'Отправить жалобу'}
+                </Button>
+              </DialogFooter>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        </Dialog>
 
-      {/* Review Complaint Form */}
-      {showReviewForm && selectedComplaint && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-            <h3 className="text-xl font-semibold mb-4">Рассмотреть жалобу</h3>
+        {/* Review Complaint Form */}
+        <Dialog open={showReviewForm} onOpenChange={setShowReviewForm}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Рассмотреть жалобу</DialogTitle>
+            </DialogHeader>
             <form onSubmit={handleReviewComplaint} className="space-y-4">
-              <select
-                value={reviewData.decision}
-                onChange={(e) => setReviewData({ ...reviewData, decision: e.target.value as 'resolved' | 'dismissed' })}
-                className="w-full border rounded px-3 py-2"
-                required
-              >
-                <option value="resolved">Принять жалобу</option>
-                <option value="dismissed">Отклонить жалобу</option>
-              </select>
+              <Select value={reviewData.decision} onValueChange={(value) => setReviewData({ ...reviewData, decision: value as 'resolved' | 'dismissed' })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Решение" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="resolved">Принять жалобу</SelectItem>
+                  <SelectItem value="dismissed">Отклонить жалобу</SelectItem>
+                </SelectContent>
+              </Select>
 
               <textarea
                 placeholder="Ответ администратора..."
                 value={reviewData.adminResponse}
                 onChange={(e) => setReviewData({ ...reviewData, adminResponse: e.target.value })}
-                className="w-full border rounded px-3 py-2 h-24"
+                className="w-full border border-input rounded-md px-3 py-2 h-24 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 required
               />
 
@@ -426,49 +452,43 @@ export default function ComplaintsManagement({
                 placeholder="Заметки по решению (необязательно)"
                 value={reviewData.resolutionNotes}
                 onChange={(e) => setReviewData({ ...reviewData, resolutionNotes: e.target.value })}
-                className="w-full border rounded px-3 py-2 h-20"
+                className="w-full border border-input rounded-md px-3 py-2 h-20 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               />
 
               <div className="space-y-2">
-                <label className="flex items-center gap-2">
+                <label className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
                     checked={reviewData.warnOperator}
                     onChange={(e) => setReviewData({ ...reviewData, warnOperator: e.target.checked })}
+                    className="rounded border-input"
                   />
-                  <span>Предупредить оператора</span>
+                  <span className="text-foreground">Предупредить оператора</span>
                 </label>
 
-                <label className="flex items-center gap-2">
+                <label className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
                     checked={reviewData.suspendOperator}
                     onChange={(e) => setReviewData({ ...reviewData, suspendOperator: e.target.checked })}
+                    className="rounded border-input"
                   />
-                  <span>Заблокировать оператора</span>
+                  <span className="text-foreground">Заблокировать оператора</span>
                 </label>
               </div>
 
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 bg-blue-500 text-white py-2 rounded hover:bg-blue-600 disabled:opacity-50"
-                >
-                  {loading ? 'Обработка...' : 'Принять решение'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowReviewForm(false)}
-                  className="flex-1 bg-gray-500 text-white py-2 rounded hover:bg-gray-600"
-                >
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setShowReviewForm(false)}>
                   Отмена
-                </button>
-              </div>
+                </Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? 'Обработка...' : 'Принять решение'}
+                </Button>
+              </DialogFooter>
             </form>
-          </div>
-        </div>
-      )}
-    </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </Suspense>
   );
 }

@@ -59,20 +59,20 @@ export default function Modal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div 
-        className={`bg-white rounded-lg w-full ${sizeClasses[size]} max-h-[90vh] overflow-y-auto`}
+        className={`bg-background border border-border rounded-lg w-full ${sizeClasses[size]} max-h-[90vh] overflow-y-auto shadow-lg`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b">
-          <h2 className="text-xl font-semibold">{title}</h2>
+        <div className="flex justify-between items-center p-6 border-b border-border">
+          <h2 className="text-xl font-semibold text-foreground">{title}</h2>
           {showCloseButton && (
             <Button
               variant="secondary"
               size="sm"
               onClick={onClose}
-              className="p-1"
+              className="p-1 hover:bg-accent"
             >
               <X className="w-4 h-4" />
             </Button>

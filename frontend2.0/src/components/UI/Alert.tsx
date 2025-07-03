@@ -18,27 +18,27 @@ export default function Alert({
 }: AlertProps) {
   const config = {
     success: {
-      bgColor: 'bg-green-100',
-      textColor: 'text-green-700',
-      borderColor: 'border-green-400',
+      bgColor: 'bg-green-50 dark:bg-green-950/30',
+      textColor: 'text-green-800 dark:text-green-200',
+      borderColor: 'border-green-200 dark:border-green-800',
       icon: CheckCircle
     },
     error: {
-      bgColor: 'bg-red-100',
-      textColor: 'text-red-700',
-      borderColor: 'border-red-400',
+      bgColor: 'bg-red-50 dark:bg-red-950/30',
+      textColor: 'text-red-800 dark:text-red-200',
+      borderColor: 'border-red-200 dark:border-red-800',
       icon: AlertCircle
     },
     warning: {
-      bgColor: 'bg-yellow-100',
-      textColor: 'text-yellow-700',
-      borderColor: 'border-yellow-400',
+      bgColor: 'bg-yellow-50 dark:bg-yellow-950/30',
+      textColor: 'text-yellow-800 dark:text-yellow-200',
+      borderColor: 'border-yellow-200 dark:border-yellow-800',
       icon: AlertTriangle
     },
     info: {
-      bgColor: 'bg-blue-100',
-      textColor: 'text-blue-700',
-      borderColor: 'border-blue-400',
+      bgColor: 'bg-blue-50 dark:bg-blue-950/30',
+      textColor: 'text-blue-800 dark:text-blue-200',
+      borderColor: 'border-blue-200 dark:border-blue-800',
       icon: Info
     }
   };
@@ -62,7 +62,7 @@ export default function Alert({
       {onClose && (
         <button
           onClick={onClose}
-          className="flex-shrink-0 ml-2 hover:opacity-70"
+          className="flex-shrink-0 ml-2 hover:opacity-70 transition-opacity"
         >
           <X className="w-5 h-5" />
         </button>

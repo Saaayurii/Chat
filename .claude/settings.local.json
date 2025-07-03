@@ -12,7 +12,10 @@
       "Bash(npx tsc:*)",
       "Bash(npx ts-node:*)",
       "Bash(./node_modules/.bin/nest:*)",
-      "Bash(./node_modules/.bin/ts-node.exe:*)"
+      "Bash(./node_modules/.bin/ts-node.exe:*)",
+      "Bash(npx shadcn@latest add:*)",
+      "WebFetch(domain:ui.shadcn.com)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }

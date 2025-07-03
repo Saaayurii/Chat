@@ -81,14 +81,14 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Управление пользователями</h1>
-              <p className="text-gray-600">Управляйте пользователями системы</p>
+              <h1 className="text-2xl font-bold text-foreground">Управление пользователями</h1>
+              <p className="text-muted-foreground">Управляйте пользователями системы</p>
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
@@ -101,10 +101,10 @@ export default function AdminUsersPage() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white p-6 rounded-lg shadow mb-6">
+        <div className="bg-card p-6 rounded-lg shadow mb-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Поиск
               </label>
               <div className="relative">
@@ -113,20 +113,20 @@ export default function AdminUsersPage() {
                   placeholder="Поиск по email или имени..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                  className="w-full pl-10 pr-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground"
                 />
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Роль
               </label>
               <select
                 value={selectedRole}
                 onChange={(e) => setSelectedRole(e.target.value as UserRole | '')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground"
               >
                 <option value="">Все роли</option>
                 <option value={UserRole.ADMIN}>Администратор</option>
@@ -142,7 +142,7 @@ export default function AdminUsersPage() {
                   setSelectedRole('');
                   setPage(1);
                 }}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="px-4 py-2 border border-input rounded-lg hover:bg-accent"
               >
                 Сбросить фильтры
               </button>
@@ -151,29 +151,29 @@ export default function AdminUsersPage() {
         </div>
 
         {/* Users Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-card rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-muted">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Пользователь
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Роль
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Статус
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Дата регистрации
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Действия
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-card divide-y divide-border">
                 {isLoading ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center">
@@ -183,29 +183,29 @@ export default function AdminUsersPage() {
                   </tr>
                 ) : !usersData?.data || usersData.data.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
                       Пользователи не найдены
                     </td>
                   </tr>
                 ) : (
                   usersData.data.map((user) => (
-                    <tr key={user._id} className="hover:bg-gray-50">
+                    <tr key={user._id} className="hover:bg-accent">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                          <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
                             {user.profile.avatarUrl ? <img
                               src={user.profile.avatarUrl}
                               alt={user.profile.fullName || user.profile.username}
                               className="w-10 h-10 rounded-full"
-                            /> : <span className="text-gray-500 font-medium">
+                            /> : <span className="text-muted-foreground font-medium">
                               {((user.profile.fullName || user.profile.username) ?? '').charAt(0).toUpperCase()}
                             </span>}
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">
+                            <div className="text-sm font-medium text-foreground">
                               {user.profile.fullName || user.profile.username}
                             </div>
-                            <div className="text-sm text-gray-500">{user.email}</div>
+                            <div className="text-sm text-muted-foreground">{user.email}</div>
                           </div>
                         </div>
                       </td>
@@ -230,7 +230,7 @@ export default function AdminUsersPage() {
                           </Radix.Badge> : null}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                         {new Date(user.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -269,26 +269,26 @@ export default function AdminUsersPage() {
 
           {/* Pagination */}
           {usersData && usersData.totalPages > 1 && (
-            <div className="px-6 py-3 flex items-center justify-between border-t border-gray-200 bg-white">
+            <div className="px-6 py-3 flex items-center justify-between border-t border-border bg-card">
               <div className="flex-1 flex justify-between sm:hidden">
                 <button
                   onClick={() => setPage(page - 1)}
                   disabled={page === 1}
-                  className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                  className="relative inline-flex items-center px-4 py-2 border border-input text-sm font-medium rounded-md text-foreground bg-background hover:bg-accent disabled:opacity-50"
                 >
                   Предыдущая
                 </button>
                 <button
                   onClick={() => setPage(page + 1)}
                   disabled={page === usersData.totalPages}
-                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-input text-sm font-medium rounded-md text-foreground bg-background hover:bg-accent disabled:opacity-50"
                 >
                   Следующая
                 </button>
               </div>
               <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm text-gray-700">
+                  <p className="text-sm text-foreground">
                     Показано <span className="font-medium">{((page - 1) * 20) + 1}</span> до{' '}
                     <span className="font-medium">
                       {Math.min(page * 20, usersData.total)}
@@ -301,14 +301,14 @@ export default function AdminUsersPage() {
                     <button
                       onClick={() => setPage(page - 1)}
                       disabled={page === 1}
-                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-input bg-background text-sm font-medium text-muted-foreground hover:bg-accent disabled:opacity-50"
                     >
                       Предыдущая
                     </button>
                     <button
                       onClick={() => setPage(page + 1)}
                       disabled={page === usersData.totalPages}
-                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-input bg-background text-sm font-medium text-muted-foreground hover:bg-accent disabled:opacity-50"
                     >
                       Следующая
                     </button>

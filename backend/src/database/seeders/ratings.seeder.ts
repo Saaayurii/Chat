@@ -60,7 +60,7 @@ export class RatingsSeeder {
       'Надеялся на более быстрое решение.'
     ];
 
-    const ratings = [];
+    const ratings: any[] = [];
 
     // Создаем рейтинги для каждого оператора
     for (const operator of operators) {
@@ -71,9 +71,9 @@ export class RatingsSeeder {
         const rating = Math.floor(Math.random() * 5) + 1; // 1-5 звезд
         let comment = '';
         let isHidden = false;
-        let hiddenBy = null;
-        let hiddenAt = null;
-        let hideReason = null;
+        let hiddenBy: any = undefined;
+        let hiddenAt: any = undefined;
+        let hideReason: any = undefined;
 
         // Выбираем комментарий в зависимости от рейтинга
         if (rating >= 4) {

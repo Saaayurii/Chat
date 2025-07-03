@@ -33,8 +33,8 @@ export class ConversationsSeeder {
       return;
     }
 
-    const conversations = [];
-    const messages = [];
+    const conversations: any[] = [];
+    const messages: any[] = [];
 
     // Типовые сообщения для разных сценариев
     const greetings = [
@@ -406,7 +406,7 @@ export class ConversationsSeeder {
         _id: conversationId,
         participants: [visitor._id, operator._id],
         type: ConversationType.USER_OPERATOR,
-        status: ConversationStatus.ARCHIVED,
+        status: ConversationStatus.CLOSED,
         createdBy: visitor._id,
         closedAt: new Date(Date.now() - 604800000 - i * 86400000), // неделя+ назад
         archivedAt: new Date(Date.now() - 604800000 - i * 86400000 + 3600000),
@@ -485,7 +485,7 @@ export class ConversationsSeeder {
       console.log('\n📋 Conversations statistics:');
       console.log(`  🟢 Active: ${conversations.filter(c => c.status === ConversationStatus.ACTIVE).length}`);
       console.log(`  🔒 Closed: ${conversations.filter(c => c.status === ConversationStatus.CLOSED).length}`);
-      console.log(`  📁 Archived: ${conversations.filter(c => c.status === ConversationStatus.ARCHIVED).length}`);
+      console.log(`  📁 Closed (Archived): ${conversations.filter(c => c.archivedAt).length}`);
 
       console.log('\n📊 By type:');
       console.log(`  👤↔️👨‍💼 User-Operator: ${conversations.filter(c => c.type === ConversationType.USER_OPERATOR).length}`);

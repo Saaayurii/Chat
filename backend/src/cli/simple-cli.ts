@@ -1,20 +1,14 @@
 import { NestFactory } from '@nestjs/core';
-import { MongooseModule } from '@nestjs/mongoose';
-import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { DatabaseModule } from '../database/database.module';
 import { SeedersModule } from '../database/seeders/seeders.module';
 import { MainSeeder } from '../database/seeders/main.seeder';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
-    MongooseModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        uri: configService.get<string>('MONGODB_URI'),
-      }),
-      inject: [ConfigService],
-    }),
+    DatabaseModule,
     SeedersModule,
   ],
 })

@@ -1,22 +1,36 @@
-'use client';
+"use client"
 
-import { Moon, Sun } from 'lucide-react';
-import { useTheme } from '@/contexts/ThemeContext';
+import * as React from "react"
+import { Moon, Sun } from "lucide-react"
+import { useTheme } from "next-themes"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./UI/dropdown-menu"
+import { Button } from "./UI/Button"
 
-export default function ThemeToggle() {
-  const { theme, toggleTheme } = useTheme();
+
+
+export default function ModeToggle() {
+  const { setTheme } = useTheme()
 
   return (
-    <button
-      onClick={toggleTheme}
-      className="p-2 rounded-lg border border-gray-200 dark:border-dark-800 bg-white dark:bg-dark-900 hover:bg-gray-50 dark:hover:bg-dark-800 transition-colors duration-200"
-      title={`Переключить на ${theme === 'light' ? 'темную' : 'светлую'} тему`}
-    >
-      {theme === 'light' ? (
-        <Moon className="w-5 h-5 text-gray-600 dark:text-dark-300" />
-      ) : (
-        <Sun className="w-5 h-5 text-gray-600 dark:text-dark-300" />
-      )}
-    </button>
-  );
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="icon">
+          <Sun className="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
+          <Moon className="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
+          <span className="sr-only">Toggle theme</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => setTheme("light")}>
+          Light
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("dark")}>
+          Dark
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("system")}>
+          System
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
 }

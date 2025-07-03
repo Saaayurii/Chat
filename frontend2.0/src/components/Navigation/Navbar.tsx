@@ -22,7 +22,8 @@ import {
 import { useAuthStore } from '@/store/authStore';
 import { UserRole } from '@/types';
 import * as Radix from '@radix-ui/themes';
-import ThemeToggle from '@/components/ThemeToggle';
+import ThemeToggle from "../ThemeToggle"
+import Link from 'next/link';
 
 interface NavItem {
   name: string;
@@ -247,7 +248,7 @@ export default function Navbar() {
           {/* Logo and navigation */}
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
-              <h1 className="text-lg font-semibold text-gray-900 dark:text-white">ChatSystem</h1>
+              <Link href="/" className="text-lg font-semibold text-gray-900 dark:text-white">ChatSystem</Link>
             </div>
             
             {/* Desktop navigation */}
@@ -261,7 +262,7 @@ export default function Navbar() {
                     onClick={() => router.push(item.href)}
                     className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                       isActive
-                        ? 'bg-white text-white dark:bg-black dark:text-white'
+                        ? 'bg-black text-white dark:bg-black dark:text-white'
                         : 'text-black dark:text-black hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
                   >
@@ -326,7 +327,7 @@ export default function Navbar() {
           <div className="flex items-center">
             {/* Theme toggle and User info */}
             <div className="hidden md:flex md:items-center md:space-x-4">
-              <ThemeToggle />
+              <ThemeToggle></ThemeToggle>
               
               <div className="flex items-center space-x-2">
                 <div className="w-8 h-8 bg-gray-200 dark:bg-dark-800 rounded-full flex items-center justify-center">
@@ -432,7 +433,7 @@ export default function Navbar() {
                   }}
                   className={`w-full flex items-center px-3 py-2 rounded-md text-base font-medium transition-colors ${
                     isActive
-                      ? 'bg-white text-white dark:bg-black dark:text-black'
+                      ? 'bg-black text-white dark:bg-black dark:text-black'
                       : 'text-black dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                 >

@@ -2,7 +2,17 @@
   "permissions": {
     "allow": [
       "Bash(find:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(npm install:*)",
+      "Bash(rm:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx nest build:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx ts-node:*)",
+      "Bash(./node_modules/.bin/nest:*)",
+      "Bash(./node_modules/.bin/ts-node.exe:*)"
     ],
     "deny": []
   }

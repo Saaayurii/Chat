@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { ConfigModule } from '@nestjs/config';
 
 // Schemas
 import { User, UserSchema } from '../schemas/user.schema';
@@ -22,7 +21,6 @@ import { ConversationsSeeder } from './conversations.seeder';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: Question.name, schema: QuestionSchema },

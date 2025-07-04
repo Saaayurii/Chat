@@ -27,7 +27,7 @@ export class ComplaintsSeeder {
     const operators = await this.userModel.find({ role: UserRole.OPERATOR }).limit(10);
     const admins = await this.userModel.find({ role: UserRole.ADMIN }).limit(10);
 
-    if (visitors.length < 5 || operators.length < 5 || admins.length < 2) {
+    if (visitors.length < 5 || operators.length < 4 || admins.length < 2) {
       console.log(`❌ Not enough users to seed complaints`);
       return;
     }
@@ -35,8 +35,8 @@ export class ComplaintsSeeder {
     const complaints = [
       {
         complaintText: 'Оператор Мария была крайне невежлива, повышала голос и не хотела помочь с решением проблемы.',
-        complaintType: ComplaintType.RUDE_BEHAVIOR,
-        complaintSeverity: ComplaintSeverity.HIGH,
+        type: ComplaintType.RUDE_BEHAVIOR,
+        severity: ComplaintSeverity.HIGH,
         status: ComplaintStatus.PENDING,
         visitorId: visitors[0]._id,
         operatorId: operators[0]._id,
@@ -44,8 +44,8 @@ export class ComplaintsSeeder {
       },
       {
         complaintText: 'Ждал ответа от оператора более 2 часов. Это неприемлемо для срочного вопроса.',
-        complaintType: ComplaintType.SLOW_RESPONSE,
-        complaintSeverity: ComplaintSeverity.MEDIUM,
+        type: ComplaintType.SLOW_RESPONSE,
+        severity: ComplaintSeverity.MEDIUM,
         status: ComplaintStatus.PENDING,
         visitorId: visitors[1]._id,
         operatorId: operators[1]._id,
@@ -53,8 +53,8 @@ export class ComplaintsSeeder {
       },
       {
         complaintText: 'Оператор не смог решить проблему и дал неверные советы.',
-        complaintType: ComplaintType.POOR_SERVICE,
-        complaintSeverity: ComplaintSeverity.HIGH,
+        type: ComplaintType.POOR_SERVICE,
+        severity: ComplaintSeverity.HIGH,
         status: ComplaintStatus.PENDING,
         visitorId: visitors[2]._id,
         operatorId: operators[2]._id,
@@ -62,8 +62,8 @@ export class ComplaintsSeeder {
       },
       {
         complaintText: 'Оператор обсуждал мои персональные данные при других сотрудниках.',
-        complaintType: ComplaintType.OTHER,
-        complaintSeverity: ComplaintSeverity.CRITICAL,
+        type: ComplaintType.OTHER,
+        severity: ComplaintSeverity.CRITICAL,
         status: ComplaintStatus.UNDER_REVIEW,
         visitorId: visitors[3]._id,
         operatorId: operators[3]._id,
@@ -73,11 +73,11 @@ export class ComplaintsSeeder {
       },
       {
         complaintText: 'Оператор подчеркнул мой возраст и намекнул на некомпетентность.',
-        complaintType: ComplaintType.OTHER,
-        complaintSeverity: ComplaintSeverity.CRITICAL,
+        type: ComplaintType.OTHER,
+        severity: ComplaintSeverity.CRITICAL,
         status: ComplaintStatus.UNDER_REVIEW,
         visitorId: visitors[4]._id,
-        operatorId: operators[4]._id,
+        operatorId: operators[3]._id,
         reviewerId: admins[1]._id,
         assignedAt: new Date(Date.now() - 86400000),
         escalatedAt: new Date(Date.now() - 43200000),

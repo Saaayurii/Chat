@@ -94,7 +94,7 @@ const WidgetDemo: React.FC = () => {
                 <Input
                   value={config.apiUrl}
                   onChange={(e) => handleConfigChange('apiUrl', e.target.value)}
-                  placeholder="http://localhost:3000"
+                  placeholder="http://localhost:3004"
                 />
               </div>
 

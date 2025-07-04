@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Conversation, ConversationDocument, ConversationType, ConversationStatus } from '../database/schemas/conversation.schema';
 import { Message, MessageDocument, MessageType, MessageStatus } from '../database/schemas/message.schema';
 import { User, UserDocument, UserRole } from '../database/schemas/user.schema';
@@ -72,11 +72,12 @@ export class ConversationsSeeder {
       'Благодарю за быструю помощь!'
     ];
 
-    // 1. Активные разговоры (пользователь-оператор)
-    for (let i = 0; i < 5; i++) {
+    // 1. Активные разговоры (пользователь-оператор) - расширенный набор
+    for (let i = 0; i < 8; i++) {
       const visitor = visitors[i % visitors.length];
       const operator = operators[i % operators.length];
-      const conversationId = new Date().getTime() + i;
+      const conversationId = new Types.ObjectId();
+      const lastMessageId = new Types.ObjectId();
 
       const conversation = {
         _id: conversationId,
@@ -85,6 +86,7 @@ export class ConversationsSeeder {
         status: ConversationStatus.ACTIVE,
         createdBy: visitor._id,
         lastMessage: {
+          messageId: lastMessageId,
           text: operatorResponses[i % operatorResponses.length],
           senderId: operator._id,
           timestamp: new Date(Date.now() - 300000 + i * 60000), // 5 минут назад, с интервалом
@@ -103,6 +105,7 @@ export class ConversationsSeeder {
       // Создаем сообщения для этого разговора
       const conversationMessages = [
         {
+          _id: new Types.ObjectId(),
           conversationId,
           senderId: visitor._id,
           text: greetings[i % greetings.length],
@@ -116,6 +119,7 @@ export class ConversationsSeeder {
           createdAt: new Date(Date.now() - 3600000 + i * 600000),
         },
         {
+          _id: new Types.ObjectId(),
           conversationId,
           senderId: visitor._id,
           text: techQuestions[i % techQuestions.length],
@@ -129,6 +133,7 @@ export class ConversationsSeeder {
           createdAt: new Date(Date.now() - 3540000 + i * 600000),
         },
         {
+          _id: new Types.ObjectId(),
           conversationId,
           senderId: operator._id,
           text: operatorResponses[i % operatorResponses.length],
@@ -146,11 +151,134 @@ export class ConversationsSeeder {
       messages.push(...conversationMessages);
     }
 
-    // 2. Завершенные разговоры
-    for (let i = 0; i < 8; i++) {
+    // 2. Ожидающие назначения разговоры (для админа)
+    for (let i = 0; i < 3; i++) {
+      const visitor = visitors[i % visitors.length];
+      const conversationId = new Types.ObjectId();
+      const lastMessageId = new Types.ObjectId();
+
+      const conversation = {
+        _id: conversationId,
+        participants: [visitor._id],
+        type: ConversationType.USER_OPERATOR,
+        status: ConversationStatus.ACTIVE,
+        createdBy: visitor._id,
+        title: `Ожидает назначения: ${visitor.profile.fullName}`,
+        waitingForAssignment: true,
+        lastMessage: {
+          messageId: lastMessageId,
+          text: `Здравствуйте! У меня вопрос по ${['биллингу', 'техподдержке', 'услугам'][i]}. Можете помочь?`,
+          senderId: visitor._id,
+          timestamp: new Date(Date.now() - 300000 + i * 60000),
+        },
+        unreadMessagesCount: 1,
+        unreadByParticipant: new Map([
+          [visitor._id.toString(), 0]
+        ]),
+        createdAt: new Date(Date.now() - 600000 + i * 120000),
+        updatedAt: new Date(Date.now() - 300000 + i * 60000),
+      };
+
+      conversations.push(conversation);
+
+      // Сообщение от посетителя
+      const conversationMessages = [
+        {
+          _id: lastMessageId,
+          conversationId,
+          senderId: visitor._id,
+          text: `Здравствуйте! У меня вопрос по ${['биллингу', 'техподдержке', 'услугам'][i]}. Можете помочь?`,
+          type: MessageType.TEXT,
+          status: MessageStatus.DELIVERED,
+          readBy: [visitor._id],
+          readTimestamps: new Map([
+            [visitor._id.toString(), new Date(Date.now() - 300000 + i * 60000)]
+          ]),
+          createdAt: new Date(Date.now() - 300000 + i * 60000),
+        }
+      ];
+
+      messages.push(...conversationMessages);
+    }
+
+    // 3. Разговоры админ-оператор (назначения и эскалации)
+    for (let i = 0; i < 4; i++) {
+      const admin = admins[i % admins.length];
+      const operator = operators[i % operators.length];
+      const conversationId = new Types.ObjectId();
+      const lastMessageId = new Types.ObjectId();
+
+      const conversationTopics = [
+        'Назначение обращения от клиента',
+        'Эскалация сложного случая',
+        'Обсуждение процедур',
+        'Консультация по клиенту'
+      ];
+
+      const conversation = {
+        _id: conversationId,
+        participants: [admin._id, operator._id],
+        type: ConversationType.OPERATOR_ADMIN,
+        status: ConversationStatus.ACTIVE,
+        createdBy: admin._id,
+        title: conversationTopics[i],
+        lastMessage: {
+          messageId: lastMessageId,
+          text: i % 2 === 0 ? 'Назначаю вам нового клиента' : 'Спасибо, займусь этим',
+          senderId: i % 2 === 0 ? admin._id : operator._id,
+          timestamp: new Date(Date.now() - 180000 + i * 30000),
+        },
+        unreadMessagesCount: 0,
+        unreadByParticipant: new Map([
+          [admin._id.toString(), 0],
+          [operator._id.toString(), 0]
+        ]),
+        createdAt: new Date(Date.now() - 1800000 + i * 300000),
+        updatedAt: new Date(Date.now() - 180000 + i * 30000),
+      };
+
+      conversations.push(conversation);
+
+      // Диалог между админом и оператором
+      const conversationMessages = [
+        {
+          _id: new Types.ObjectId(),
+          conversationId,
+          senderId: admin._id,
+          text: `${operator.profile.fullName}, ${i % 2 === 0 ? 'назначаю вам нового клиента. Посмотрите, пожалуйста.' : 'нужна ваша помощь с клиентом. Сложный случай.'}`,
+          type: MessageType.TEXT,
+          status: MessageStatus.READ,
+          readBy: [admin._id, operator._id],
+          readTimestamps: new Map([
+            [admin._id.toString(), new Date(Date.now() - 1200000 + i * 300000)],
+            [operator._id.toString(), new Date(Date.now() - 900000 + i * 300000)]
+          ]),
+          createdAt: new Date(Date.now() - 1200000 + i * 300000),
+        },
+        {
+          _id: lastMessageId,
+          conversationId,
+          senderId: operator._id,
+          text: i % 2 === 0 ? 'Хорошо, принимаю клиента. Свяжусь с ним сейчас.' : 'Понял, изучаю ситуацию. Держу в курсе.',
+          type: MessageType.TEXT,
+          status: MessageStatus.READ,
+          readBy: [admin._id, operator._id],
+          readTimestamps: new Map([
+            [admin._id.toString(), new Date(Date.now() - 180000 + i * 30000)],
+            [operator._id.toString(), new Date(Date.now() - 180000 + i * 30000)]
+          ]),
+          createdAt: new Date(Date.now() - 180000 + i * 30000),
+        }
+      ];
+
+      messages.push(...conversationMessages);
+    }
+
+    // 4. Завершенные разговоры
+    for (let i = 0; i < 6; i++) {
       const visitor = visitors[i % visitors.length];
       const operator = operators[i % operators.length];
-      const conversationId = new Date().getTime() + 1000 + i;
+      const conversationId = new Types.ObjectId();
 
       const conversation = {
         _id: conversationId,
@@ -161,6 +289,7 @@ export class ConversationsSeeder {
         closedAt: new Date(Date.now() - 86400000 + i * 10800000), // от 1 дня до нескольких часов назад
         closureReason: 'Вопрос решен',
         lastMessage: {
+          messageId: new Types.ObjectId(),
           text: thankYous[i % thankYous.length],
           senderId: visitor._id,
           timestamp: new Date(Date.now() - 86400000 + i * 10800000),
@@ -179,6 +308,7 @@ export class ConversationsSeeder {
       // Полный диалог для завершенного разговора
       const conversationMessages = [
         {
+          _id: new Types.ObjectId(),
           conversationId,
           senderId: visitor._id,
           text: greetings[i % greetings.length],
@@ -192,6 +322,7 @@ export class ConversationsSeeder {
           createdAt: new Date(Date.now() - 90000000 + i * 10800000),
         },
         {
+          _id: new Types.ObjectId(),
           conversationId,
           senderId: visitor._id,
           text: techQuestions[i % techQuestions.length],
@@ -205,6 +336,7 @@ export class ConversationsSeeder {
           createdAt: new Date(Date.now() - 89940000 + i * 10800000),
         },
         {
+          _id: new Types.ObjectId(),
           conversationId,
           senderId: operator._id,
           text: operatorResponses[i % operatorResponses.length],
@@ -218,6 +350,7 @@ export class ConversationsSeeder {
           createdAt: new Date(Date.now() - 89880000 + i * 10800000),
         },
         {
+          _id: new Types.ObjectId(),
           conversationId,
           senderId: operator._id,
           text: solutions[i % solutions.length],
@@ -231,6 +364,7 @@ export class ConversationsSeeder {
           createdAt: new Date(Date.now() - 89820000 + i * 10800000),
         },
         {
+          _id: new Types.ObjectId(),
           conversationId,
           senderId: visitor._id,
           text: thankYous[i % thankYous.length],
@@ -252,7 +386,7 @@ export class ConversationsSeeder {
     for (let i = 0; i < 3; i++) {
       const operator1 = operators[i % operators.length];
       const operator2 = operators[(i + 1) % operators.length];
-      const conversationId = new Date().getTime() + 2000 + i;
+      const conversationId = new Types.ObjectId();
 
       const conversation = {
         _id: conversationId,
@@ -262,6 +396,7 @@ export class ConversationsSeeder {
         createdBy: operator1._id,
         title: `Консультация по клиенту #${1000 + i}`,
         lastMessage: {
+          messageId: new Types.ObjectId(),
           text: 'Понял, спасибо за разъяснение!',
           senderId: operator1._id,
           timestamp: new Date(Date.now() - 1800000 + i * 300000),
@@ -279,6 +414,7 @@ export class ConversationsSeeder {
 
       const conversationMessages = [
         {
+          _id: new Types.ObjectId(),
           conversationId,
           senderId: operator1._id,
           text: `Привет! Можешь помочь с клиентом? У него сложный технический вопрос.`,
@@ -292,6 +428,7 @@ export class ConversationsSeeder {
           createdAt: new Date(Date.now() - 7200000 + i * 1800000),
         },
         {
+          _id: new Types.ObjectId(),
           conversationId,
           senderId: operator2._id,
           text: 'Конечно! Расскажи подробнее, что именно не работает?',
@@ -305,6 +442,7 @@ export class ConversationsSeeder {
           createdAt: new Date(Date.now() - 7140000 + i * 1800000),
         },
         {
+          _id: new Types.ObjectId(),
           conversationId,
           senderId: operator1._id,
           text: 'Понял, спасибо за разъяснение!',
@@ -326,7 +464,7 @@ export class ConversationsSeeder {
     for (let i = 0; i < 2; i++) {
       const operator = operators[i % operators.length];
       const admin = admins[i % admins.length];
-      const conversationId = new Date().getTime() + 3000 + i;
+      const conversationId = new Types.ObjectId();
 
       const conversation = {
         _id: conversationId,
@@ -336,6 +474,7 @@ export class ConversationsSeeder {
         createdBy: operator._id,
         title: 'Сложный случай - требуется эскалация',
         lastMessage: {
+          messageId: new Types.ObjectId(),
           text: 'Хорошо, займусь этим вопросом.',
           senderId: admin._id,
           timestamp: new Date(Date.now() - 900000 + i * 300000),
@@ -353,6 +492,7 @@ export class ConversationsSeeder {
 
       const conversationMessages = [
         {
+          _id: new Types.ObjectId(),
           conversationId,
           senderId: operator._id,
           text: 'Нужна помощь с эскалацией. Клиент требует возврат, но случай спорный.',
@@ -366,6 +506,7 @@ export class ConversationsSeeder {
           createdAt: new Date(Date.now() - 3600000 + i * 900000),
         },
         {
+          _id: new Types.ObjectId(),
           conversationId,
           senderId: admin._id,
           text: 'Отправь мне детали случая. Рассмотрю и дам решение.',
@@ -379,6 +520,7 @@ export class ConversationsSeeder {
           createdAt: new Date(Date.now() - 3540000 + i * 900000),
         },
         {
+          _id: new Types.ObjectId(),
           conversationId,
           senderId: admin._id,
           text: 'Хорошо, займусь этим вопросом.',
@@ -400,7 +542,7 @@ export class ConversationsSeeder {
     for (let i = 0; i < 5; i++) {
       const visitor = visitors[i % visitors.length];
       const operator = operators[i % operators.length];
-      const conversationId = new Date().getTime() + 4000 + i;
+      const conversationId = new Types.ObjectId();
 
       const conversation = {
         _id: conversationId,
@@ -412,6 +554,7 @@ export class ConversationsSeeder {
         archivedAt: new Date(Date.now() - 604800000 - i * 86400000 + 3600000),
         closureReason: 'Автоматическое архивирование',
         lastMessage: {
+          messageId: new Types.ObjectId(),
           text: 'Проблема решена, спасибо!',
           senderId: visitor._id,
           timestamp: new Date(Date.now() - 604800000 - i * 86400000),
@@ -430,6 +573,7 @@ export class ConversationsSeeder {
       // Простой диалог для архивного разговора
       const conversationMessages = [
         {
+          _id: new Types.ObjectId(),
           conversationId,
           senderId: visitor._id,
           text: 'Здравствуйте! Нужна помощь.',
@@ -443,6 +587,7 @@ export class ConversationsSeeder {
           createdAt: new Date(Date.now() - 608400000 - i * 86400000),
         },
         {
+          _id: new Types.ObjectId(),
           conversationId,
           senderId: operator._id,
           text: 'Добро пожаловать! Чем могу помочь?',
@@ -456,6 +601,7 @@ export class ConversationsSeeder {
           createdAt: new Date(Date.now() - 608340000 - i * 86400000),
         },
         {
+          _id: new Types.ObjectId(),
           conversationId,
           senderId: visitor._id,
           text: 'Проблема решена, спасибо!',

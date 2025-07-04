@@ -369,7 +369,7 @@ export interface BlacklistEvidence {
 
 export interface BlacklistEntry {
   _id: string;
-  userId: string;
+  userId: string | User;
   reason: BlacklistReason;
   description: string;
   type: BlacklistType;

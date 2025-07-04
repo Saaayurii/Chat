@@ -17,8 +17,8 @@ export class RatingsSeeder {
     // Проверяем, есть ли уже рейтинги
     const existingRatingsCount = await this.ratingModel.countDocuments();
     if (existingRatingsCount > 0) {
-      console.log('⭐ Ratings already exist, skipping ratings seeding');
-      return;
+      console.log('🧹 Clearing existing ratings to recreate...');
+      await this.ratingModel.deleteMany({});
     }
 
     // Получаем пользователей
@@ -61,13 +61,32 @@ export class RatingsSeeder {
     ];
 
     const ratings: any[] = [];
+    const usedCombinations = new Set<string>();
 
     // Создаем рейтинги для каждого оператора
     for (const operator of operators) {
-      // Генерируем 15-25 рейтингов для каждого оператора
-      const ratingsCount = Math.floor(Math.random() * 11) + 15; // 15-25 рейтингов
+      // Генерируем 10-15 рейтингов для каждого оператора (меньше чтобы избежать коллизий)
+      const ratingsCount = Math.floor(Math.random() * 6) + 10; // 10-15 рейтингов
       
       for (let i = 0; i < ratingsCount; i++) {
+        // Выбираем уникальную комбинацию visitor + operator
+        let visitor;
+        let combinationKey;
+        let attempts = 0;
+        
+        do {
+          visitor = visitors[Math.floor(Math.random() * visitors.length)];
+          combinationKey = `${visitor._id}-${operator._id}`;
+          attempts++;
+        } while (usedCombinations.has(combinationKey) && attempts < 20);
+        
+        // Если не удалось найти уникальную комбинацию, пропускаем
+        if (usedCombinations.has(combinationKey)) {
+          continue;
+        }
+        
+        usedCombinations.add(combinationKey);
+        
         const rating = Math.floor(Math.random() * 5) + 1; // 1-5 звезд
         let comment = '';
         let isHidden = false;
@@ -96,7 +115,7 @@ export class RatingsSeeder {
 
         ratings.push({
           operatorId: operator._id,
-          userId: visitors[Math.floor(Math.random() * visitors.length)]._id,
+          visitorId: visitor._id,
           rating,
           comment,
           isHidden,
@@ -108,92 +127,23 @@ export class RatingsSeeder {
       }
     }
 
-    // Добавляем специальные тестовые случаи
-    const specialRatings = [
-      // Отличные рейтинги для Марии (operator1)
-      {
-        operatorId: operators[0]?._id,
-        userId: visitors[0]?._id,
-        rating: 5,
-        comment: 'Мария потрясающая! Решила мою проблему за 2 минуты. Очень рекомендую!',
-        isHidden: false,
-        createdAt: new Date(Date.now() - 86400000), // 1 день назад
-      },
-      {
-        operatorId: operators[0]?._id,
-        userId: visitors[1]?._id,
-        rating: 5,
-        comment: 'Профессионал своего дела. Терпеливо объяснила все нюансы.',
-        isHidden: false,
-        createdAt: new Date(Date.now() - 172800000), // 2 дня назад
-      },
-
-      // Отличные рейтинги для Дениса (operator2)
-      {
-        operatorId: operators[1]?._id,
-        userId: visitors[2]?._id,
-        rating: 5,
-        comment: 'Денис знает все о технических вопросах! Помог с интеграцией API.',
-        isHidden: false,
-        createdAt: new Date(Date.now() - 259200000), // 3 дня назад
-      },
-
-      // Средние рейтинги для Анны (operator3)
-      {
-        operatorId: operators[2]?._id,
-        userId: visitors[3]?._id,
-        rating: 3,
-        comment: 'Анна помогла, но пришлось долго ждать ответа.',
-        isHidden: false,
-        createdAt: new Date(Date.now() - 345600000), // 4 дня назад
-      },
-
-      // Скрытый негативный отзыв
-      {
-        operatorId: operators[1]?._id,
-        userId: visitors[4]?._id,
-        rating: 1,
-        comment: 'Этот отзыв содержал нецензурную лексику',
-        isHidden: true,
-        hiddenBy: admins[0]?._id,
-        hiddenAt: new Date(Date.now() - 432000000),
-        hideReason: 'Нецензурная лексика и оскорбления',
-        createdAt: new Date(Date.now() - 518400000), // 6 дней назад
-      },
-
-      // Отзыв, скрытый по запросу оператора
-      {
-        operatorId: operators[2]?._id,
-        userId: visitors[0]?._id,
-        rating: 2,
-        comment: 'Некомпетентный специалист',
-        isHidden: true,
-        hiddenBy: admins[1]?._id,
-        hiddenAt: new Date(Date.now() - 604800000),
-        hideReason: 'Содержит ложную информацию об операторе',
-        createdAt: new Date(Date.now() - 691200000), // 8 дней назад
-      },
-
-      // Отзыв со спам-содержимым
-      {
-        operatorId: operators[3]?._id,
-        userId: visitors[1]?._id,
-        rating: 5,
-        comment: 'ЛУЧШИЕ КРЕДИТЫ БЕЗ СПРАВОК! ЗВОНИТЕ 8-800-XXX-XXXX',
-        isHidden: true,
-        hiddenBy: admins[0]?._id,
-        hiddenAt: new Date(Date.now() - 777600000),
-        hideReason: 'Спам и реклама',
-        createdAt: new Date(Date.now() - 864000000), // 10 дней назад
-      },
-    ];
-
-    // Объединяем все рейтинги
-    const allRatings = [...ratings, ...specialRatings];
+    // Используем только сгенерированные рейтинги без специальных случаев
+    const allRatings = ratings;
 
     try {
-      const createdRatings = await this.ratingModel.insertMany(allRatings);
-      console.log(`✅ Successfully created ${createdRatings.length} ratings`);
+      let successCount = 0;
+      for (const rating of allRatings) {
+        try {
+          await this.ratingModel.create(rating);
+          successCount++;
+        } catch (error) {
+          // Пропускаем дубликаты
+          if (error.code !== 11000) {
+            console.warn('Warning inserting rating:', error.message);
+          }
+        }
+      }
+      console.log(`✅ Successfully created ${successCount} ratings`);
       
       // Статистика по операторам
       console.log('\n📋 Ratings by operator:');

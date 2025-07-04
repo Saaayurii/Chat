@@ -63,6 +63,16 @@ export default function BlacklistList({
     return type === 'TEMPORARY' ? 'Временная' : 'Постоянная';
   };
 
+  const getUserDisplayName = (userId: string | any): string => {
+    if (typeof userId === 'string') {
+      return userId;
+    }
+    if (userId && typeof userId === 'object') {
+      return userId.profile?.fullName || userId.email || userId.profile?.username || 'Неизвестный пользователь';
+    }
+    return 'Неизвестный пользователь';
+  };
+
   return (
     <div className="space-y-4">
       {entries.map((entry) => (
@@ -70,7 +80,9 @@ export default function BlacklistList({
           <div className="flex justify-between items-start mb-3">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
-                <h3 className="font-semibold">Пользователь: {entry.userId}</h3>
+                <h3 className="font-semibold">
+                  Пользователь: {getUserDisplayName(entry.userId)}
+                </h3>
                 <span className={`px-2 py-1 rounded text-sm ${getStatusColor(entry.status)}`}>
                   {getStatusText(entry.status)}
                 </span>

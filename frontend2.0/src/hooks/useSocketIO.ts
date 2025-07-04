@@ -53,7 +53,7 @@ export const useSocketIO = (namespace: string, options: UseSocketIOOptions = {})
     setError(null);
 
     try {
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3000';
+      const wsUrl = process.env.NEXT_PUBLIC_WS_URL ;
       
       socketRef.current = io(`${wsUrl}${namespace}`, {
         auth: {

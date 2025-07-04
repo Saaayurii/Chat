@@ -202,7 +202,7 @@
   class ChatWidget {
     constructor(config) {
       this.config = {
-        apiUrl: 'http://localhost:3000',
+        apiUrl: 'http://localhost:3004',
         theme: 'light',
         position: 'bottom-right',
         primaryColor: '#3b82f6',

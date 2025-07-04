@@ -1,9 +1,7 @@
 import * as dotenv from 'dotenv';
-dotenv.config(); 
-
+dotenv.config();
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-
 import * as cookieParser from 'cookie-parser';
 import { ValidationPipe } from '@nestjs/common';
 import { IoAdapter } from '@nestjs/platform-socket.io';

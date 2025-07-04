@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Conversation, ConversationDocument } from '../database/schemas/conversation.schema';
 import { Message, MessageDocument, MessageType, MessageStatus } from '../database/schemas/message.schema';
+import { User, UserDocument } from '../database/schemas/user.schema';
 import { SendMessageDto } from './dto/send-message.dto/send-message.dto';
 import { CreateConversationDto } from './dto/create-conversation.dto/create-conversation.dto';
 import { UploadAttachmentDto } from './dto/upload-attachment.dto';
@@ -13,6 +14,7 @@ export class ChatService {
   constructor(
     @InjectModel(Conversation.name) private conversationModel: Model<ConversationDocument>,
     @InjectModel(Message.name) private messageModel: Model<MessageDocument>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
   ) {}
 
   async canUserJoinConversation(userId: string, conversationId: string): Promise<boolean> {
@@ -21,6 +23,14 @@ export class ChatService {
       
       if (!conversation) {
         return false;
+      }
+
+      // Получаем роль пользователя
+      const user = await this.userModel.findById(userId).select('role');
+      
+      // Админы могут присоединиться к любому разговору
+      if (user?.role === 'admin') {
+        return true;
       }
 
       // Проверяем, является ли пользователь участником беседы
@@ -143,12 +153,25 @@ export class ChatService {
   }
 
   async getUserConversations(userId: string) {
-    return this.conversationModel
-      .find({ 
+    // Получаем информацию о пользователе для проверки роли
+    const user = await this.userModel.findById(userId).select('role');
+    
+    let query = {};
+    
+    if (user?.role === 'admin') {
+      // Админы видят все разговоры
+      query = { status: { $ne: 'DELETED' } };
+    } else {
+      // Обычные пользователи видят только свои разговоры
+      query = { 
         participants: new Types.ObjectId(userId),
         status: { $ne: 'DELETED' }
-      })
-      .populate('participants', 'email profile.username profile.avatarUrl')
+      };
+    }
+    
+    return this.conversationModel
+      .find(query)
+      .populate('participants', 'email profile.username profile.avatarUrl role')
       .populate('lastMessage.senderId', 'profile.username')
       .sort({ updatedAt: -1 })
       .exec();

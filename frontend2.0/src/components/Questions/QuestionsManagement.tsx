@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { questionsAPI } from '@/core/api';
+import { questionsAPI, usersAPI } from '@/core/api';
 import { 
   Question, 
   QuestionStatus, 
@@ -9,7 +9,8 @@ import {
   CreateQuestionData,
   AssignOperatorData,
   CloseQuestionData,
-  UserRole 
+  UserRole,
+  User 
 } from '@/types';
 import { useAuthStore } from '@/store/authStore';
 import { 
@@ -70,6 +71,10 @@ export default function QuestionsManagement({
   const [showCloseForm, setShowCloseForm] = useState(false);
   const [operatorId, setOperatorId] = useState('');
   const [closingComment, setClosingComment] = useState('');
+  
+  // Operators list
+  const [operators, setOperators] = useState<User[]>([]);
+  const [operatorsLoading, setOperatorsLoading] = useState(false);
 
   const canManageQuestions = user?.role === UserRole.ADMIN || user?.role === UserRole.OPERATOR;
   const canCreateQuestions = user?.role === UserRole.VISITOR;
@@ -77,6 +82,12 @@ export default function QuestionsManagement({
   useEffect(() => {
     loadQuestions();
   }, [currentPage, statusFilter, priorityFilter, categoryFilter, searchQuery]);
+
+  useEffect(() => {
+    if (canManageQuestions) {
+      loadOperators();
+    }
+  }, [canManageQuestions]);
 
   const loadQuestions = async () => {
     try {
@@ -110,6 +121,18 @@ export default function QuestionsManagement({
     }
   };
 
+  const loadOperators = async () => {
+    try {
+      setOperatorsLoading(true);
+      const response = await usersAPI.getOperators();
+      setOperators(response.data);
+    } catch (err: any) {
+      console.error('Ошибка при загрузке операторов:', err);
+    } finally {
+      setOperatorsLoading(false);
+    }
+  };
+
   const handleCreateQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canCreateQuestions) return;
@@ -134,7 +157,7 @@ export default function QuestionsManagement({
 
   const handleAssignOperator = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedQuestion || !canManageQuestions) return;
+    if (!selectedQuestion || !canManageQuestions || !operatorId) return;
 
     try {
       setLoading(true);
@@ -147,6 +170,15 @@ export default function QuestionsManagement({
       setError(err.response?.data?.message || 'Ошибка при назначении оператора');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOpenAssignForm = (question: Question) => {
+    setSelectedQuestion(question);
+    setOperatorId(''); // Сброс выбранного оператора
+    setShowAssignForm(true);
+    if (operators.length === 0) {
+      loadOperators(); // Загружаем операторов, если они еще не загружены
     }
   };
 
@@ -304,6 +336,13 @@ export default function QuestionsManagement({
                       {question.closedAt && (
                         <p>Закрыт: {new Date(question.closedAt).toLocaleString()}</p>
                       )}
+                      {question.operatorId && (
+                        <p>Оператор: {
+                          typeof question.operatorId === 'object' 
+                            ? question.operatorId.profile?.fullName || question.operatorId.email
+                            : question.operatorId
+                        }</p>
+                      )}
                       <p>Сообщений: {question.messagesCount}</p>
                     </div>
 
@@ -311,10 +350,7 @@ export default function QuestionsManagement({
                       <div className="flex gap-2">
                         {question.status === QuestionStatus.OPEN && (
                           <Button
-                            onClick={() => {
-                              setSelectedQuestion(question);
-                              setShowAssignForm(true);
-                            }}
+                            onClick={() => handleOpenAssignForm(question)}
                             size="sm"
                           >
                             Назначить оператора
@@ -417,17 +453,77 @@ export default function QuestionsManagement({
               <DialogTitle>Назначить оператора</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleAssignOperator} className="space-y-4">
-              <Input
-                placeholder="ID оператора"
-                value={operatorId}
-                onChange={(e) => setOperatorId(e.target.value)}
-                required
-              />
+              {selectedQuestion && (
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">Вопрос:</p>
+                  <p className="font-medium">{selectedQuestion.text}</p>
+                  <div className="flex gap-2 mt-2">
+                    <Badge variant={getPriorityVariant(selectedQuestion.priority)}>
+                      {selectedQuestion.priority}
+                    </Badge>
+                    <Badge variant="outline">
+                      {selectedQuestion.category}
+                    </Badge>
+                  </div>
+                </div>
+              )}
+              
+              <div>
+                <label className="text-sm font-medium text-foreground mb-2 block">
+                  Выберите оператора
+                </label>
+                {operatorsLoading ? (
+                  <div className="text-center text-muted-foreground py-4">
+                    Загрузка операторов...
+                  </div>
+                ) : operators.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-4">
+                    Нет доступных операторов
+                  </div>
+                ) : (
+                  <Select value={operatorId} onValueChange={setOperatorId} required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Выберите оператора" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {operators.map((operator) => (
+                        <SelectItem key={operator._id} value={operator._id}>
+                          <div className="flex items-center gap-2">
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {operator.profile?.fullName || operator.profile?.username || operator.email}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {operator.email}
+                              </span>
+                              {operator.operatorStats && (
+                                <span className="text-xs text-muted-foreground">
+                                  Рейтинг: {operator.operatorStats.averageRating?.toFixed(1) || 'Нет'} | 
+                                  Вопросов: {operator.operatorStats.totalQuestions || 0}
+                                </span>
+                              )}
+                            </div>
+                            {operator.operatorStatus && (
+                              <Badge 
+                                variant={operator.operatorStatus === 'AVAILABLE' ? 'default' : 'secondary'}
+                                className="ml-auto"
+                              >
+                                {operator.operatorStatus === 'AVAILABLE' ? 'Доступен' : operator.operatorStatus}
+                              </Badge>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+              
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setShowAssignForm(false)}>
                   Отмена
                 </Button>
-                <Button type="submit" disabled={loading}>
+                <Button type="submit" disabled={loading || !operatorId || operatorsLoading}>
                   {loading ? 'Назначение...' : 'Назначить'}
                 </Button>
               </DialogFooter>

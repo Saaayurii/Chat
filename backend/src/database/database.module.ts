@@ -16,8 +16,6 @@ import { BlacklistEntry, BlacklistEntrySchema } from './schemas/blacklist-entry.
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         uri: configService.get<string>('MONGO_URI'),
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
         // Настройки для продакшена
         maxPoolSize: 10,
         serverSelectionTimeoutMS: 5000,

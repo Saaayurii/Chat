@@ -137,13 +137,11 @@ export class UsersService {
     ]);
 
     return {
-      users,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
+      data: users,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
     };
   }
 
@@ -299,15 +297,24 @@ export class UsersService {
     file: UploadedFile,
   ): Promise<{ avatarUrl: string }> {
     // Проверяем, что это изображение
-    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    const allowedImageTypes = [
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+    ];
     if (!allowedImageTypes.includes(file.mimetype)) {
-      throw new BadRequestException('Допустимы только изображения (JPEG, PNG, GIF, WEBP)');
+      throw new BadRequestException(
+        'Допустимы только изображения (JPEG, PNG, GIF, WEBP)',
+      );
     }
 
     // Проверяем размер файла (максимум 2MB для аватаров)
     const maxSize = 2 * 1024 * 1024; // 2MB
     if (file.size > maxSize) {
-      throw new BadRequestException('Размер изображения не должен превышать 2MB');
+      throw new BadRequestException(
+        'Размер изображения не должен превышать 2MB',
+      );
     }
 
     // Генерируем безопасное имя файла
@@ -343,7 +350,7 @@ export class UsersService {
   // private async saveFileToSystem(file: UploadedFile, uploadPath: string): Promise<void> {
   //   const fs = require('fs').promises;
   //   const path = require('path');
-    
+
   //   // Создаем директорию если не существует
   //   const dirPath = path.dirname(uploadPath);
   //   await fs.mkdir(dirPath, { recursive: true });
@@ -593,7 +600,10 @@ export class UsersService {
     return this.userModel.findById(userId).exec();
   }
 
-  async suspendUser(operatorId: string, suspensionEndDate: Date): Promise<void> {
+  async suspendUser(
+    operatorId: string,
+    suspensionEndDate: Date,
+  ): Promise<void> {
     await this.userModel.findByIdAndUpdate(operatorId, {
       isBlocked: true,
       blockedReason: 'Приостановлен по жалобе',
@@ -602,11 +612,18 @@ export class UsersService {
     });
   }
 
-  async updateUserBlockStatus(userId: string, isBlocked: boolean): Promise<void> {
+  async updateUserBlockStatus(
+    userId: string,
+    isBlocked: boolean,
+  ): Promise<void> {
     await this.userModel.findByIdAndUpdate(userId, {
       isBlocked,
       ...(isBlocked && { blockedAt: new Date() }),
-      ...(!isBlocked && { blockedAt: null, blockedReason: null, blockedUntil: null }),
+      ...(!isBlocked && {
+        blockedAt: null,
+        blockedReason: null,
+        blockedUntil: null,
+      }),
     });
   }
 }

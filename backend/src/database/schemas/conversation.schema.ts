@@ -24,8 +24,8 @@ export class Conversation {
     type: [{ type: Types.ObjectId, ref: 'User' }],
     required: true,
     validate: {
-      validator: (participants: Types.ObjectId[]) => participants.length >= 2,
-      message: 'Conversation must have at least 2 participants'
+      validator: (participants: Types.ObjectId[]) => participants.length >= 1,
+      message: 'Conversation must have at least 1 participant'
     }
   })
   participants: Types.ObjectId[];
@@ -55,6 +55,9 @@ export class Conversation {
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   createdBy: Types.ObjectId;
+
+  @Prop({ default: false })
+  waitingForAssignment?: boolean;
 
   @Prop({
     type: {

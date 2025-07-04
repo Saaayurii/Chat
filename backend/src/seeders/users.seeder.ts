@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
-import { User, UserDocument, UserRole } from '../database/schemas/user.schema';
+import { User, UserDocument, UserRole, OperatorStatus } from '../database/schemas/user.schema';
 
 @Injectable()
 export class UsersSeeder {
@@ -13,11 +13,21 @@ export class UsersSeeder {
   async seed() {
     console.log('🌱 Seeding users...');
 
-    // Проверяем, есть ли уже пользователи
-    const existingUsersCount = await this.userModel.countDocuments();
-    if (existingUsersCount > 0) {
-      console.log('👥 Users already exist, skipping users seeding');
+    // Проверяем количество пользователей по ролям
+    const adminCount = await this.userModel.countDocuments({ role: UserRole.ADMIN });
+    const operatorCount = await this.userModel.countDocuments({ role: UserRole.OPERATOR });
+    const visitorCount = await this.userModel.countDocuments({ role: UserRole.VISITOR, isActivated: true, isBlocked: false });
+    
+    console.log(`Found existing users: ${adminCount} admins, ${operatorCount} operators, ${visitorCount} visitors`);
+    
+    if (adminCount >= 2 && operatorCount >= 4 && visitorCount >= 5) {
+      console.log('👥 Users already exist in sufficient numbers, skipping users seeding');
       return;
+    }
+    
+    if (adminCount > 0 || operatorCount > 0 || visitorCount > 0) {
+      console.log('🧹 Clearing existing users to recreate...');
+      await this.userModel.deleteMany({});
     }
 
     const saltRounds = 12;
@@ -71,6 +81,7 @@ export class UsersSeeder {
           lastSeenAt: new Date(),
           isOnline: true,
         },
+        operatorStatus: OperatorStatus.AVAILABLE,
         operatorStats: {
           totalQuestions: 156,
           resolvedQuestions: 142,
@@ -93,6 +104,7 @@ export class UsersSeeder {
           lastSeenAt: new Date(Date.now() - 1800000), // 30 минут назад
           isOnline: true,
         },
+        operatorStatus: OperatorStatus.BUSY,
         operatorStats: {
           totalQuestions: 203,
           resolvedQuestions: 189,
@@ -115,6 +127,7 @@ export class UsersSeeder {
           lastSeenAt: new Date(Date.now() - 7200000), // 2 часа назад
           isOnline: false,
         },
+        operatorStatus: OperatorStatus.BREAK,
         operatorStats: {
           totalQuestions: 98,
           resolvedQuestions: 91,
@@ -137,6 +150,7 @@ export class UsersSeeder {
           lastSeenAt: new Date(Date.now() - 600000), // 10 минут назад
           isOnline: true,
         },
+        operatorStatus: OperatorStatus.AVAILABLE,
         operatorStats: {
           totalQuestions: 324,
           resolvedQuestions: 298,

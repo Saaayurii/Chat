@@ -8,6 +8,13 @@ export enum UserRole {
   OPERATOR = 'operator',
   VISITOR = 'visitor',
 }
+
+export enum OperatorStatus {
+  AVAILABLE = 'available',
+  BUSY = 'busy',
+  BREAK = 'break',
+  OFFLINE = 'offline',
+}
 @Schema({ 
   timestamps: true,
   collection: 'users'
@@ -66,6 +73,14 @@ export class User {
     lastSeenAt: Date;
     isOnline: boolean;
   };
+
+  // Статус для операторов
+  @Prop({ 
+    type: String, 
+    enum: OperatorStatus, 
+    default: OperatorStatus.OFFLINE 
+  })
+  operatorStatus?: OperatorStatus;
 
   // Статистика для операторов
   @Prop({

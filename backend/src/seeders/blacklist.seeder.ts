@@ -7,8 +7,8 @@ import {
   BlacklistReason,
   BlacklistType,
   BlacklistStatus,
-} from '../schemas/blacklist-entry.schema';
-import { User, UserDocument, UserRole } from '../schemas/user.schema';
+} from '../database/schemas/blacklist-entry.schema';
+import { User, UserDocument, UserRole } from '../database/schemas/user.schema';
 
 @Injectable()
 export class BlacklistSeeder {

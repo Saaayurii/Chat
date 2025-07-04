@@ -224,12 +224,12 @@ export default function QuestionsManagement({
             {/* Filters */}
             {canManageQuestions && (
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
-                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as QuestionStatus | '')}>
+                <Select value={statusFilter || 'all'} onValueChange={(value) => setStatusFilter(value === 'all' ? '' : value as QuestionStatus)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Все статусы" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Все статусы</SelectItem>
+                    <SelectItem value="all">Все статусы</SelectItem>
                     <SelectItem value={QuestionStatus.OPEN}>Открыт</SelectItem>
                     <SelectItem value={QuestionStatus.ASSIGNED}>Назначен</SelectItem>
                     <SelectItem value={QuestionStatus.IN_PROGRESS}>В работе</SelectItem>
@@ -238,12 +238,12 @@ export default function QuestionsManagement({
                   </SelectContent>
                 </Select>
 
-                <Select value={priorityFilter} onValueChange={(value) => setPriorityFilter(value as QuestionPriority | '')}>
+                <Select value={priorityFilter || 'all'} onValueChange={(value) => setPriorityFilter(value === 'all' ? '' : value as QuestionPriority)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Все приоритеты" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Все приоритеты</SelectItem>
+                    <SelectItem value="all">Все приоритеты</SelectItem>
                     <SelectItem value={QuestionPriority.LOW}>Низкий</SelectItem>
                     <SelectItem value={QuestionPriority.MEDIUM}>Средний</SelectItem>
                     <SelectItem value={QuestionPriority.HIGH}>Высокий</SelectItem>

@@ -2,8 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from '../database/database.module';
-import { SeedersModule } from '../database/seeders/seeders.module';
-import { MainSeeder } from '../database/seeders/main.seeder';
+import { SeedersModule } from '../seeders/seeders.module';
+import { MainSeeder } from '../seeders/main.seeder';
 
 @Module({
   imports: [

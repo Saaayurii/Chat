@@ -230,12 +230,12 @@ export default function ComplaintsManagement({
             {/* Filters */}
             {canManageComplaints && (
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
-                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as ComplaintStatus | '')}>
+                <Select value={statusFilter || 'all'} onValueChange={(value) => setStatusFilter(value === 'all' ? '' : value as ComplaintStatus)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Все статусы" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Все статусы</SelectItem>
+                    <SelectItem value="all">Все статусы</SelectItem>
                     <SelectItem value={ComplaintStatus.PENDING}>Ожидает</SelectItem>
                     <SelectItem value={ComplaintStatus.UNDER_REVIEW}>На рассмотрении</SelectItem>
                     <SelectItem value={ComplaintStatus.RESOLVED}>Решена</SelectItem>
@@ -243,12 +243,12 @@ export default function ComplaintsManagement({
                   </SelectContent>
                 </Select>
 
-                <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as ComplaintType | '')}>
+                <Select value={typeFilter || 'all'} onValueChange={(value) => setTypeFilter(value === 'all' ? '' : value as ComplaintType)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Все типы" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Все типы</SelectItem>
+                    <SelectItem value="all">Все типы</SelectItem>
                     <SelectItem value={ComplaintType.INAPPROPRIATE_BEHAVIOR}>Неподобающее поведение</SelectItem>
                     <SelectItem value={ComplaintType.POOR_SERVICE}>Плохой сервис</SelectItem>
                     <SelectItem value={ComplaintType.UNPROFESSIONAL_CONDUCT}>Непрофессиональное поведение</SelectItem>
@@ -258,12 +258,12 @@ export default function ComplaintsManagement({
                   </SelectContent>
                 </Select>
 
-                <Select value={severityFilter} onValueChange={(value) => setSeverityFilter(value as ComplaintSeverity | '')}>
+                <Select value={severityFilter || 'all'} onValueChange={(value) => setSeverityFilter(value === 'all' ? '' : value as ComplaintSeverity)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Все уровни" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Все уровни</SelectItem>
+                    <SelectItem value="all">Все уровни</SelectItem>
                     <SelectItem value={ComplaintSeverity.LOW}>Низкий</SelectItem>
                     <SelectItem value={ComplaintSeverity.MEDIUM}>Средний</SelectItem>
                     <SelectItem value={ComplaintSeverity.HIGH}>Высокий</SelectItem>

@@ -2,13 +2,13 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
 // Schemas
-import { User, UserSchema } from '../schemas/user.schema';
-import { Question, QuestionSchema } from '../schemas/question.schema';
-import { Complaint, ComplaintSchema } from '../schemas/complaint.schema';
-import { BlacklistEntry, BlacklistEntrySchema } from '../schemas/blacklist-entry.schema';
-import { OperatorRating, OperatorRatingSchema } from '../schemas/operator-rating.schema';
-import { Conversation, ConversationSchema } from '../schemas/conversation.schema';
-import { Message, MessageSchema } from '../schemas/message.schema';
+import { User, UserSchema } from '../database/schemas/user.schema';
+import { Question, QuestionSchema } from '../database/schemas/question.schema';
+import { Complaint, ComplaintSchema } from '../database/schemas/complaint.schema';
+import { BlacklistEntry, BlacklistEntrySchema } from '../database/schemas/blacklist-entry.schema';
+import { OperatorRating, OperatorRatingSchema } from '../database/schemas/operator-rating.schema';
+import { Conversation, ConversationSchema } from '../database/schemas/conversation.schema';
+import { Message, MessageSchema } from '../database/schemas/message.schema';
 
 // Seeders
 import { MainSeeder } from './main.seeder';

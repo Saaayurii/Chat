@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
+import { useQuery } from '@tanstack/react-query';
 import { 
   BarChart3, 
   MessageSquare, 
@@ -24,6 +25,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { UserRole } from '@/types';
+import { chatAPI } from '@/core/api';
 import * as Radix from '@radix-ui/themes';
 import Link from 'next/link';
 
@@ -37,6 +39,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/UI/DropdownMenu';
+import { Badge } from '../UI';
 
 interface NavItem {
   name: string;
@@ -165,6 +168,23 @@ export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Получаем количество непрочитанных сообщений для админа
+  const { data: conversations } = useQuery({
+    queryKey: ['conversations'],
+    queryFn: async () => {
+      const response = await chatAPI.getConversations();
+      return response.data;
+    },
+    enabled: user?.role === UserRole.ADMIN,
+    refetchInterval: 30000, // Обновляем каждые 30 секунд
+  });
+
+  // Подсчитываем общее количество непрочитанных сообщений
+  const totalUnreadMessages = useMemo(() => {
+    if (!conversations || !Array.isArray(conversations)) return 0;
+    return conversations.reduce((total, conv) => total + (conv.unreadMessagesCount || 0), 0);
+  }, [conversations]);
   
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -295,15 +315,26 @@ export default function Navbar() {
               {/* Main navigation items */}
               {mainItems.map((item) => {
                 const isActive = pathname === item.href;
+                const isChatItem = item.href === '/chat';
+                const showBadge = isChatItem && user?.role === UserRole.ADMIN && totalUnreadMessages > 0;
+                
                 return (
                   <Button
                     key={item.href}
                     variant={isActive ? "default" : "ghost"}
                     onClick={() => router.push(item.href)}
-                    className="flex items-center space-x-2"
+                    className="flex items-center space-x-2 relative"
                   >
                     <item.icon className="w-4 h-4" />
                     <span>{item.name}</span>
+                    {showBadge && (
+                      <Badge 
+                        variant="destructive" 
+                        className="h-5 w-5 p-0 text-xs flex items-center justify-center absolute -top-1 -right-1"
+                      >
+                        {totalUnreadMessages}
+                      </Badge>
+                    )}
                   </Button>
                 );
               })}
@@ -470,6 +501,9 @@ export default function Navbar() {
             {/* Main items */}
             {mainItems.map((item) => {
               const isActive = pathname === item.href;
+              const isChatItem = item.href === '/chat';
+              const showBadge = isChatItem && user?.role === UserRole.ADMIN && totalUnreadMessages > 0;
+              
               return (
                 <Button
                   key={item.href}
@@ -478,10 +512,18 @@ export default function Navbar() {
                     router.push(item.href);
                     setIsMobileMenuOpen(false);
                   }}
-                  className="w-full justify-start mb-1"
+                  className="w-full justify-start mb-1 relative"
                 >
                   <item.icon className="w-5 h-5 mr-3" />
                   {item.name}
+                  {showBadge && (
+                    <Badge 
+                      variant="destructive" 
+                      className="h-5 w-5 p-0 text-xs flex items-center justify-center ml-auto"
+                    >
+                      {totalUnreadMessages}
+                    </Badge>
+                  )}
                 </Button>
               );
             })}

@@ -10,6 +10,7 @@ import { ComplaintsModule } from './complaints/complaints.module';
 import { RatingsModule } from './ratings/ratings.module';
 import { BlacklistModule } from './blacklist/blacklist.module';
 import { EmailModule } from './email/email.module';
+import { TransferModule } from './transfer/transfer.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { EmailModule } from './email/email.module';
     RatingsModule,
     BlacklistModule,
     EmailModule,
+    TransferModule,
     DatabaseModule,
   ],
 })

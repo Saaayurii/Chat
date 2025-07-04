@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { usersAPI } from '@/core/api';
 import { User, UserRole } from '@/types';
 import { SearchInput } from '@/components/UI/SearchInput';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
 export default function AdminStatisticsPage() {
   const router = useRouter();
@@ -144,6 +145,60 @@ export default function AdminStatisticsPage() {
                   </div>
                 </div>
               </div>}
+              
+              {/* Chart Section */}
+              <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white dark:bg-dark-900 rounded-lg shadow p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Активность операторов</h2>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={operators?.map(op => ({
+                        name: op.profile.fullName || op.profile.username,
+                        questions: op.operatorStats?.totalQuestions || 0,
+                        online: op.profile.isOnline ? 1 : 0
+                      })).slice(0, 10) || []}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                        <XAxis 
+                          dataKey="name" 
+                          tick={{ fontSize: 12 }}
+                          angle={-45}
+                          textAnchor="end"
+                          height={80}
+                          stroke="#6b7280"
+                        />
+                        <YAxis stroke="#6b7280" />
+                        <Tooltip />
+                        <Bar dataKey="questions" fill="#3b82f6" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+                
+                <div className="bg-white dark:bg-dark-900 rounded-lg shadow p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Статистика по времени</h2>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={[
+                        { name: 'Пн', messages: 120, operators: 5 },
+                        { name: 'Вт', messages: 190, operators: 6 },
+                        { name: 'Ср', messages: 230, operators: 7 },
+                        { name: 'Чт', messages: 180, operators: 6 },
+                        { name: 'Пт', messages: 250, operators: 8 },
+                        { name: 'Сб', messages: 90, operators: 3 },
+                        { name: 'Вс', messages: 60, operators: 2 }
+                      ]}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                        <XAxis dataKey="name" stroke="#6b7280" />
+                        <YAxis stroke="#6b7280" />
+                        <Tooltip />
+                        <Legend />
+                        <Line type="monotone" dataKey="messages" stroke="#3b82f6" strokeWidth={2} />
+                        <Line type="monotone" dataKey="operators" stroke="#10b981" strokeWidth={2} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
             </div>
           </main>
         </div>

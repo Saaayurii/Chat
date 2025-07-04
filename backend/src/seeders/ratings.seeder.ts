@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { OperatorRating, OperatorRatingDocument } from '../schemas/operator-rating.schema';
-import { User, UserDocument, UserRole } from '../schemas/user.schema';
+import { OperatorRating, OperatorRatingDocument } from '../database/schemas/operator-rating.schema';
+import { User, UserDocument, UserRole } from '../database/schemas/user.schema';
 
 @Injectable()
 export class RatingsSeeder {

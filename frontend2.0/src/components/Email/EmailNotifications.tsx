@@ -6,13 +6,13 @@ import { UserRole } from '@/types';
 import { useAuthStore } from '@/store/authStore';
 import { useEmailNotifications } from '@/hooks/useEmailNotifications';
 import { 
-  Button, 
   Card, 
   CardContent, 
   CardHeader, 
   CardTitle,
   Alert
 } from '@/components/UI';
+import Button from '@/components/UI/Button';
 
 const EmailForm = dynamic(() => import('./EmailForm'), {
   loading: () => <div className="bg-muted/50 p-4 rounded-lg animate-pulse h-64" />

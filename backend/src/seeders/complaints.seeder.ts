@@ -4,8 +4,8 @@ import { Model } from 'mongoose';
 import {
   Complaint, ComplaintDocument,
   ComplaintStatus, ComplaintType, ComplaintSeverity,
-} from '../schemas/complaint.schema';
-import { User, UserDocument, UserRole } from '../schemas/user.schema';
+} from '../database/schemas/complaint.schema';
+import { User, UserDocument, UserRole } from '../database/schemas/user.schema';
 
 @Injectable()
 export class ComplaintsSeeder {

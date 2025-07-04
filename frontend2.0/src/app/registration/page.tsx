@@ -10,9 +10,9 @@ import { useMutation } from '@tanstack/react-query';
 import { Eye, EyeOff } from 'lucide-react';
 import { authAPI, RegistrationData } from '@/core/api';
 
-import { Button } from "@/components/UI/Button";
 import { Input } from "@/components/UI/Input";
 import { Label } from "@/components/UI/Label";
+import Button from "@/components/UI/Button";
 
 const registrationSchema = z.object({
   fullName: z.string().min(1, 'Введите полное имя'),

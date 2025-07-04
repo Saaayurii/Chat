@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Conversation, ConversationDocument, ConversationType, ConversationStatus } from '../schemas/conversation.schema';
-import { Message, MessageDocument, MessageType, MessageStatus } from '../schemas/message.schema';
-import { User, UserDocument, UserRole } from '../schemas/user.schema';
+import { Conversation, ConversationDocument, ConversationType, ConversationStatus } from '../database/schemas/conversation.schema';
+import { Message, MessageDocument, MessageType, MessageStatus } from '../database/schemas/message.schema';
+import { User, UserDocument, UserRole } from '../database/schemas/user.schema';
 
 @Injectable()
 export class ConversationsSeeder {

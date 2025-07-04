@@ -1,72 +1,66 @@
-'use client';
+import * as React from "react"
+import { cva, type VariantProps } from "class-variance-authority"
 
-import { ReactNode } from 'react';
-import { AlertCircle, CheckCircle, Info, X, AlertTriangle } from 'lucide-react';
+import { cn } from "@/lib/utils"
 
-interface AlertProps {
-  children: ReactNode;
-  type?: 'success' | 'error' | 'warning' | 'info';
-  onClose?: () => void;
-  className?: string;
-}
-
-export default function Alert({ 
-  children, 
-  type = 'info', 
-  onClose,
-  className = '' 
-}: AlertProps) {
-  const config = {
-    success: {
-      bgColor: 'bg-green-50 dark:bg-green-950/30',
-      textColor: 'text-green-800 dark:text-green-200',
-      borderColor: 'border-green-200 dark:border-green-800',
-      icon: CheckCircle
+const alertVariants = cva(
+  "relative w-full rounded-lg border px-4 py-3 text-sm grid has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] grid-cols-[0_1fr] has-[>svg]:gap-x-3 gap-y-0.5 items-start [&>svg]:size-4 [&>svg]:translate-y-0.5 [&>svg]:text-current",
+  {
+    variants: {
+      variant: {
+        default: "bg-card text-card-foreground",
+        destructive:
+          "text-destructive bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-destructive/90",
+      },
     },
-    error: {
-      bgColor: 'bg-red-50 dark:bg-red-950/30',
-      textColor: 'text-red-800 dark:text-red-200',
-      borderColor: 'border-red-200 dark:border-red-800',
-      icon: AlertCircle
+    defaultVariants: {
+      variant: "default",
     },
-    warning: {
-      bgColor: 'bg-yellow-50 dark:bg-yellow-950/30',
-      textColor: 'text-yellow-800 dark:text-yellow-200',
-      borderColor: 'border-yellow-200 dark:border-yellow-800',
-      icon: AlertTriangle
-    },
-    info: {
-      bgColor: 'bg-blue-50 dark:bg-blue-950/30',
-      textColor: 'text-blue-800 dark:text-blue-200',
-      borderColor: 'border-blue-200 dark:border-blue-800',
-      icon: Info
-    }
-  };
+  }
+)
 
-  const { bgColor, textColor, borderColor, icon: Icon } = config[type];
-  
-  const classes = [
-    bgColor,
-    textColor,
-    borderColor,
-    'border px-4 py-3 rounded flex items-start gap-3',
-    className
-  ].filter(Boolean).join(' ');
-
+function Alert({
+  className,
+  variant,
+  ...props
+}: React.ComponentProps<"div"> & VariantProps<typeof alertVariants>) {
   return (
-    <div className={classes}>
-      <Icon className="w-5 h-5 flex-shrink-0 mt-0.5" />
-      <div className="flex-1">
-        {children}
-      </div>
-      {onClose && (
-        <button
-          onClick={onClose}
-          className="flex-shrink-0 ml-2 hover:opacity-70 transition-opacity"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      )}
-    </div>
-  );
+    <div
+      data-slot="alert"
+      role="alert"
+      className={cn(alertVariants({ variant }), className)}
+      {...props}
+    />
+  )
 }
+
+function AlertTitle({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="alert-title"
+      className={cn(
+        "col-start-2 line-clamp-1 min-h-4 font-medium tracking-tight",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function AlertDescription({
+  className,
+  ...props
+}: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="alert-description"
+      className={cn(
+        "text-muted-foreground col-start-2 grid justify-items-start gap-1 text-sm [&_p]:leading-relaxed",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+export { Alert, AlertTitle, AlertDescription }

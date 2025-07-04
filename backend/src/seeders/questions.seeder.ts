@@ -7,8 +7,8 @@ import {
   QuestionStatus,
   QuestionPriority,
   QuestionCategory,
-} from '../schemas/question.schema';
-import { User, UserDocument, UserRole } from '../schemas/user.schema';
+} from '../database/schemas/question.schema';
+import { User, UserDocument, UserRole } from '../database/schemas/user.schema';
 
 @Injectable()
 export class QuestionsSeeder {

@@ -15,7 +15,12 @@
       "Bash(./node_modules/.bin/ts-node.exe:*)",
       "Bash(npx shadcn@latest add:*)",
       "WebFetch(domain:ui.shadcn.com)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(mkdir:*)",
+      "Bash(./node_modules/.bin/tsc:*)",
+      "Bash(npx shadcn-ui:*)",
+      "Bash(bun run:*)",
+      "Bash(npm run seed:*)"
     ],
     "deny": []
   }

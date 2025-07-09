@@ -45,7 +45,7 @@ export function usePagination({
   }, [initialPage, initialLimit]);
 
   const getTotalPages = useCallback((total: number) => {
-    return Math.ceil(total / limit);
+    return Math.max(0, Math.ceil(total / limit));
   }, [limit]);
 
   return {

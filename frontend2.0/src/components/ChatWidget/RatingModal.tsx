@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Star, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../UI/Card';
-import { Button } from '../UI/Button';
+import Button from '../UI/Button';
 import { Input } from '../UI/Input';
 
 interface RatingModalProps {
@@ -81,12 +81,12 @@ export const RatingModal: React.FC<RatingModalProps> = ({
             </div>
             
             <div className="text-sm text-gray-500">
-              {rating === 0 && 'Выберите оценку'}
-              {rating === 1 && 'Очень плохо'}
-              {rating === 2 && 'Плохо'}
-              {rating === 3 && 'Нормально'}
-              {rating === 4 && 'Хорошо'}
-              {rating === 5 && 'Отлично'}
+              {(hoveredRating || rating) === 0 && 'Выберите оценку'}
+              {(hoveredRating || rating) === 1 && 'Очень плохо'}
+              {(hoveredRating || rating) === 2 && 'Плохо'}
+              {(hoveredRating || rating) === 3 && 'Нормально'}
+              {(hoveredRating || rating) === 4 && 'Хорошо'}
+              {(hoveredRating || rating) === 5 && 'Отлично'}
             </div>
           </div>
           

@@ -388,6 +388,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
               size="sm"
               onClick={minimizeWidget}
               className="text-white hover:bg-white/20 p-1"
+              aria-label="minimize"
             >
               <X className="w-4 h-4" />
             </Button>
@@ -396,6 +397,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
               size="sm"
               onClick={toggleWidget}
               className="text-white hover:bg-white/20 p-1"
+              aria-label="close"
             >
               <X className="w-4 h-4" />
             </Button>
@@ -468,6 +470,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                   size="sm"
                   onClick={() => fileInputRef.current?.click()}
                   className="p-2"
+                  aria-label="paperclip"
                 >
                   <Paperclip className="w-4 h-4" />
                 </Button>
@@ -478,6 +481,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                 disabled={!inputMessage.trim()}
                 className="p-2"
                 style={{ backgroundColor: primaryColor }}
+                aria-label="send"
               >
                 <Send className="w-4 h-4" />
               </Button>

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Flag, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../UI/Card';
-import { Button } from '../UI/Button';
+import Button from '../UI/Button';
 import { Select } from '../UI/Select';
 
 interface ComplaintModalProps {

@@ -4,12 +4,14 @@ interface LoadingProps {
   size?: 'sm' | 'md' | 'lg';
   text?: string;
   fullScreen?: boolean;
+  className?: string;
 }
 
 export default function Loading({ 
   size = 'md', 
   text = 'Загрузка...', 
-  fullScreen = false 
+  fullScreen = false,
+  className = '' 
 }: LoadingProps) {
   const sizeClasses = {
     sm: 'w-4 h-4',

@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Send, Plus, Paperclip, MoreVertical, Wifi, WifiOff, User, Phone, Mail, Shield, Globe, UserX, ArrowRightLeft } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Search, Send, Paperclip, MoreVertical, Wifi, WifiOff, User, Phone, Mail, Shield, Globe, UserX, ArrowRightLeft } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { chatAPI } from '@/core/api';
 import { useChat } from '@/hooks/useChat';
-import { Conversation, Message, User as UserType } from '@/types';
+import { User as UserType } from '@/types';
 import * as Radix from '@radix-ui/themes';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/UI/Avatar';
 import { Badge } from '@/components/UI';
@@ -15,7 +15,7 @@ import Button from '@/components/UI/Button';
 
 export default function ChatPage() {
   const { user } = useAuthStore();
-  const queryClient = useQueryClient();
+  useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -23,17 +23,14 @@ export default function ChatPage() {
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [selectedSender, setSelectedSender] = useState<any>(null);
+  const [selectedSender, setSelectedSender] = useState<UserType | null>(null);
 
   // WebSocket chat hook
   const {
     isConnected,
     isConnecting,
-    wsError,
     typingUsers,
-    onlineUsers,
     sendChatMessage,
-    markAsRead,
     setTyping,
     joinConversation,
     leaveConversation,
@@ -158,7 +155,7 @@ export default function ChatPage() {
     const sendersMap = new Map();
     conversations.forEach(conv => {
       if (conv.participants && Array.isArray(conv.participants)) {
-        conv.participants.forEach((participant: any) => {
+        conv.participants.forEach((participant: UserType) => {
           if (participant && participant.id !== user?.id) {
             const senderId = participant.id;
             const existingSender = sendersMap.get(senderId);
@@ -213,7 +210,7 @@ export default function ChatPage() {
   }, [filteredSenders]);
 
   // Обработка выбора отправителя
-  const handleSenderSelect = useCallback((sender: any) => {
+  const handleSenderSelect = useCallback((sender: UserType) => {
     setSelectedSender(sender);
     setSelectedConversation(sender.conversationId);
   }, []);

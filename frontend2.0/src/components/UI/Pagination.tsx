@@ -72,7 +72,7 @@ export default function Pagination({
           {visiblePages.map((page) => (
             <Button
               key={page}
-              variant={page === currentPage ? 'primary' : 'secondary'}
+              variant={page === currentPage ? 'default' : 'secondary'}
               size="sm"
               onClick={() => onPageChange(page)}
               className="w-10 h-10 p-0"

@@ -55,8 +55,8 @@ describe('BlacklistManagement Component', () => {
 
   it('renders blacklist entries when data is available', () => {
     const mockEntries = [
-      mockBlacklistEntry({ id: '1', identifier: 'test1@example.com' }),
-      mockBlacklistEntry({ id: '2', identifier: 'test2@example.com' }),
+      mockBlacklistEntry({ _id: '1' }),
+      mockBlacklistEntry({ _id: '2' }),
     ];
 
     const mockUseApiCall = require('@/hooks/useApiCall').useApiCall;
@@ -85,7 +85,7 @@ describe('BlacklistManagement Component', () => {
 
   it('handles delete entry', async () => {
     const mockEntries = [
-      mockBlacklistEntry({ id: '1', identifier: 'test1@example.com' }),
+      mockBlacklistEntry({ _id: '1' }),
     ];
 
     const mockExecute = jest.fn();
@@ -118,7 +118,7 @@ describe('BlacklistManagement Component', () => {
 
   it('handles pagination', () => {
     const mockEntries = Array.from({ length: 20 }, (_, i) => 
-      mockBlacklistEntry({ id: `${i + 1}`, identifier: `test${i + 1}@example.com` })
+      mockBlacklistEntry({ _id: `${i + 1}` })
     );
 
     const mockUseApiCall = require('@/hooks/useApiCall').useApiCall;

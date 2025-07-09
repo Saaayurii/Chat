@@ -1,78 +1,102 @@
-import { User, Conversation, Message, Question, Complaint, Rating, BlacklistEntry } from '@/types';
+import { User, Conversation, Message, Question, Complaint, Rating, BlacklistEntry, UserRole, ConversationStatus, MessageType, QuestionPriority, QuestionStatus, ComplaintStatus, BlacklistType, BlacklistReason } from '@/types';
 
 // Mock data factories
 export const mockUser = (overrides?: Partial<User>): User => ({
+  _id: '1',
   id: '1',
   email: 'test@example.com',
-  name: 'Test User',
-  role: 'user',
-  isActive: true,
+  role: UserRole.VISITOR,
+  isActivated: true,
+  isBlocked: false,
+  blacklistedByAdmin: false,
+  blacklistedByOperator: false,
+  profile: {
+    username: 'testuser',
+    fullName: 'Test User',
+    lastSeenAt: new Date(),
+    isOnline: true,
+  },
   createdAt: new Date(),
   updatedAt: new Date(),
   ...overrides,
 });
 
 export const mockConversation = (overrides?: Partial<Conversation>): Conversation => ({
-  id: '1',
-  userId: '1',
-  operatorId: '2',
-  status: 'active',
+  _id: '1',
+  participants: ['1', '2'],
+  type: 'user-operator' as any,
+  status: ConversationStatus.ACTIVE,
+  unreadMessagesCount: 0,
+  unreadByParticipant: {},
   createdAt: new Date(),
   updatedAt: new Date(),
-  messages: [],
   ...overrides,
 });
 
 export const mockMessage = (overrides?: Partial<Message>): Message => ({
-  id: '1',
+  _id: '1',
   conversationId: '1',
   senderId: '1',
-  content: 'Test message',
-  type: 'text',
-  timestamp: new Date(),
+  type: MessageType.TEXT,
+  text: 'Test message',
+  status: 'sent' as any,
+  isEdited: false,
+  readBy: [],
+  readTimestamps: {},
+  createdAt: new Date(),
+  updatedAt: new Date(),
   ...overrides,
 });
 
 export const mockQuestion = (overrides?: Partial<Question>): Question => ({
-  id: '1',
-  content: 'Test question?',
+  _id: '1',
+  text: 'Test question?',
   category: 'general',
-  priority: 'medium',
-  status: 'open',
+  priority: QuestionPriority.MEDIUM,
+  status: QuestionStatus.OPEN,
+  visitorId: '1',
+  messagesCount: 0,
   createdAt: new Date(),
   updatedAt: new Date(),
   ...overrides,
 });
 
 export const mockComplaint = (overrides?: Partial<Complaint>): Complaint => ({
-  id: '1',
-  userId: '1',
-  content: 'Test complaint',
-  category: 'service',
-  priority: 'medium',
-  status: 'open',
+  _id: '1',
+  type: 'OTHER' as any,
+  complaintText: 'Test complaint',
+  severity: 'medium' as any,
+  status: ComplaintStatus.PENDING,
+  visitorId: '1',
+  operatorId: '2',
   createdAt: new Date(),
   updatedAt: new Date(),
   ...overrides,
 });
 
 export const mockRating = (overrides?: Partial<Rating>): Rating => ({
-  id: '1',
-  userId: '1',
-  conversationId: '1',
+  _id: '1',
+  operatorId: '2',
+  visitorId: '1',
   rating: 5,
   comment: 'Great service!',
+  isAnonymous: false,
+  isVisible: true,
   createdAt: new Date(),
+  updatedAt: new Date(),
   ...overrides,
 });
 
 export const mockBlacklistEntry = (overrides?: Partial<BlacklistEntry>): BlacklistEntry => ({
-  id: '1',
-  identifier: 'test@example.com',
-  type: 'email',
-  reason: 'spam',
+  _id: '1',
+  userId: '1',
+  reason: BlacklistReason.SPAM,
+  description: 'Test blacklist entry',
+  type: BlacklistType.TEMPORARY,
+  status: 'active' as any,
+  blockedBy: '2',
   createdAt: new Date(),
-  isActive: true,
+  updatedAt: new Date(),
   ...overrides,
 });
 

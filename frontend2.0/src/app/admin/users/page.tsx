@@ -1,28 +1,24 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Search, 
   Plus, 
-  Edit2, 
   Trash2, 
   Shield, 
   ShieldOff, 
-  Eye, 
   UserPlus, 
   Users,
   Mail,
   Phone,
   User,
   Lock,
-  Activity,
   Star,
   MessageSquare,
   Clock,
-  AlertTriangle,
   CheckCircle,
-  XCircle,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -43,7 +39,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/UI/Select';
-import Pagination from '@/components/UI/Pagination';
 import { Avatar } from '@/components/UI/Avatar';
 import { Badge, Loading } from '@/components/UI';
 
@@ -68,7 +63,7 @@ interface FormErrors {
 }
 
 export default function AdminUsersPage() {
-  const { user: currentUser } = useAuthStore();
+  const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const { success: showSuccess, error: showError } = useNotifications();
   
@@ -77,7 +72,7 @@ export default function AdminUsersPage() {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [selectedRole, setSelectedRole] = useState<UserRole | ''>('');
   const [page, setPage] = useState(1);
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedUserId] = useState<string | null>(null);
   
   // Form states
   const [formData, setFormData] = useState<FormData>({
@@ -139,7 +134,7 @@ export default function AdminUsersPage() {
       showSuccess('Сотрудник успешно добавлен');
       resetForm();
     },
-    onError: (error: any) => {
+    onError: (error: Error & { response?: { data?: { message?: string } } }) => {
       const errorMessage = error.response?.data?.message || 'Ошибка при создании сотрудника';
       showError(errorMessage);
     }
@@ -512,10 +507,12 @@ export default function AdminUsersPage() {
                           <div className="flex items-center space-x-4">
                             <Avatar className="w-12 h-12">
                               {user.profile.avatarUrl ? (
-                                <img
+                                <Image
                                   src={user.profile.avatarUrl}
                                   alt={user.profile.fullName || user.profile.username}
                                   className="w-12 h-12 rounded-full object-cover"
+                                  width={48}
+                                  height={48}
                                 />
                               ) : (
                                 <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">

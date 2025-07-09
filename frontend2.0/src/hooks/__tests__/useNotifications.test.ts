@@ -225,9 +225,9 @@ describe('useNotifications Hook', () => {
   it('removes correct notification when multiple exist', () => {
     const { result } = renderHook(() => useNotifications());
     
-    let firstId: string;
-    let secondId: string;
-    let thirdId: string;
+    let firstId: string = '';
+    let secondId: string = '';
+    let thirdId: string = '';
     
     act(() => {
       firstId = result.current.success('First notification', 0);
@@ -352,9 +352,9 @@ describe('useNotifications Hook', () => {
   it('generates unique ids for notifications', () => {
     const { result } = renderHook(() => useNotifications());
     
-    let id1: string;
-    let id2: string;
-    let id3: string;
+    let id1: string = '';
+    let id2: string = '';
+    let id3: string = '';
     
     act(() => {
       id1 = result.current.success('First', 0);

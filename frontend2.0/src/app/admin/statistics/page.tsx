@@ -3,7 +3,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { 
-  BarChart3, 
   MessageSquare, 
   Users, 
   Clock, 
@@ -11,25 +10,18 @@ import {
   ThumbsDown,
   TrendingUp,
   Calendar,
-  Filter,
-  Search,
   User,
   Shield,
   AlertTriangle,
-  Star,
-  Activity
+  Star
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
-import { usersAPI, statisticsAPI, questionsAPI, ratingsAPI, complaintsAPI } from '@/core/api';
-import { User as UserType, UserRole } from '@/types';
-import { SearchInput } from '@/components/UI/SearchInput';
+import { usersAPI, statisticsAPI } from '@/core/api';
+import { User as UserType } from '@/types';
 import Button from '@/components/UI/Button';
 import { Card } from '@/components/UI/Card';
-import { Select } from '@/components/UI/Select';
 import { 
-  LineChart, 
-  Line, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
@@ -40,9 +32,7 @@ import {
   Bar, 
   PieChart, 
   Pie, 
-  Cell,
-  Area,
-  AreaChart
+  Cell
 } from 'recharts';
 import { Badge } from '@/components/UI';
 
@@ -54,7 +44,6 @@ type UserRoleFilter = 'all' | 'admin' | 'operator';
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
 export default function AdminStatisticsPage() {
-  const router = useRouter();
   const { user } = useAuthStore();
   
   // State management
@@ -157,7 +146,7 @@ export default function AdminStatisticsPage() {
     }
   });
 
-  const { data: selectedOperatorWorkload, isLoading: workloadLoading } = useQuery({
+  const { data: selectedOperatorWorkload } = useQuery({
     queryKey: ['operator-workload', selectedOperator],
     queryFn: async () => {
       if (!selectedOperator) return null;
@@ -586,7 +575,7 @@ export default function AdminStatisticsPage() {
                           />
                           <YAxis stroke="#6b7280" />
                           <Tooltip 
-                            formatter={(value: any, name: string) => [
+                            formatter={(value: number) => [
                               `${value} (${ratingsDistributionData.find(item => item.count === value)?.percentage}%)`,
                               'Количество'
                             ]}

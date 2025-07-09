@@ -503,12 +503,12 @@ export default function QuestionsManagement({
                                 </span>
                               )}
                             </div>
-                            {operator.operatorStatus && (
+                            {operator.profile?.isOnline !== undefined && (
                               <Badge 
-                                variant={operator.operatorStatus === 'AVAILABLE' ? 'default' : 'secondary'}
+                                variant={operator.profile?.isOnline ? 'default' : 'secondary'}
                                 className="ml-auto"
                               >
-                                {operator.operatorStatus === 'AVAILABLE' ? 'Доступен' : operator.operatorStatus}
+                                {operator.profile?.isOnline ? 'Доступен' : 'Не в сети'}
                               </Badge>
                             )}
                           </div>

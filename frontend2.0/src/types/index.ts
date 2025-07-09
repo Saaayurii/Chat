@@ -347,6 +347,8 @@ export enum BlacklistReason {
   VIOLATION_OF_TERMS = 'VIOLATION_OF_TERMS',
   FRAUD = 'FRAUD',
   OTHER = 'OTHER',
+  ABUSE = 'ABUSE',
+  INAPPROPRIATE_CONTENT = 'INAPPROPRIATE_CONTENT',
 }
 
 export enum BlacklistType {
@@ -359,6 +361,8 @@ export enum BlacklistStatus {
   EXPIRED = 'expired',
   REVOKED = 'revoked',
   PENDING = 'pending',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
 }
 
 export interface BlacklistEvidence {
@@ -388,6 +392,7 @@ export interface BlacklistEntry {
   relatedMessages?: string[];
   userNotified?: boolean;
   userNotifiedAt?: Date;
+  comments?: string;
   createdAt: Date;
   updatedAt: Date;
 }

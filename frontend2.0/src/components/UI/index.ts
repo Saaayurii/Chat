@@ -1,4 +1,4 @@
-export { Button } from './Button';
+export { default as Button } from './Button';
 export { Input } from './Input';
 export { Label } from './Label';
 export { SearchInput } from './SearchInput';

@@ -62,7 +62,14 @@ export default function LoginPage() {
         };
         
         setAuth(result.access_token, userData);
-        router.push('/admin/statistics');
+        
+        // Перенаправляем в зависимости от роли пользователя
+        if (userData.role === 'ADMIN' || userData.role === 'OPERATOR') {
+          router.push('/admin/statistics');
+        } else {
+          // Обычные пользователи попадают на страницу с виджетом
+          router.push('/chat');
+        }
       })() : setError('root', { message: 'Не удалось получить токен доступа.' });
     },
     onError: (error: any) => {

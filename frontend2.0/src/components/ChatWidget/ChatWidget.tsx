@@ -515,7 +515,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     if (!isAuthenticated) {
       const shouldLogin = confirm('Для оценки работы оператора необходимо войти в систему. Перейти на страницу входа?');
       if (shouldLogin) {
-        window.open('/login', '_blank');
+        window.location.href = '/login';
       }
       setShowRatingModal(false);
       return;
@@ -558,7 +558,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     if (!isAuthenticated) {
       const shouldLogin = confirm('Для подачи жалобы необходимо войти в систему. Перейти на страницу входа?');
       if (shouldLogin) {
-        window.open('/login', '_blank');
+        window.location.href = '/login';
       }
       setShowComplaintModal(false);
       return;
@@ -786,7 +786,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => window.open('/login', '_blank')}
+                  onClick={() => window.location.href = '/login'}
                   className="flex items-center space-x-1"
                 >
                   <User className="w-4 h-4" />

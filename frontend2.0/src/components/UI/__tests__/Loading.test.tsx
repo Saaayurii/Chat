@@ -4,7 +4,7 @@ import Loading from '../Loading';
 describe('Loading Component', () => {
   it('renders default loading spinner', () => {
     render(<Loading />);
-    const spinner = screen.getByRole('img', { hidden: true });
+    const spinner = document.querySelector('svg');
     expect(spinner).toBeInTheDocument();
   });
 
@@ -25,25 +25,25 @@ describe('Loading Component', () => {
 
   it('applies default medium size classes', () => {
     render(<Loading />);
-    const spinner = screen.getByRole('img', { hidden: true });
+    const spinner = document.querySelector('svg');
     expect(spinner).toHaveClass('w-8', 'h-8');
   });
 
   it('applies small size classes', () => {
     render(<Loading size="sm" />);
-    const spinner = screen.getByRole('img', { hidden: true });
+    const spinner = document.querySelector('svg');
     expect(spinner).toHaveClass('w-4', 'h-4');
   });
 
   it('applies large size classes', () => {
     render(<Loading size="lg" />);
-    const spinner = screen.getByRole('img', { hidden: true });
+    const spinner = document.querySelector('svg');
     expect(spinner).toHaveClass('w-12', 'h-12');
   });
 
   it('renders normal loading without fullScreen', () => {
     render(<Loading />);
-    const container = screen.getByText('Загрузка...').closest('div');
+    const container = screen.getByText('Загрузка...').closest('div')?.parentElement;
     expect(container).toHaveClass('flex', 'justify-center', 'p-8');
   });
 
@@ -64,35 +64,35 @@ describe('Loading Component', () => {
 
   it('applies spinner animation classes', () => {
     render(<Loading />);
-    const spinner = screen.getByRole('img', { hidden: true });
+    const spinner = document.querySelector('svg');
     expect(spinner).toHaveClass('animate-spin', 'text-primary');
   });
 
   it('has correct SVG viewBox', () => {
     render(<Loading />);
-    const spinner = screen.getByRole('img', { hidden: true });
+    const spinner = document.querySelector('svg');
     expect(spinner).toHaveAttribute('viewBox', '0 0 24 24');
   });
 
   it('has correct SVG fill attribute', () => {
     render(<Loading />);
-    const spinner = screen.getByRole('img', { hidden: true });
+    const spinner = document.querySelector('svg');
     expect(spinner).toHaveAttribute('fill', 'none');
   });
 
   it('renders circle element with correct attributes', () => {
     render(<Loading />);
-    const circle = screen.getByRole('img', { hidden: true }).querySelector('circle');
+    const circle = document.querySelector('svg')?.querySelector('circle');
     expect(circle).toHaveAttribute('cx', '12');
     expect(circle).toHaveAttribute('cy', '12');
     expect(circle).toHaveAttribute('r', '10');
     expect(circle).toHaveAttribute('stroke', 'currentColor');
-    expect(circle).toHaveAttribute('strokeWidth', '4');
+    expect(circle).toHaveAttribute('stroke-width', '4');
   });
 
   it('renders path element with correct attributes', () => {
     render(<Loading />);
-    const path = screen.getByRole('img', { hidden: true }).querySelector('path');
+    const path = document.querySelector('svg')?.querySelector('path');
     expect(path).toHaveAttribute('fill', 'currentColor');
     expect(path).toHaveClass('opacity-75');
   });

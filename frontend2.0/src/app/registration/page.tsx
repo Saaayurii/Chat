@@ -78,7 +78,7 @@ export default function RegistrationPage() {
               Создайте аккаунт для доступа к системе
             </p>
           </div>
-          <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4" suppressHydrationWarning={true}>
             <div className="grid gap-2">
               <Label htmlFor="fullName" className="text-gray-700 dark:text-gray-300">
                 Полное имя
@@ -89,6 +89,7 @@ export default function RegistrationPage() {
                 placeholder="Андрей Иванов"
                 {...register('fullName')}
                 className="bg-white dark:bg-dark-800 border-gray-300 dark:border-dark-700 text-gray-900 dark:text-white"
+                suppressHydrationWarning={true}
               />
               {errors.fullName && (
                 <p className="text-sm text-red-600 dark:text-red-400">
@@ -107,6 +108,7 @@ export default function RegistrationPage() {
                 placeholder="andrey_123"
                 {...register('username')}
                 className="bg-white dark:bg-dark-800 border-gray-300 dark:border-dark-700 text-gray-900 dark:text-white"
+                suppressHydrationWarning={true}
               />
               <p className="text-xs text-gray-600 dark:text-gray-400">
                 Только латинские буквы, цифры, _ и -, минимум 3 символа
@@ -128,6 +130,7 @@ export default function RegistrationPage() {
                 placeholder="user@example.com"
                 {...register('email')}
                 className="bg-white dark:bg-dark-800 border-gray-300 dark:border-dark-700 text-gray-900 dark:text-white"
+                suppressHydrationWarning={true}
               />
               {errors.email && (
                 <p className="text-sm text-red-600 dark:text-red-400">
@@ -147,6 +150,7 @@ export default function RegistrationPage() {
                   placeholder="MyPassword123!"
                   {...register('password')}
                   className="bg-white dark:bg-dark-800 border-gray-300 dark:border-dark-700 text-gray-900 dark:text-white pr-10"
+                  suppressHydrationWarning={true}
                 />
                 <button
                   type="button"
@@ -177,6 +181,7 @@ export default function RegistrationPage() {
                   placeholder="Повторите пароль"
                   {...register('passwordConfirm')}
                   className="bg-white dark:bg-dark-800 border-gray-300 dark:border-dark-700 text-gray-900 dark:text-white pr-10"
+                  suppressHydrationWarning={true}
                 />
                 <button
                   type="button"

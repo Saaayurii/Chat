@@ -88,7 +88,7 @@ export const useSocketIO = (namespace: string, options: UseSocketIOOptions = {})
         const errorMessage = error.message || 'Connection failed';
         
         // Проверяем код ошибки для детализации
-        if (error.message?.includes('403') || error.code === 403) {
+        if (error.message?.includes('403') || (error as any).code === 403) {
           setError('Unauthorized - please check your authentication');
         } else if (error.message?.includes('timeout')) {
           setError('Connection timeout - server may be unavailable');

@@ -6,7 +6,23 @@ import { Search, Send, Paperclip, MoreVertical, Wifi, WifiOff, User, Phone, Mail
 import { useAuthStore } from '@/store/authStore';
 import { chatAPI } from '@/core/api';
 import { useChat } from '@/hooks/useChat';
-import { User as UserType } from '@/types';
+import { User as UserType, UserRole } from '@/types';
+
+interface SenderType {
+  id: string;
+  name: string;
+  type: 'operator' | 'visitor';
+  avatar?: string;
+  unreadCount: number;
+  lastMessageTime: string;
+  isOnline: boolean;
+  conversationId?: string;
+  email: string;
+  phone?: string;
+  role: string;
+  isAuthorized: boolean;
+  source?: string;
+}
 import * as Radix from '@radix-ui/themes';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/UI/Avatar';
 import { Badge } from '@/components/UI';
@@ -23,7 +39,7 @@ export default function ChatPage() {
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [selectedSender, setSelectedSender] = useState<UserType | null>(null);
+  const [selectedSender, setSelectedSender] = useState<SenderType | null>(null);
 
   // WebSocket chat hook
   const {
@@ -155,7 +171,7 @@ export default function ChatPage() {
     const sendersMap = new Map();
     conversations.forEach(conv => {
       if (conv.participants && Array.isArray(conv.participants)) {
-        conv.participants.forEach((participant: UserType) => {
+        conv.participants.forEach((participant: any) => {
           if (participant && participant.id !== user?.id) {
             const senderId = participant.id;
             const existingSender = sendersMap.get(senderId);
@@ -164,16 +180,16 @@ export default function ChatPage() {
               sendersMap.set(senderId, {
                 id: senderId,
                 name: participant.profile?.fullName || participant.profile?.username || 'Неизвестный',
-                type: participant.role === 'OPERATOR' ? 'operator' : 'visitor',
-                avatar: participant.profile?.avatar,
+                type: participant.role === UserRole.OPERATOR ? 'operator' : 'visitor',
+                avatar: participant.profile?.avatarUrl,
                 unreadCount: conv.unreadMessagesCount || 0,
                 lastMessageTime: conv.lastMessage?.timestamp || new Date().toISOString(),
-                isOnline: participant.isOnline || false,
+                isOnline: participant.profile?.isOnline || false,
                 conversationId: conv._id,
-                email: participant.profile?.email || '',
+                email: participant.email || '',
                 phone: participant.profile?.phone || '',
                 role: participant.role || 'VISITOR',
-                isAuthorized: participant.isVerified || false,
+                isAuthorized: participant.isActivated || false,
                 source: 'Веб-сайт' // TODO: получать из данных
               });
             }
@@ -210,9 +226,9 @@ export default function ChatPage() {
   }, [filteredSenders]);
 
   // Обработка выбора отправителя
-  const handleSenderSelect = useCallback((sender: UserType) => {
+  const handleSenderSelect = useCallback((sender: SenderType) => {
     setSelectedSender(sender);
-    setSelectedConversation(sender.conversationId);
+    setSelectedConversation(sender.conversationId || null);
   }, []);
 
   return (
@@ -325,11 +341,11 @@ export default function ChatPage() {
                     {selectedSender && (
                       <>
                         <Avatar className="h-10 w-10">
-                          <AvatarImage src={selectedSender.avatar} />
+                          <AvatarImage src={selectedSender.avatar || undefined} />
                           <AvatarFallback>{selectedSender.name[0]}</AvatarFallback>
                         </Avatar>
                         <div>
-                          <h3 className="font-semibold">{selectedSender.name}</h3>
+                          <h3 className="font-semibold">{selectedSender.name || 'Неизвестный'}</h3>
                           <div className="flex items-center space-x-2">
                             <p className="text-sm text-muted-foreground">
                               {selectedSender.isOnline ? 'В сети' : 'Не в сети'}
@@ -465,11 +481,11 @@ export default function ChatPage() {
               {/* Avatar and basic info */}
               <div className="text-center">
                 <Avatar className="w-20 h-20 mx-auto mb-3">
-                  <AvatarImage src={selectedSender.avatar} />
-                  <AvatarFallback className="text-lg">{selectedSender.name[0]}</AvatarFallback>
+                  <AvatarImage src={selectedSender.avatar || undefined} />
+                  <AvatarFallback className="text-lg">{(selectedSender.name || 'U')[0]}</AvatarFallback>
                 </Avatar>
                 <h4 className="font-semibold text-foreground">
-                  {selectedSender.name}
+                  {selectedSender.name || 'Неизвестный'}
                 </h4>
                 <Badge variant={selectedSender.type === 'operator' ? 'default' : 'secondary'} className="mt-2">
                   {selectedSender.type === 'operator' ? 'Оператор' : 'Посетитель'}
@@ -521,7 +537,7 @@ export default function ChatPage() {
                           <Globe className="h-4 w-4 text-muted-foreground" />
                           <div>
                             <p className="text-sm text-muted-foreground">Источник</p>
-                            <p className="text-sm text-foreground">{selectedSender.source}</p>
+                            <p className="text-sm text-foreground">{selectedSender.source || 'Не указан'}</p>
                           </div>
                         </div>
                       </>

@@ -22,13 +22,16 @@ jest.mock('@/hooks/useApiCall', () => ({
 // Mock fetch
 global.fetch = jest.fn();
 
+// Mock window.alert
+window.alert = jest.fn();
+
 describe('ChatWidget Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // Setup default mock responses
     mockExecute
-      .mockResolvedValueOnce({ success: true, data: { token: 'mock-token' } }) // guest registration
-      .mockResolvedValueOnce({ success: true, data: { id: 'mock-conversation-id' } }); // conversation creation
+      .mockResolvedValue({ success: true, data: { token: 'mock-token' } }) // guest registration
+      .mockResolvedValue({ success: true, data: { id: 'mock-conversation-id' } }); // conversation creation
   });
 
   it('renders chat button when closed', () => {
@@ -314,28 +317,33 @@ describe('ChatWidget Component', () => {
   });
 
   it('handles file upload with size validation', async () => {
+    // TODO: Fix this test - currently having issues with file input simulation
     render(<ChatWidget maxFileSize={1024} />);
     
     const chatButton = screen.getByRole('button');
     fireEvent.click(chatButton);
     
-    // Wait for the component to be ready
+    // Wait for the component to be ready and conversation to be created
     await waitFor(() => {
       expect(screen.getByText('Добро пожаловать! Как могу помочь?')).toBeInTheDocument();
     });
     
     // Find the hidden file input by its type attribute
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    expect(fileInput).toBeInTheDocument();
     
     // Create a file that's too large
     const largeFile = new File(['a'.repeat(2048)], 'large.txt', { type: 'text/plain' });
     
-    Object.defineProperty(fileInput, 'files', {
-      value: [largeFile],
-      writable: false,
-    });
+    // Create a synthetic event object
+    const event = {
+      target: {
+        files: [largeFile]
+      }
+    } as any;
     
-    fireEvent.change(fileInput!);
+    // Directly call the onChange handler
+    fireEvent.change(fileInput, event);
     
     // Should show alert about file size
     await waitFor(() => {

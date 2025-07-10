@@ -179,6 +179,7 @@ export default function RatingsManagement({
           <CreateRatingForm
             operatorId={operatorId}
             loading={loading}
+            open={showForm}
             onSubmit={handleCreateRating}
             onClose={() => setShowForm(false)}
           />

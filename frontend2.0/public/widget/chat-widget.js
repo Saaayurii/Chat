@@ -191,6 +191,150 @@
         bottom: 0;
       }
     }
+    
+    .chat-widget-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    }
+    
+    .chat-widget-modal-content {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 400px;
+      margin: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    .chat-widget-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    
+    .chat-widget-modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #374151;
+    }
+    
+    .chat-widget-modal-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #6b7280;
+      padding: 0;
+    }
+    
+    .chat-widget-modal-close:hover {
+      color: #374151;
+    }
+    
+    .chat-widget-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    .chat-widget-form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    
+    .chat-widget-form-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #374151;
+    }
+    
+    .chat-widget-form-input {
+      padding: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+    }
+    
+    .chat-widget-form-input:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    .chat-widget-form-btn {
+      padding: 12px 24px;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .chat-widget-form-btn:hover {
+      background: #2563eb;
+    }
+    
+    .chat-widget-form-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .chat-widget-form-link {
+      color: #3b82f6;
+      text-decoration: none;
+      font-size: 14px;
+      cursor: pointer;
+      margin-top: 8px;
+      text-align: center;
+    }
+    
+    .chat-widget-form-link:hover {
+      text-decoration: underline;
+    }
+    
+    .chat-widget-form-error {
+      color: #dc2626;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+    
+    .chat-widget-tabs {
+      display: flex;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .chat-widget-tab {
+      flex: 1;
+      padding: 12px;
+      text-align: center;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: #6b7280;
+      border-bottom: 2px solid transparent;
+    }
+    
+    .chat-widget-tab.active {
+      color: #3b82f6;
+      border-bottom-color: #3b82f6;
+    }
   `;
 
   // Добавить стили на страницу
@@ -224,6 +368,8 @@
       this.userToken = null;
       this.isTyping = false;
       this.operatorInfo = null;
+      this.isAuthenticated = false;
+      this.userData = null;
       
       this.init();
     }
@@ -232,6 +378,7 @@
       this.createWidget();
       this.bindEvents();
       this.loadSocketIO();
+      this.checkExistingAuth();
     }
 
     createWidget() {
@@ -317,10 +464,18 @@
       this.sendBtn.textContent = 'Отправить';
       this.sendBtn.onclick = () => this.sendMessage();
       
-      // Действия (оценка, жалоба)
+      // Действия (оценка, жалоба, авторизация)
       const actions = document.createElement('div');
       actions.className = 'chat-widget-actions';
       actions.style.display = 'none';
+      
+      // Кнопка авторизации (показывается только для неавторизованных)
+      const authBtn = document.createElement('button');
+      authBtn.className = 'chat-widget-action-btn';
+      authBtn.innerHTML = '🔐 Войти';
+      authBtn.onclick = () => window.open('/login', '_blank');
+      actions.appendChild(authBtn);
+      this.authBtn = authBtn;
       
       if (this.config.allowRating) {
         const ratingBtn = document.createElement('button');
@@ -328,6 +483,7 @@
         ratingBtn.innerHTML = '⭐ Оценить';
         ratingBtn.onclick = () => this.showRatingModal();
         actions.appendChild(ratingBtn);
+        this.ratingBtn = ratingBtn;
       }
       
       if (this.config.allowComplaint) {
@@ -336,7 +492,17 @@
         complaintBtn.innerHTML = '🚩 Жалоба';
         complaintBtn.onclick = () => this.showComplaintModal();
         actions.appendChild(complaintBtn);
+        this.complaintBtn = complaintBtn;
       }
+
+      // Кнопка профиля (показывается только для авторизованных)
+      const profileBtn = document.createElement('button');
+      profileBtn.className = 'chat-widget-action-btn';
+      profileBtn.innerHTML = '👤 Профиль';
+      profileBtn.onclick = () => this.showProfileModal();
+      profileBtn.style.display = 'none';
+      actions.appendChild(profileBtn);
+      this.profileBtn = profileBtn;
       
       inputArea.appendChild(this.input);
       inputArea.appendChild(this.sendBtn);
@@ -382,6 +548,11 @@
         if (!this.userToken) {
           this.authenticateUser();
         }
+        
+        // Показываем кнопки действий
+        if (this.actionsContainer) {
+          this.actionsContainer.style.display = 'flex';
+        }
       } else {
         this.button.style.display = 'flex';
         this.window.style.display = 'none';
@@ -389,14 +560,41 @@
     }
 
     async authenticateUser() {
+      // Проверяем есть ли уже сохраненный токен гостя
+      const guestToken = this.getCookie('chat_widget_guest_token');
+      if (guestToken) {
+        try {
+          const response = await fetch(`${this.config.apiUrl}/auth/me`, {
+            headers: {
+              'Authorization': `Bearer ${guestToken}`
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            this.userToken = guestToken;
+            this.userData = data.user;
+            await this.createConversation();
+            this.connectSocket();
+            return;
+          }
+        } catch (error) {
+          console.error('Ошибка проверки гостевого токена:', error);
+        }
+      }
+
+      // Создаем нового гостя
       try {
+        const guestId = this.getCookie('chat_widget_guest_id') || `guest_${Date.now()}`;
+        this.setCookie('chat_widget_guest_id', guestId, 365);
+        
         const response = await fetch(`${this.config.apiUrl}/auth/register`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            email: `guest_${Date.now()}@temp.com`,
+            email: `${guestId}@temp.com`,
             password: `temp_${Date.now()}`,
             firstName: 'Посетитель',
             lastName: 'Сайта',
@@ -407,6 +605,8 @@
         const data = await response.json();
         if (data.token) {
           this.userToken = data.token;
+          this.userData = data.user;
+          this.setCookie('chat_widget_guest_token', data.token, 30);
           await this.createConversation();
           this.connectSocket();
         }
@@ -486,7 +686,7 @@
       this.socket.on('operator-assigned', (operator) => {
         this.operatorInfo = operator;
         this.addMessage('system', `Оператор ${operator.name} присоединился к чату`);
-        this.actionsContainer.style.display = 'flex';
+        this.updateAuthUI();
       });
     }
 
@@ -536,6 +736,15 @@
     }
 
     showRatingModal() {
+      // Проверяем авторизацию
+      if (!this.isAuthenticated) {
+        const shouldLogin = confirm('Для оценки работы оператора необходимо войти в систему. Перейти на страницу входа?');
+        if (shouldLogin) {
+          window.open('/login', '_blank');
+        }
+        return;
+      }
+      
       // Простая реализация модального окна оценки
       const rating = prompt('Оцените работу оператора от 1 до 5:');
       if (rating && rating >= 1 && rating <= 5) {
@@ -545,6 +754,15 @@
     }
 
     showComplaintModal() {
+      // Проверяем авторизацию
+      if (!this.isAuthenticated) {
+        const shouldLogin = confirm('Для подачи жалобы необходимо войти в систему. Перейти на страницу входа?');
+        if (shouldLogin) {
+          window.open('/login', '_blank');
+        }
+        return;
+      }
+      
       // Простая реализация модального окна жалобы
       const reason = prompt('Причина жалобы:');
       if (reason) {
@@ -553,6 +771,89 @@
           this.submitComplaint(reason, details);
         }
       }
+    }
+
+
+    showProfileModal() {
+      if (this.profileModal) {
+        this.profileModal.remove();
+      }
+
+      this.profileModal = document.createElement('div');
+      this.profileModal.className = 'chat-widget-modal';
+      
+      this.profileModal.innerHTML = `
+        <div class="chat-widget-modal-content">
+          <div class="chat-widget-modal-header">
+            <div class="chat-widget-modal-title">Профиль</div>
+            <button class="chat-widget-modal-close">×</button>
+          </div>
+          
+          <div class="chat-widget-form">
+            <div class="chat-widget-form-group">
+              <label class="chat-widget-form-label">Имя</label>
+              <div style="padding: 12px; background: #f9fafb; border-radius: 8px; color: #6b7280;">
+                ${this.userData.fullName || this.userData.username}
+              </div>
+            </div>
+            
+            <div class="chat-widget-form-group">
+              <label class="chat-widget-form-label">Email</label>
+              <div style="padding: 12px; background: #f9fafb; border-radius: 8px; color: #6b7280;">
+                ${this.userData.email}
+              </div>
+            </div>
+            
+            <div class="chat-widget-form-group">
+              <label class="chat-widget-form-label">Статус</label>
+              <div style="padding: 12px; background: #f9fafb; border-radius: 8px; color: #6b7280;">
+                ${this.userData.isActivated ? 'Активирован' : 'Не активирован'}
+              </div>
+            </div>
+            
+            <button class="chat-widget-form-btn" style="background: #dc2626;" id="logoutBtn">
+              Выйти
+            </button>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(this.profileModal);
+      
+      // Обработчики событий
+      this.profileModal.querySelector('.chat-widget-modal-close').onclick = () => {
+        this.profileModal.remove();
+      };
+      
+      this.profileModal.onclick = (e) => {
+        if (e.target === this.profileModal) {
+          this.profileModal.remove();
+        }
+      };
+      
+      // Обработчик кнопки выхода
+      this.profileModal.querySelector('#logoutBtn').onclick = () => {
+        this.handleLogout();
+        this.profileModal.remove();
+      };
+    }
+
+    async handleLogout() {
+      if (this.userToken) {
+        try {
+          await fetch(`${this.config.apiUrl}/auth/logout`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${this.userToken}`
+            }
+          });
+        } catch (error) {
+          console.error('Ошибка выхода:', error);
+        }
+      }
+      
+      this.clearAuth();
+      this.addMessage('system', 'Вы вышли из системы');
     }
 
     async submitRating(rating, comment) {
@@ -600,6 +901,134 @@
         }
       } catch (error) {
         console.error('Ошибка отправки жалобы:', error);
+      }
+    }
+
+    // Утилиты для работы с cookies
+    setCookie(name, value, days = 30) {
+      const expires = new Date();
+      expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+      document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Strict`;
+    }
+
+    getCookie(name) {
+      const nameEQ = name + "=";
+      const ca = document.cookie.split(';');
+      for (let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+      }
+      return null;
+    }
+
+    deleteCookie(name) {
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+    }
+
+    // Проверка существующей авторизации
+    checkExistingAuth() {
+      const savedToken = this.getCookie('chat_widget_token');
+      const savedUserData = this.getCookie('chat_widget_user');
+      
+      if (savedToken && savedUserData) {
+        try {
+          this.userToken = savedToken;
+          this.userData = JSON.parse(decodeURIComponent(savedUserData));
+          this.isAuthenticated = this.userData.role !== 'VISITOR';
+          
+          // Проверяем валидность токена
+          this.validateToken();
+        } catch (error) {
+          console.error('Ошибка восстановления авторизации:', error);
+          this.clearAuth();
+        }
+      }
+    }
+
+    // Проверка валидности токена
+    async validateToken() {
+      try {
+        const response = await fetch(`${this.config.apiUrl}/auth/me`, {
+          headers: {
+            'Authorization': `Bearer ${this.userToken}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          this.userData = data.user;
+          this.isAuthenticated = data.user.role !== 'VISITOR';
+          this.updateAuthUI();
+        } else {
+          this.clearAuth();
+        }
+      } catch (error) {
+        console.error('Ошибка проверки токена:', error);
+        this.clearAuth();
+      }
+    }
+
+    // Очистка авторизации
+    clearAuth() {
+      this.userToken = null;
+      this.userData = null;
+      this.isAuthenticated = false;
+      this.deleteCookie('chat_widget_token');
+      this.deleteCookie('chat_widget_user');
+      this.updateAuthUI();
+    }
+
+    // Сохранение авторизации
+    saveAuth(token, userData) {
+      this.userToken = token;
+      this.userData = userData;
+      this.isAuthenticated = userData.role !== 'VISITOR';
+      
+      this.setCookie('chat_widget_token', token);
+      this.setCookie('chat_widget_user', encodeURIComponent(JSON.stringify(userData)));
+      
+      this.updateAuthUI();
+    }
+
+    // Обновление UI в зависимости от статуса авторизации
+    updateAuthUI() {
+      // Обновляем заголовок
+      const headerTitle = this.window.querySelector('.chat-widget-header div');
+      if (headerTitle && this.isAuthenticated) {
+        headerTitle.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center;">
+              👤
+            </div>
+            <div>
+              <div style="font-weight: 600; font-size: 14px;">${this.userData.fullName || this.userData.username}</div>
+              <div style="font-size: 12px; opacity: 0.8;">Авторизован</div>
+            </div>
+          </div>
+        `;
+      }
+      
+      // Показываем/скрываем кнопки действий
+      if (this.actionsContainer) {
+        this.actionsContainer.style.display = 'flex';
+      }
+      
+      // Управляем видимостью кнопок
+      if (this.authBtn) {
+        this.authBtn.style.display = this.isAuthenticated ? 'none' : 'inline-block';
+      }
+      
+      if (this.profileBtn) {
+        this.profileBtn.style.display = this.isAuthenticated ? 'inline-block' : 'none';
+      }
+      
+      if (this.ratingBtn) {
+        this.ratingBtn.style.display = this.operatorInfo ? 'inline-block' : 'none';
+      }
+      
+      if (this.complaintBtn) {
+        this.complaintBtn.style.display = this.operatorInfo ? 'inline-block' : 'none';
       }
     }
   }

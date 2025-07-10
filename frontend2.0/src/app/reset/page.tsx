@@ -132,7 +132,7 @@ export default function ResetPasswordPage() {
             </p>
           </div>
           
-          <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4" suppressHydrationWarning={true}>
             <div className="grid gap-2">
               <Label htmlFor="email" className="text-gray-700 dark:text-gray-300">
                 Email
@@ -143,6 +143,7 @@ export default function ResetPasswordPage() {
                 placeholder="m@example.com"
                 {...register('email')}
                 className="bg-white dark:bg-dark-800 border-gray-300 dark:border-dark-700 text-gray-900 dark:text-white"
+                suppressHydrationWarning={true}
               />
               {errors.email && (
                 <p className="text-sm text-red-600 dark:text-red-400">

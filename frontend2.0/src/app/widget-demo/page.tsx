@@ -95,6 +95,7 @@ const WidgetDemo: React.FC = () => {
                   value={config.apiUrl}
                   onChange={(e) => handleConfigChange('apiUrl', e.target.value)}
                   placeholder="http://localhost:3004"
+                  suppressHydrationWarning={true}
                 />
               </div>
 
@@ -106,6 +107,7 @@ const WidgetDemo: React.FC = () => {
                   value={config.theme}
                   onChange={(e) => handleConfigChange('theme', e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded-md"
+                  suppressHydrationWarning={true}
                 >
                   <option value="light">Светлая</option>
                   <option value="dark">Темная</option>
@@ -120,6 +122,7 @@ const WidgetDemo: React.FC = () => {
                   value={config.position}
                   onChange={(e) => handleConfigChange('position', e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded-md"
+                  suppressHydrationWarning={true}
                 >
                   <option value="bottom-right">Правый нижний угол</option>
                   <option value="bottom-left">Левый нижний угол</option>
@@ -136,11 +139,13 @@ const WidgetDemo: React.FC = () => {
                     value={config.primaryColor}
                     onChange={(e) => handleConfigChange('primaryColor', e.target.value)}
                     className="w-10 h-10 border border-gray-300 rounded"
+                    suppressHydrationWarning={true}
                   />
                   <Input
                     value={config.primaryColor}
                     onChange={(e) => handleConfigChange('primaryColor', e.target.value)}
                     placeholder="#3b82f6"
+                    suppressHydrationWarning={true}
                   />
                 </div>
               </div>
@@ -153,6 +158,7 @@ const WidgetDemo: React.FC = () => {
                   value={config.operatorName}
                   onChange={(e) => handleConfigChange('operatorName', e.target.value)}
                   placeholder="Оператор поддержки"
+                  suppressHydrationWarning={true}
                 />
               </div>
 
@@ -164,6 +170,7 @@ const WidgetDemo: React.FC = () => {
                   value={config.welcomeMessage}
                   onChange={(e) => handleConfigChange('welcomeMessage', e.target.value)}
                   placeholder="Добро пожаловать! Как могу помочь?"
+                  suppressHydrationWarning={true}
                 />
               </div>
 
@@ -175,6 +182,7 @@ const WidgetDemo: React.FC = () => {
                   value={config.placeholder}
                   onChange={(e) => handleConfigChange('placeholder', e.target.value)}
                   placeholder="Введите сообщение..."
+                  suppressHydrationWarning={true}
                 />
               </div>
 
@@ -185,6 +193,7 @@ const WidgetDemo: React.FC = () => {
                     checked={config.allowFileUpload}
                     onChange={(e) => handleConfigChange('allowFileUpload', e.target.checked)}
                     className="mr-2"
+                    suppressHydrationWarning={true}
                   />
                   <label className="text-sm text-gray-700">Разрешить загрузку файлов</label>
                 </div>
@@ -195,6 +204,7 @@ const WidgetDemo: React.FC = () => {
                     checked={config.allowComplaint}
                     onChange={(e) => handleConfigChange('allowComplaint', e.target.checked)}
                     className="mr-2"
+                    suppressHydrationWarning={true}
                   />
                   <label className="text-sm text-gray-700">Разрешить жалобы</label>
                 </div>
@@ -205,6 +215,7 @@ const WidgetDemo: React.FC = () => {
                     checked={config.allowRating}
                     onChange={(e) => handleConfigChange('allowRating', e.target.checked)}
                     className="mr-2"
+                    suppressHydrationWarning={true}
                   />
                   <label className="text-sm text-gray-700">Разрешить оценки</label>
                 </div>

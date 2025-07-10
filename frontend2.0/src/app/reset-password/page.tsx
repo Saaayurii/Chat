@@ -208,7 +208,7 @@ function ResetPasswordContent() {
             </p>
           </div>
           
-          <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4" suppressHydrationWarning={true}>
             <div className="grid gap-2">
               <Label htmlFor="newPassword" className="text-gray-700 dark:text-gray-300">
                 Новый пароль
@@ -219,6 +219,7 @@ function ResetPasswordContent() {
                   type={showPassword ? 'text' : 'password'}
                   {...register('newPassword')}
                   className="bg-white dark:bg-dark-800 border-gray-300 dark:border-dark-700 text-gray-900 dark:text-white pr-10"
+                  suppressHydrationWarning={true}
                 />
                 <button
                   type="button"
@@ -245,6 +246,7 @@ function ResetPasswordContent() {
                   type={showConfirmPassword ? 'text' : 'password'}
                   {...register('confirmPassword')}
                   className="bg-white dark:bg-dark-800 border-gray-300 dark:border-dark-700 text-gray-900 dark:text-white pr-10"
+                  suppressHydrationWarning={true}
                 />
                 <button
                   type="button"

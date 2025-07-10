@@ -89,7 +89,7 @@ export default function LoginPage() {
               Введите ваш email для входа в аккаунт
             </p>
           </div>
-          <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4" suppressHydrationWarning={true}>
             <div className="grid gap-2">
               <Label htmlFor="email" className="text-gray-700 dark:text-gray-300">
                 Email
@@ -100,6 +100,7 @@ export default function LoginPage() {
                 placeholder="m@example.com"
                 {...register('email')}
                 className="bg-white dark:bg-dark-800 border-gray-300 dark:border-dark-700 text-gray-900 dark:text-white"
+                suppressHydrationWarning={true}
               />
               {errors.email && (
                 <p className="text-sm text-red-600 dark:text-red-400">
@@ -125,6 +126,7 @@ export default function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   {...register('password')}
                   className="bg-white dark:bg-dark-800 border-gray-300 dark:border-dark-700 text-gray-900 dark:text-white pr-10"
+                  suppressHydrationWarning={true}
                 />
                 <button
                   type="button"

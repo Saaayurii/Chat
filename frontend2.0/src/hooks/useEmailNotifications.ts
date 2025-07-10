@@ -97,7 +97,7 @@ export const useEmailNotifications = (userRole?: UserRole) => {
       setLoading(true);
       clearMessages();
       
-      await emailAPI.sendWelcomeEmail(data);
+      await emailAPI.sendWelcomeEmail(data.email, data.username);
       setSuccess('Приветственное письмо отправлено');
       setNotificationForms(prev => ({
         ...prev,
@@ -116,7 +116,7 @@ export const useEmailNotifications = (userRole?: UserRole) => {
       setLoading(true);
       clearMessages();
       
-      await emailAPI.sendPasswordResetEmail(data);
+      await emailAPI.sendPasswordResetEmail(data.email, data.resetUrl);
       setSuccess('Письмо для сброса пароля отправлено');
       setNotificationForms(prev => ({
         ...prev,

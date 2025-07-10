@@ -42,11 +42,18 @@ Object.defineProperty(window, 'matchMedia', {
 
 // Mock IntersectionObserver
 global.IntersectionObserver = class IntersectionObserver {
+  root: Element | null = null;
+  rootMargin: string = '0px';
+  thresholds: ReadonlyArray<number> = [0];
+  
   constructor() {}
   disconnect() {}
   observe() {}
   unobserve() {}
-};
+  takeRecords(): IntersectionObserverEntry[] {
+    return [];
+  }
+} as any;
 
 // Mock ResizeObserver
 global.ResizeObserver = class ResizeObserver {
@@ -58,15 +65,35 @@ global.ResizeObserver = class ResizeObserver {
 
 // Mock File and FileReader
 global.File = class File {
+  name: string;
+  size: number;
+  type: string;
+  lastModified: number;
+  webkitRelativePath: string = '';
+  
   constructor(bits: any, name: string, options?: any) {
-    return {
-      name,
-      size: bits.length,
-      type: options?.type || 'text/plain',
-      lastModified: Date.now(),
-    } as any;
+    this.name = name;
+    this.size = bits.length;
+    this.type = options?.type || 'text/plain';
+    this.lastModified = Date.now();
   }
-};
+  
+  arrayBuffer(): Promise<ArrayBuffer> {
+    return Promise.resolve(new ArrayBuffer(0));
+  }
+  
+  slice(): Blob {
+    return new Blob();
+  }
+  
+  stream(): ReadableStream {
+    return new ReadableStream();
+  }
+  
+  text(): Promise<string> {
+    return Promise.resolve('');
+  }
+} as any;
 
 global.FileReader = class FileReader {
   result: any = null;

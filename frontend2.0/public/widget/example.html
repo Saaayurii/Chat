@@ -227,7 +227,7 @@
                         <span class="feature-icon">👤</span>
                         Авторизация посетителей
                     </h3>
-                    <p>Автоматическая регистрация посетителей с временными учетными записями.</p>
+                    <p>Автоматическая регистрация посетителей с cookies-идентификацией и полная авторизация через модальные окна.</p>
                 </div>
                 
                 <div class="feature">
@@ -261,6 +261,22 @@
                     </h3>
                     <p>Полная кастомизация внешнего вида под брендинг вашего сайта.</p>
                 </div>
+                
+                <div class="feature">
+                    <h3>
+                        <span class="feature-icon">🔒</span>
+                        Профиль пользователя
+                    </h3>
+                    <p>Личный кабинет с просмотром профиля и возможностью выхода из системы.</p>
+                </div>
+                
+                <div class="feature">
+                    <h3>
+                        <span class="feature-icon">🍪</span>
+                        Cookies-идентификация
+                    </h3>
+                    <p>Автоматическое сохранение сеанса пользователя между визитами на сайт.</p>
+                </div>
             </div>
         </div>
 
@@ -277,6 +293,9 @@
             <p>Виджет использует следующие API эндпоинты:</p>
             <ul>
                 <li><strong>POST /auth/register</strong> - Регистрация посетителей</li>
+                <li><strong>POST /auth/login</strong> - Авторизация пользователей</li>
+                <li><strong>GET /auth/me</strong> - Проверка токена и получение данных пользователя</li>
+                <li><strong>POST /auth/logout</strong> - Выход из системы</li>
                 <li><strong>POST /chat/conversations</strong> - Создание беседы</li>
                 <li><strong>WebSocket /chat</strong> - Обмен сообщениями</li>
                 <li><strong>POST /ratings</strong> - Отправка оценок</li>

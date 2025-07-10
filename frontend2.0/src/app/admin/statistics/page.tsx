@@ -13,7 +13,8 @@ import {
   User,
   Shield,
   AlertTriangle,
-  Star
+  Star,
+  Activity
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
@@ -35,6 +36,7 @@ import {
   Cell
 } from 'recharts';
 import { Badge } from '@/components/UI';
+import { SearchInput } from '@/components/UI/SearchInput';
 
 // Types for time periods
 type TimePeriod = 'today' | 'yesterday' | 'week' | 'month' | 'custom';
@@ -118,7 +120,7 @@ export default function AdminStatisticsPage() {
     queryFn: async () => {
       const response = await statisticsAPI.getQuestionsStats({
         ...currentDateRange,
-        operatorId
+        operatorId: operatorId || undefined
       });
       return response.data;
     }
@@ -129,7 +131,7 @@ export default function AdminStatisticsPage() {
     queryFn: async () => {
       const response = await statisticsAPI.getRatingsStats({
         ...currentDateRange,
-        operatorId
+        operatorId: operatorId || undefined
       });
       return response.data;
     }
@@ -140,7 +142,7 @@ export default function AdminStatisticsPage() {
     queryFn: async () => {
       const response = await statisticsAPI.getComplaintsStats({
         ...currentDateRange,
-        operatorId
+        operatorId: operatorId || undefined
       });
       return response.data;
     }
@@ -307,7 +309,7 @@ export default function AdminStatisticsPage() {
               <SearchInput
                 placeholder="Поиск оператора..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
                 className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
               />
             </div>

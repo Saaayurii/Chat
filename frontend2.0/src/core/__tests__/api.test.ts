@@ -31,14 +31,10 @@ Object.defineProperty(window, 'localStorage', {
   writable: true,
 });
 
-// Mock window.location
-const mockLocation = {
-  href: '',
-};
-Object.defineProperty(window, 'location', {
-  value: mockLocation,
-  writable: true,
-});
+// Mock window.location  
+const mockLocation = { href: '' };
+delete (window as any).location;
+(window as any).location = mockLocation;
 
 describe('API Functions', () => {
   beforeEach(() => {
@@ -119,7 +115,7 @@ describe('API Functions', () => {
     describe('refreshToken', () => {
       it('has correct refreshToken function structure', () => {
         expect(typeof authAPI.refreshToken).toBe('function');
-        expect(authAPI.refreshToken.length).toBe(1);
+        expect(authAPI.refreshToken.length).toBe(0);
       });
     });
 
@@ -202,7 +198,7 @@ describe('API Functions', () => {
       it('calls deleteUser with user ID', () => {
         const userId = '123';
         
-        expect(() => usersAPI.deleteUser(userId)).not.toThrow();
+        expect(() => usersAPI.deleteUser(userId, 'test reason')).not.toThrow();
       });
     });
   });

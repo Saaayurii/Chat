@@ -9,13 +9,15 @@ interface CreateRatingFormProps {
   onSubmit: (data: CreateRatingData) => Promise<void>;
   operatorId?: string;
   loading: boolean;
+  open: boolean;
 }
 
 export default function CreateRatingForm({ 
   onClose, 
   onSubmit, 
   operatorId,
-  loading 
+  loading,
+  open 
 }: CreateRatingFormProps) {
   const [formData, setFormData] = useState<CreateRatingData>({
     operatorId: operatorId || '',
@@ -49,7 +51,7 @@ export default function CreateRatingForm({
     });
   };
 
-  if (!isOpen) return null;
+  if (!open) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

@@ -339,7 +339,7 @@ export default function QuestionsManagement({
                       {question.operatorId && (
                         <p>Оператор: {
                           typeof question.operatorId === 'object' 
-                            ? question.operatorId.profile?.fullName || question.operatorId.email
+                            ? (question.operatorId as any).profile?.fullName || (question.operatorId as any).email
                             : question.operatorId
                         }</p>
                       )}

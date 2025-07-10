@@ -39,6 +39,7 @@
     "class-validator": "^0.14.1",
     "cookie-parser": "^1.4.7",
     "imask": "^7.6.1",
+    "ioredis": "^5.6.1",
     "mongoose": "^8.13.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
@@ -95,6 +96,8 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
-    "setupFilesAfterEnv": ["<rootDir>/../jest.setup.js"]
+    "setupFilesAfterEnv": [
+      "<rootDir>/../jest.setup.js"
+    ]
   }
 }

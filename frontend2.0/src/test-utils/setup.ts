@@ -108,3 +108,30 @@ Element.prototype.scrollIntoView = jest.fn();
 
 // Mock window.alert
 window.alert = jest.fn();
+
+// Mock window.location
+delete (window as any).location;
+(window as any).location = {
+  href: 'http://localhost:3000',
+  origin: 'http://localhost:3000',
+  protocol: 'http:',
+  host: 'localhost:3000',
+  hostname: 'localhost',
+  port: '3000',
+  pathname: '/',
+  search: '',
+  hash: '',
+  assign: jest.fn(),
+  replace: jest.fn(),
+  reload: jest.fn(),
+  toString: () => 'http://localhost:3000',
+};
+
+// Mock console.error to avoid JSDOM navigation warnings
+const originalError = console.error;
+console.error = (...args: any[]) => {
+  if (typeof args[0] === 'string' && args[0].includes('Not implemented: navigation')) {
+    return;
+  }
+  originalError.call(console, ...args);
+};

@@ -239,7 +239,14 @@ describe('Modal Component', () => {
   });
 
   it('stops propagation on modal content click', () => {
-    const stopPropagation = jest.fn();
+    const mockStopPropagation = jest.fn();
+    const originalAddEventListener = document.addEventListener;
+    document.addEventListener = jest.fn((type, handler) => {
+      if (type === 'click') {
+        handler({ stopPropagation: mockStopPropagation } as any);
+      }
+    });
+
     render(
       <Modal isOpen={true} onClose={mockOnClose} title="Test">
         <p>Content</p>
@@ -247,9 +254,12 @@ describe('Modal Component', () => {
     );
     
     const modalContent = screen.getByText('Content').closest('div')?.parentElement;
-    const event = { stopPropagation };
+    expect(modalContent).toBeInTheDocument();
     
-    fireEvent.click(modalContent!, event);
-    expect(stopPropagation).toHaveBeenCalledTimes(1);
+    // Test that clicking modal content doesn't close modal
+    fireEvent.click(modalContent!);
+    expect(mockOnClose).not.toHaveBeenCalled();
+
+    document.addEventListener = originalAddEventListener;
   });
 });

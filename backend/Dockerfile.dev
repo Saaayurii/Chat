@@ -1,0 +1,34 @@
+# Development Dockerfile
+FROM node:20-alpine
+
+# Установка необходимых пакетов для разработки
+RUN apk add --no-cache \
+    git \
+    && npm install -g nodemon
+
+# Создание пользователя для разработки
+RUN addgroup -g 1001 -S nodejs \
+    && adduser -S nestjs -u 1001
+
+WORKDIR /app
+
+# Копирование package.json и package-lock.json
+COPY package*.json ./
+
+# Установка всех зависимостей (включая dev)
+RUN npm ci && npm cache clean --force
+
+# Копирование исходного кода
+COPY --chown=nestjs:nodejs . .
+
+# Создание директорий
+RUN mkdir -p /app/uploads && chown -R nestjs:nodejs /app/uploads
+
+# Переключение на пользователя
+USER nestjs
+
+# Экспонирование порта
+EXPOSE 3000
+
+# Команда для разработки
+CMD ["npm", "run", "start:dev"]

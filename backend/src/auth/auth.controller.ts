@@ -15,8 +15,9 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-
 import { JwtAuthGuard } from '../common/guards/auth.guard';
+import { RateLimitGuard } from '../common/guards/rate-limit.guard';
+import { RateLimit } from '../common/decorators/rate-limit.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserDocument } from '../database/schemas/user.schema';
 import { RegisterDto } from './dto/register.dto/register.dto';
@@ -30,6 +31,8 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
+  @RateLimit(3, 300) // 3 регистрации за 5 минут
+  @UseGuards(RateLimitGuard)
   @ApiOperation({ summary: 'Регистрация нового пользователя' })
   @ApiResponse({ status: 201, description: 'Пользователь зарегистрирован, отправлено письмо подтверждения' })
   @ApiResponse({ status: 409, description: 'Пользователь с таким email уже существует' })
@@ -39,6 +42,8 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @RateLimit(5, 300) // 5 попыток входа за 5 минут
+  @UseGuards(RateLimitGuard)
   @ApiOperation({ summary: 'Вход в систему' })
   @ApiResponse({ status: 200, description: 'Успешный вход' })
   @ApiResponse({ status: 401, description: 'Неверные учетные данные' })

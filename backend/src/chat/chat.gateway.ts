@@ -6,13 +6,17 @@ import {
   WebSocketServer,
   ConnectedSocket,
   MessageBody,
+  OnGatewayInit,
 } from '@nestjs/websockets';
 import { UseGuards, ValidationPipe, UsePipes, Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
+import { createAdapter } from '@socket.io/redis-adapter';
+import { createClient } from 'redis';
 import { WsAuthGuard } from '../common/guards/ws-auth.guard';
 import { ChatService } from './chat.service';
 import { SendMessageDto } from './dto/send-message.dto/send-message.dto';
 import { JoinRoomDto } from './dto/join-room.dto/join-room.dto';
+import { RedisService } from '../common/services/redis.service';
 
 @WebSocketGateway({
   cors: {
@@ -22,13 +26,45 @@ import { JoinRoomDto } from './dto/join-room.dto/join-room.dto';
   namespace: '/chat',
 })
 @UseGuards(WsAuthGuard)
-export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
   private readonly logger = new Logger(ChatGateway.name);
 
-  constructor(private readonly chatService: ChatService) {}
+  constructor(
+    private readonly chatService: ChatService,
+    private readonly redisService: RedisService,
+  ) {}
+
+  async afterInit(server: Server) {
+    try {
+      // Настройка Redis адаптера для горизонтального масштабирования
+      const redisUrl = process.env.REDIS_URL;
+      
+      if (redisUrl) {
+        const pubClient = createClient({
+          url: redisUrl,
+        });
+        
+        const subClient = pubClient.duplicate();
+        
+        await Promise.all([
+          pubClient.connect(),
+          subClient.connect(),
+        ]);
+
+        server.adapter(createAdapter(pubClient, subClient));
+        
+        this.logger.log('Redis adapter configured for Socket.IO with cloud Redis');
+      } else {
+        this.logger.warn('REDIS_URL not configured, Socket.IO will work in single instance mode');
+      }
+    } catch (error) {
+      this.logger.error('Failed to configure Redis adapter:', error);
+      this.logger.warn('Socket.IO will work in single instance mode');
+    }
+  }
 
   async handleConnection(client: Socket) {
     try {
@@ -42,6 +78,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       
       // Присоединяем пользователя к его персональной комнате
       await client.join(`user:${user.id}`);
+      
+      // Сохраняем сессию в Redis
+      await this.redisService.setSocketSession(client.id, user.id);
+      
+      // Отмечаем пользователя как онлайн
+      await this.redisService.setUserOnline(user.id);
       
       // Уведомляем о подключении
       client.emit('connected', {
@@ -62,6 +104,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const user = client.data.user;
     if (user) {
       this.logger.log(`Client disconnected: ${user.email} (${user.id})`);
+      
+      // Удаляем сессию из Redis
+      await this.redisService.deleteSocketSession(client.id);
+      
+      // Отмечаем пользователя как оффлайн
+      await this.redisService.setUserOffline(user.id);
     }
   }
 
@@ -85,6 +133,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       // Присоединяем к комнате беседы
       await client.join(`conversation:${conversationId}`);
+      
+      // Добавляем пользователя в активный чат в Redis
+      await this.redisService.addUserToChat(conversationId, user.id);
       
       client.emit('room-joined', { conversationId });
       this.logger.log(`User ${user.email} joined conversation ${conversationId}`);
@@ -155,6 +206,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       // Покидаем комнату беседы
       await client.leave(`conversation:${conversationId}`);
+      
+      // Удаляем пользователя из активного чата в Redis
+      await this.redisService.removeUserFromChat(conversationId, user.id);
       
       client.emit('room-left', { conversationId });
       this.logger.log(`User ${user.email} left conversation ${conversationId}`);

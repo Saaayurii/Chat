@@ -6,9 +6,38 @@ import * as cookieParser from 'cookie-parser';
 import { ValidationPipe } from '@nestjs/common';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { Logger } from 'nestjs-pino';
+import helmet from 'helmet'; 
+import * as compression from 'compression';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+  });
+
+  // Используем Pino для логирования
+  app.useLogger(app.get(Logger));
+
+  // Настройка безопасности
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", "ws:", "wss:"],
+        fontSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'"],
+        frameSrc: ["'none'"],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+  }));
+
+  // Компрессия
+  app.use(compression());
 
   // 🍪 Cookie parser с секретом для подписанных cookies
   app.use(cookieParser(process.env.COOKIE_SECRET));
@@ -92,6 +121,10 @@ async function bootstrap() {
   console.log(
     '🗄️ MongoDB:',
     process.env.MONGO_URI ? '✅ Подключено' : '❌ Не настроено',
+  );
+  console.log(
+    '📦 Redis:',
+    process.env.REDIS_URL ? '✅ Подключено' : '❌ Не настроено',
   );
 }
 

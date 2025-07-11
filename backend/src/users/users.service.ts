@@ -4,9 +4,12 @@ import {
   ConflictException,
   BadRequestException,
   ForbiddenException,
+  Inject,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import * as bcrypt from 'bcrypt';
 import { User, UserDocument, UserRole } from '../database/schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto/create-user.dto';
@@ -19,7 +22,10 @@ import { UploadedFile } from './interfaces/uploaded-file.interface';
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
+  constructor(
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {}
 
   async createUser(createUserDto: CreateUserDto): Promise<UserResponse> {
     // Проверяем, существует ли пользователь с таким email
@@ -146,17 +152,30 @@ export class UsersService {
   }
 
   async findOperators(onlineOnly?: boolean) {
+    const cacheKey = `operators:${onlineOnly ? 'online' : 'all'}`;
+    const cachedOperators = await this.cacheManager.get(cacheKey);
+    
+    if (cachedOperators) {
+      return cachedOperators;
+    }
+
     const filter: any = { role: UserRole.OPERATOR, isBlocked: false };
 
     if (onlineOnly) {
       filter['profile.isOnline'] = true;
     }
 
-    return this.userModel
+    const operators = await this.userModel
       .find(filter)
       .select('-passwordHash')
       .sort({ 'operatorStats.averageRating': -1, 'profile.username': 1 })
       .exec();
+
+    // Кэшируем на 2 минуты для онлайн операторов, на 10 минут для всех
+    const ttl = onlineOnly ? 120000 : 600000;
+    await this.cacheManager.set(cacheKey, operators, ttl);
+
+    return operators;
   }
 
   async findUserById(
@@ -165,6 +184,23 @@ export class UsersService {
   ): Promise<UserResponse> {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('Некорректный ID пользователя');
+    }
+
+    // Проверяем кэш
+    const cacheKey = `user:${id}`;
+    const cachedUser = await this.cacheManager.get<UserResponse>(cacheKey);
+    
+    if (cachedUser) {
+      // Проверяем права доступа
+      if (
+        currentUser.role === UserRole.VISITOR &&
+        currentUser._id.toString() !== id
+      ) {
+        throw new ForbiddenException(
+          'Недостаточно прав для просмотра этого профиля',
+        );
+      }
+      return cachedUser;
     }
 
     const user = await this.userModel
@@ -186,7 +222,12 @@ export class UsersService {
       );
     }
 
-    return user.toObject() as UserResponse;
+    const userResponse = user.toObject() as UserResponse;
+    
+    // Кэшируем результат на 5 минут
+    await this.cacheManager.set(cacheKey, userResponse, 300000);
+    
+    return userResponse;
   }
 
   async updateUser(
@@ -232,6 +273,15 @@ export class UsersService {
 
     if (!updatedUser) {
       throw new NotFoundException('Пользователь не найден');
+    }
+
+    // Очищаем кэш пользователя
+    await this.cacheManager.del(`user:${id}`);
+    
+    // Если обновили оператора, очищаем кэш операторов
+    if (updatedUser.role === UserRole.OPERATOR) {
+      await this.cacheManager.del('operators:all');
+      await this.cacheManager.del('operators:online');
     }
 
     return updatedUser.toObject() as UserResponse;

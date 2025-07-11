@@ -41,6 +41,7 @@ import {
 } from '@/components/UI/Select';
 import { Avatar } from '@/components/UI/Avatar';
 import { Badge, Loading } from '@/components/UI';
+import { PresenceIndicator, PresenceAvatar, PresenceStatus } from '@/components/Presence';
 
 interface FormData {
   email: string;
@@ -505,29 +506,24 @@ export default function AdminUsersPage() {
                       <div key={user._id} className="p-6 hover:bg-muted/50 transition-colors">
                         <div className="flex items-start justify-between">
                           <div className="flex items-center space-x-4">
-                            <Avatar className="w-12 h-12">
-                              {user.profile.avatarUrl ? (
-                                <Image
-                                  src={user.profile.avatarUrl}
-                                  alt={user.profile.fullName || user.profile.username}
-                                  className="w-12 h-12 rounded-full object-cover"
-                                  width={48}
-                                  height={48}
-                                />
-                              ) : (
-                                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                                  <span className="text-lg font-medium">
-                                    {(user.profile.fullName || user.profile.username).charAt(0).toUpperCase()}
-                                  </span>
-                                </div>
-                              )}
-                            </Avatar>
+                            <PresenceAvatar
+                              userId={user._id}
+                              userName={user.profile.fullName || user.profile.username}
+                              avatar={user.profile.avatarUrl}
+                              status={PresenceStatus.OFFLINE} // Статус будет получен из API или websocket
+                              size="md"
+                            />
                             
                             <div className="space-y-1">
-                              <div className="flex items-center">
+                              <div className="flex items-center gap-2">
                                 <h3 className="font-medium text-foreground">
                                   {user.profile.fullName || user.profile.username}
                                 </h3>
+                                <PresenceIndicator 
+                                  status={PresenceStatus.OFFLINE} // Статус будет получен из API
+                                  size="sm"
+                                  showText={false}
+                                />
                                 {getStatusBadge(user)}
                               </div>
                               <p className="text-sm text-muted-foreground">{user.email}</p>

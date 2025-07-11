@@ -18,6 +18,8 @@ import { ChatService } from './chat.service';
 import { SendMessageDto } from './dto/send-message.dto/send-message.dto';
 import { JoinRoomDto } from './dto/join-room.dto/join-room.dto';
 import { RedisService } from '../common/services/redis.service';
+import { PresenceService } from '../common/services/presence.service';
+import { PresenceStatus, DeviceType } from '../common/interfaces/presence.interface';
 
 @WebSocketGateway({
   cors: {
@@ -36,6 +38,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   constructor(
     private readonly chatService: ChatService,
     private readonly redisService: RedisService,
+    private readonly presenceService: PresenceService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -86,8 +89,21 @@ async afterInit(server: Server) {
       // Сохраняем сессию в Redis
       await this.redisService.setSocketSession(client.id, user.id);
       
-      // Отмечаем пользователя как онлайн
-      await this.redisService.setUserOnline(user.id);
+      // Определяем тип устройства из User-Agent
+      const userAgent = client.handshake.headers['user-agent'] || '';
+      let deviceType: 'desktop' | 'mobile' | 'tablet' | 'unknown' = 'desktop';
+      if (/Mobile/.test(userAgent)) {
+        deviceType = 'mobile';
+      } else if (/Tablet/.test(userAgent)) {
+        deviceType = 'tablet';
+      }
+
+      // Устанавливаем расширенное присутствие
+      const presence = await this.presenceService.setUserOnline(user.id, {
+        deviceId: client.id,
+        deviceType,
+        activity: 'Подключился к чату'
+      });
       
       // Уведомляем о подключении
       client.emit('connected', {
@@ -97,6 +113,13 @@ async afterInit(server: Server) {
           email: user.email,
           username: user.username,
         },
+        presence
+      });
+
+      // Уведомляем других пользователей о появлении онлайн
+      client.broadcast.emit('presence:user_online', {
+        userId: user.id,
+        presence
       });
     } catch (error) {
       this.logger.error('Connection error:', error);
@@ -112,8 +135,14 @@ async afterInit(server: Server) {
       // Удаляем сессию из Redis
       await this.redisService.deleteSocketSession(client.id);
       
-      // Отмечаем пользователя как оффлайн
-      await this.redisService.setUserOffline(user.id);
+      // Устанавливаем пользователя как оффлайн
+      await this.presenceService.setUserOffline(user.id);
+
+      // Уведомляем других пользователей об уходе
+      client.broadcast.emit('presence:user_offline', {
+        userId: user.id,
+        lastSeen: Date.now()
+      });
     }
   }
 
@@ -219,6 +248,155 @@ async afterInit(server: Server) {
     } catch (error) {
       this.logger.error('Leave room error:', error);
       client.emit('error', { message: 'Failed to leave room' });
+    }
+  }
+
+  // Новые методы для работы с присутствием
+
+  @SubscribeMessage('presence:heartbeat')
+  @UseGuards(WsAuthGuard)
+  async handlePresenceHeartbeat(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { status?: PresenceStatus; activity?: string }
+  ) {
+    try {
+      const user = client.data.user;
+      const { status = PresenceStatus.ONLINE, activity } = data;
+
+      const userAgent = client.handshake.headers['user-agent'] || '';
+      let deviceType: 'desktop' | 'mobile' | 'tablet' | 'unknown' = 'desktop';
+      if (/Mobile/.test(userAgent)) {
+        deviceType = 'mobile';
+      } else if (/Tablet/.test(userAgent)) {
+        deviceType = 'tablet';
+      }
+
+      const presence = await this.presenceService.updateUserPresence(user.id, status, {
+        deviceId: client.id,
+        deviceType,
+        activity
+      });
+
+      // Уведомляем других пользователей об обновлении присутствия
+      client.broadcast.emit('presence:update', {
+        userId: user.id,
+        presence
+      });
+
+    } catch (error) {
+      this.logger.error('Presence heartbeat error:', error);
+      client.emit('error', { message: 'Failed to update presence' });
+    }
+  }
+
+  @SubscribeMessage('presence:request')
+  @UseGuards(WsAuthGuard)
+  async handlePresenceRequest(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { userIds?: string[] }
+  ) {
+    try {
+      const user = client.data.user;
+      
+      if (data.userIds && data.userIds.length > 0) {
+        // Получаем присутствие для конкретных пользователей
+        const presenceData = await this.presenceService.getMultipleUserPresence(data.userIds);
+        client.emit('presence:bulk_update', presenceData);
+      } else {
+        // Получаем список всех онлайн пользователей
+        const onlineUsers = await this.presenceService.getOnlineUsers(100);
+        const presenceMap: { [userId: string]: any } = {};
+        
+        onlineUsers.forEach(onlineUser => {
+          presenceMap[onlineUser.userId] = {
+            status: onlineUser.status,
+            lastSeen: onlineUser.lastSeen
+          };
+        });
+        
+        client.emit('presence:bulk_update', presenceMap);
+      }
+
+    } catch (error) {
+      this.logger.error('Presence request error:', error);
+      client.emit('error', { message: 'Failed to get presence data' });
+    }
+  }
+
+  @SubscribeMessage('presence:set_status')
+  @UseGuards(WsAuthGuard)
+  async handleSetPresenceStatus(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { status: PresenceStatus; activity?: string }
+  ) {
+    try {
+      const user = client.data.user;
+      const { status, activity } = data;
+
+      const userAgent = client.handshake.headers['user-agent'] || '';
+      let deviceType: 'desktop' | 'mobile' | 'tablet' | 'unknown' = 'desktop';
+      if (/Mobile/.test(userAgent)) {
+        deviceType = 'mobile';
+      } else if (/Tablet/.test(userAgent)) {
+        deviceType = 'tablet';
+      }
+
+      const presence = await this.presenceService.updateUserPresence(user.id, status, {
+        deviceId: client.id,
+        deviceType,
+        activity
+      });
+
+      // Уведомляем пользователя об успешном обновлении
+      client.emit('presence:status_updated', { presence });
+
+      // Уведомляем других пользователей об изменении статуса
+      if (status === PresenceStatus.ONLINE) {
+        client.broadcast.emit('presence:user_online', {
+          userId: user.id,
+          presence
+        });
+      } else if (status === PresenceStatus.OFFLINE) {
+        client.broadcast.emit('presence:user_offline', {
+          userId: user.id,
+          lastSeen: presence.lastSeen
+        });
+      } else {
+        client.broadcast.emit('presence:update', {
+          userId: user.id,
+          presence
+        });
+      }
+
+    } catch (error) {
+      this.logger.error('Set presence status error:', error);
+      client.emit('error', { message: 'Failed to set presence status' });
+    }
+  }
+
+  @SubscribeMessage('presence:get_history')
+  @UseGuards(WsAuthGuard)
+  async handleGetPresenceHistory(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { userId?: string; limit?: number }
+  ) {
+    try {
+      const user = client.data.user;
+      const targetUserId = data.userId || user.id;
+      const limit = data.limit || 10;
+
+      // Проверяем права доступа (пользователь может получить только свою историю или если он админ/оператор)
+      if (targetUserId !== user.id && !['admin', 'operator'].includes(user.role)) {
+        client.emit('error', { message: 'Access denied' });
+        return;
+      }
+
+      const history = await this.presenceService.getUserPresenceHistory(targetUserId, limit);
+      client.emit('presence:history', { userId: targetUserId, history });
+
+    } catch (error) {
+      this.logger.error('Get presence history error:', error);
+      client.emit('error', { message: 'Failed to get presence history' });
     }
   }
 }

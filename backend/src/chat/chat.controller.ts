@@ -106,4 +106,20 @@ export class ChatController {
   ) {
     return this.chatService.getConversation(conversationId, req.user._id);
   }
+
+  @Get('conversations/:conversationId/cache-stats')
+  @ApiOperation({ summary: 'Получить статистику кэша сообщений' })
+  @ApiResponse({ status: 200, description: 'Статистика кэша' })
+  async getCacheStats(
+    @Param('conversationId') conversationId: string,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    // Проверяем доступ к беседе
+    const canAccess = await this.chatService.canUserJoinConversation(req.user._id, conversationId);
+    if (!canAccess) {
+      throw new Error('Нет доступа к этой беседе');
+    }
+
+    return this.chatService.getCacheStats(conversationId);
+  }
 }

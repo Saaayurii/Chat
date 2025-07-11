@@ -21,6 +21,9 @@ export interface ChatWidgetProps {
   welcomeMessage?: string;
   operatorName?: string;
   operatorAvatar?: string;
+  showPresence?: boolean;
+  showOnlineUsers?: boolean;
+  allowPresenceChange?: boolean;
   onClose?: () => void;
   onMinimize?: () => void;
 }
@@ -39,6 +42,9 @@ export interface EmbeddableWidgetProps {
     welcomeMessage?: string;
     operatorName?: string;
     operatorAvatar?: string;
+    showPresence?: boolean;
+    showOnlineUsers?: boolean;
+    allowPresenceChange?: boolean;
     autoLoad?: boolean;
     minimizeOnStart?: boolean;
   };
@@ -64,4 +70,9 @@ export interface OperatorInfo {
   avatar?: string;
   isOnline: boolean;
   role: string;
+  presence?: {
+    status: 'online' | 'away' | 'busy' | 'invisible' | 'offline';
+    lastSeen: number;
+    activity?: string;
+  };
 }

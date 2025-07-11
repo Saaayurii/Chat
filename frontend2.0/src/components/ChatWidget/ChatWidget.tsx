@@ -12,6 +12,14 @@ import ComplaintModal from './ComplaintModal';
 import ProfileModal from './ProfileModal';
 import Button from '../UI/Button';
 import { Badge } from '../UI';
+import { 
+  PresenceIndicator, 
+  PresenceAvatar, 
+  PresenceStatusSelector, 
+  OnlineUsersList,
+  usePresence,
+  PresenceStatus 
+} from '../Presence';
 
 interface Message {
   id: string;
@@ -25,22 +33,7 @@ interface Message {
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 
-interface ChatWidgetProps {
-  apiUrl?: string;
-  theme?: 'light' | 'dark';
-  position?: 'bottom-right' | 'bottom-left';
-  primaryColor?: string;
-  allowFileUpload?: boolean;
-  allowComplaint?: boolean;
-  allowRating?: boolean;
-  maxFileSize?: number;
-  placeholder?: string;
-  welcomeMessage?: string;
-  operatorName?: string;
-  operatorAvatar?: string;
-  onClose?: () => void;
-  onMinimize?: () => void;
-}
+import { ChatWidgetProps } from './types';
 
 export const ChatWidget: React.FC<ChatWidgetProps> = ({
   apiUrl = API_URL,
@@ -55,6 +48,9 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   welcomeMessage = 'Добро пожаловать! Как могу помочь?',
   operatorName = 'Оператор',
   operatorAvatar,
+  showPresence = true,
+  showOnlineUsers = false,
+  allowPresenceChange = true,
   onClose,
   onMinimize,
 }) => {
@@ -75,6 +71,15 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Presence system integration
+  const presence = usePresence({
+    apiUrl: apiUrl || '',
+    userId: userData?.id || 'anonymous',
+    token: userToken || undefined,
+    autoConnect: isAuthenticated && showPresence,
+    enableCrossTabSync: true
+  });
   
   const { isConnected: socketConnected, emit: emitSocketEvent, on: onSocketEvent, off: offSocketEvent } = useSocketIO('/chat', {
     onMessage: (message) => {
@@ -657,26 +662,63 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
       <Card className={`${themeClasses[theme]} shadow-2xl border-0 h-full flex flex-col`}>
         <CardHeader className="flex-row items-center justify-between p-4 border-b" style={{ backgroundColor: primaryColor }}>
           <div className="flex items-center space-x-3">
-            <Avatar className="w-8 h-8">
-              {operatorAvatar ? (
-                <img src={operatorAvatar} alt={operatorName} />
-              ) : (
-                <User className="w-4 h-4" />
-              )}
-            </Avatar>
-            <div>
-              <CardTitle className="text-white text-sm">
-                {isAuthenticated && userData ? 
+            {showPresence && presence.currentPresence ? (
+              <PresenceAvatar
+                userId={userData?.id || 'operator'}
+                userName={isAuthenticated && userData ? 
                   (userData.fullName || userData.username) : 
                   (operatorInfo?.name || operatorName)
                 }
-              </CardTitle>
-              <Badge variant="secondary" className="text-xs">
-                {isAuthenticated ? 'Авторизован' : (isConnected ? 'В сети' : 'Не в сети')}
-              </Badge>
+                avatar={operatorAvatar}
+                status={presence.currentPresence.status}
+                size="sm"
+                className="ring-2 ring-white"
+              />
+            ) : (
+              <Avatar className="w-8 h-8 ring-2 ring-white">
+                {operatorAvatar ? (
+                  <img src={operatorAvatar} alt={operatorName} />
+                ) : (
+                  <User className="w-4 h-4" />
+                )}
+              </Avatar>
+            )}
+            <div>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-white text-sm">
+                  {isAuthenticated && userData ? 
+                    (userData.fullName || userData.username) : 
+                    (operatorInfo?.name || operatorName)
+                  }
+                </CardTitle>
+                {showPresence && presence.currentPresence && (
+                  <PresenceIndicator 
+                    status={presence.currentPresence.status} 
+                    size="sm"
+                  />
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs">
+                  {isAuthenticated ? 'Авторизован' : (presence.isConnected ? 'В сети' : 'Не в сети')}
+                </Badge>
+                {showPresence && presence.currentPresence && (
+                  <span className="text-white/80 text-xs">
+                    {presence.currentPresence.activity || 'Активен'}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex items-center space-x-2">
+            {showPresence && allowPresenceChange && presence.currentPresence && (
+              <PresenceStatusSelector
+                currentStatus={presence.currentPresence.status}
+                onStatusChange={(status) => presence.setStatus(status)}
+                disabled={!presence.isConnected}
+                className="mr-2"
+              />
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -699,6 +741,19 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
         </CardHeader>
         
         <CardContent className="flex-1 p-0 flex flex-col">
+          {showOnlineUsers && presence.onlineUsers.length > 0 && (
+            <div className="border-b p-3 bg-gray-50">
+              <OnlineUsersList
+                users={presence.onlineUsers}
+                maxVisible={5}
+                onUserClick={(userId) => {
+                  console.log('User clicked:', userId);
+                }}
+                className="max-h-32 overflow-y-auto"
+              />
+            </div>
+          )}
+          
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((message) => (
               <div

@@ -8,6 +8,7 @@ import { SendMessageDto } from './dto/send-message.dto/send-message.dto';
 import { CreateConversationDto } from './dto/create-conversation.dto/create-conversation.dto';
 import { UploadAttachmentDto } from './dto/upload-attachment.dto';
 import { UploadedFile } from '../common/interfaces/uploaded-file.interface';
+import { MessageCacheService } from '../common/services/message-cache.service';
 
 @Injectable()
 export class ChatService {
@@ -15,6 +16,7 @@ export class ChatService {
     @InjectModel(Conversation.name) private conversationModel: Model<ConversationDocument>,
     @InjectModel(Message.name) private messageModel: Model<MessageDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    private readonly messageCacheService: MessageCacheService,
   ) {}
 
   async canUserJoinConversation(userId: string, conversationId: string): Promise<boolean> {
@@ -75,6 +77,9 @@ export class ChatService {
 
     const savedMessage = await message.save();
 
+    // Добавляем сообщение в кэш Redis
+    await this.messageCacheService.addMessage(savedMessage);
+
     // Обновляем последнее сообщение в беседе
     await this.conversationModel.findByIdAndUpdate(conversationId, {
       $set: {
@@ -103,15 +108,30 @@ export class ChatService {
       throw new ForbiddenException('Нет доступа к этой беседе');
     }
 
-    const messages = await this.messageModel
-      .find({ conversationId })
-      .populate('senderId', 'email profile.username profile.avatarUrl')
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .skip(skip)
-      .exec();
+    // Пробуем получить сообщения из кэша с fallback на БД
+    const result = await this.messageCacheService.getMessages(
+      conversationId,
+      limit,
+      skip,
+      async (convId, lmt, skp) => {
+        // Fallback функция для получения из БД
+        const messages = await this.messageModel
+          .find({ conversationId: convId })
+          .populate('senderId', 'email profile.username profile.avatarUrl')
+          .sort({ createdAt: -1 })
+          .limit(lmt)
+          .skip(skp)
+          .exec();
 
-    return messages.reverse(); // Возвращаем в хронологическом порядке
+        return messages.reverse(); // Возвращаем в хронологическом порядке
+      }
+    );
+
+    return {
+      messages: result.messages,
+      fromCache: result.fromCache,
+      cacheInfo: result.cacheInfo
+    };
   }
 
   async markMessagesAsRead(conversationId: string, userId: string) {

@@ -27,6 +27,7 @@ import * as Radix from '@radix-ui/themes';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/UI/Avatar';
 import { Badge } from '@/components/UI';
 import Button from '@/components/UI/Button';
+import { PresenceIndicator, PresenceAvatar, OnlineUsersList, PresenceStatus, usePresence } from '@/components/Presence';
 
 
 export default function OperatorChatPage() {
@@ -52,6 +53,15 @@ export default function OperatorChatPage() {
     leaveConversation,
     reconnect
   } = useChat();
+
+  // Presence system for operator
+  const presence = usePresence({
+    apiUrl: process.env.NEXT_PUBLIC_API_URL || '',
+    userId: user?.id || 'anonymous',
+    token: user?.token,
+    autoConnect: !!user,
+    enableCrossTabSync: true
+  });
 
   const { data: conversations, isLoading: conversationsLoading } = useQuery({
     queryKey: ['conversations'],
@@ -265,6 +275,23 @@ export default function OperatorChatPage() {
           </div>
         </div>
 
+        {/* Онлайн пользователи */}
+        {presence.onlineUsers.length > 0 && (
+          <div className="border-b border-border">
+            <div className="p-3 bg-muted/30">
+              <OnlineUsersList
+                users={presence.onlineUsers}
+                maxVisible={3}
+                onUserClick={(userId) => {
+                  console.log('Clicked online user:', userId);
+                  // Здесь можно добавить логику для открытия чата с пользователем
+                }}
+                className="text-sm"
+              />
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto">
           {conversationsLoading ? (
             <div className="p-4">
@@ -288,15 +315,13 @@ export default function OperatorChatPage() {
                   }`}
                 >
                   <div className="flex items-center space-x-3">
-                    <div className="relative">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={sender.avatar} />
-                        <AvatarFallback>{sender.name[0]}</AvatarFallback>
-                      </Avatar>
-                      {sender.isOnline && (
-                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
-                      )}
-                    </div>
+                    <PresenceAvatar
+                      userId={sender.id}
+                      userName={sender.name}
+                      avatar={sender.avatar}
+                      status={sender.isOnline ? PresenceStatus.ONLINE : PresenceStatus.OFFLINE}
+                      size="sm"
+                    />
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
@@ -340,16 +365,23 @@ export default function OperatorChatPage() {
                   <div className="flex items-center space-x-3">
                     {selectedSender && (
                       <>
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={selectedSender.avatar || undefined} />
-                          <AvatarFallback>{selectedSender.name[0]}</AvatarFallback>
-                        </Avatar>
+                        <PresenceAvatar
+                          userId={selectedSender.id}
+                          userName={selectedSender.name || 'Неизвестный'}
+                          avatar={selectedSender.avatar}
+                          status={selectedSender.isOnline ? PresenceStatus.ONLINE : PresenceStatus.OFFLINE}
+                          size="sm"
+                        />
                         <div>
-                          <h3 className="font-semibold">{selectedSender.name || 'Неизвестный'}</h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold">{selectedSender.name || 'Неизвестный'}</h3>
+                            <PresenceIndicator 
+                              status={selectedSender.isOnline ? PresenceStatus.ONLINE : PresenceStatus.OFFLINE}
+                              size="sm"
+                              showText={true}
+                            />
+                          </div>
                           <div className="flex items-center space-x-2">
-                            <p className="text-sm text-muted-foreground">
-                              {selectedSender.isOnline ? 'В сети' : 'Не в сети'}
-                            </p>
                             {!isConnected && (
                               <Radix.Badge color="red" variant="soft">
                                 Не подключен
@@ -480,13 +512,26 @@ export default function OperatorChatPage() {
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
               {/* Avatar and basic info */}
               <div className="text-center">
-                <Avatar className="w-20 h-20 mx-auto mb-3">
-                  <AvatarImage src={selectedSender.avatar || undefined} />
-                  <AvatarFallback className="text-lg">{(selectedSender.name || 'U')[0]}</AvatarFallback>
-                </Avatar>
+                <div className="mb-3">
+                  <PresenceAvatar
+                    userId={selectedSender.id}
+                    userName={selectedSender.name || 'Неизвестный'}
+                    avatar={selectedSender.avatar}
+                    status={selectedSender.isOnline ? PresenceStatus.ONLINE : PresenceStatus.OFFLINE}
+                    size="lg"
+                    className="mx-auto"
+                  />
+                </div>
                 <h4 className="font-semibold text-foreground">
                   {selectedSender.name || 'Неизвестный'}
                 </h4>
+                <div className="flex justify-center mt-2">
+                  <PresenceIndicator 
+                    status={selectedSender.isOnline ? PresenceStatus.ONLINE : PresenceStatus.OFFLINE}
+                    size="sm"
+                    showText={true}
+                  />
+                </div>
                 <Badge variant={selectedSender.type === 'operator' ? 'default' : 'secondary'} className="mt-2">
                   {selectedSender.type === 'operator' ? 'Оператор' : 'Посетитель'}
                 </Badge>

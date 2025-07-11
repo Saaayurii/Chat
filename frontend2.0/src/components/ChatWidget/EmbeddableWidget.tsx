@@ -3,25 +3,7 @@
 import React, { useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import ChatWidget from './ChatWidget';
-
-interface EmbeddableWidgetProps {
-  config?: {
-    apiUrl?: string;
-    theme?: 'light' | 'dark';
-    position?: 'bottom-right' | 'bottom-left';
-    primaryColor?: string;
-    allowFileUpload?: boolean;
-    allowComplaint?: boolean;
-    allowRating?: boolean;
-    maxFileSize?: number;
-    placeholder?: string;
-    welcomeMessage?: string;
-    operatorName?: string;
-    operatorAvatar?: string;
-    autoLoad?: boolean;
-    minimizeOnStart?: boolean;
-  };
-}
+import { EmbeddableWidgetProps } from './types';
 
 export const EmbeddableWidget: React.FC<EmbeddableWidgetProps> = ({
   config = {}

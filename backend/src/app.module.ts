@@ -49,6 +49,7 @@ import { redisConfig } from './config/redis.config';
       imports: [ConfigModule],
       useFactory: redisConfig,
       inject: [ConfigService],
+      isGlobal: true,
     }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],

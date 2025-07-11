@@ -8,6 +8,7 @@ import { Queue, QueueSchema } from './schemas/queue.schema';
 import { TransferPermissionGuard } from './guards/transfer-permission.guard';
 import { AuthModule } from '../auth/auth.module';
 import { UsersModule } from '../users/users.module';
+import { CommonModule } from '../common/common.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { UsersModule } from '../users/users.module';
     ]),
     AuthModule,
     UsersModule,
+    CommonModule,
   ],
   controllers: [TransferController],
   providers: [

@@ -6,10 +6,15 @@ import {
   ConnectedSocket,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { UseGuards, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { createAdapter } from '@socket.io/redis-adapter';
+import { createClient } from 'redis';
 import { WsAuthGuard } from '../common/guards/ws-auth.guard';
+import { RedisService } from '../common/services/redis.service';
 
 interface TransferRequestData {
   transferId: string;
@@ -54,10 +59,46 @@ interface QueueAssignedData {
   },
   namespace: '/transfer',
 })
-export class TransferGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class TransferGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
   @WebSocketServer() server: Server;
   private logger: Logger = new Logger('TransferGateway');
   private connectedOperators: Map<string, string> = new Map(); // socketId -> operatorId
+
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly redisService: RedisService
+  ) {}
+
+  // В ChatGateway и TransferGateway
+async afterInit(server: Server) {
+  try {
+    // Проверяем доступность Redis
+    const redisHealthy = await this.redisService.healthCheck();
+    
+    if (!redisHealthy) {
+      this.logger.warn('Redis not available, using memory adapter');
+      return;
+    }
+
+    const redisClient = this.redisService.getClient();
+    if (!redisClient) {
+      this.logger.warn('Redis client not available, using memory adapter');
+      return;
+    }
+
+    // Создаем дублирующий клиент для адаптера
+    const subClient = redisClient.duplicate();
+    await subClient.connect();
+
+    // Устанавливаем адаптер
+    server.adapter(createAdapter(redisClient, subClient));
+    
+    this.logger.log('Redis adapter configured successfully');
+  } catch (error) {
+    this.logger.error(`Redis adapter setup failed: ${error.message}`);
+    this.logger.warn('Using memory adapter - single instance mode');
+  }
+}
 
   handleConnection(client: Socket) {
     this.logger.log(`Client connected: ${client.id}`);

@@ -1,139 +1,269 @@
+// src/common/services/redis.service.ts
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, RedisClientType } from 'redis';
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
-  private client: RedisClientType;
+  private client: RedisClientType | null = null;
   private readonly logger = new Logger(RedisService.name);
 
   constructor(private configService: ConfigService) {}
 
   async onModuleInit() {
-    const redisUrl = this.configService.get<string>('REDIS_URL');
-    
-    if (redisUrl) {
-      this.client = createClient({
-        url: redisUrl,
+    try {
+      const redisUrl = this.configService.get<string>('REDIS_URL');
+      
+      if (redisUrl) {
+        this.logger.log(`Connecting to Redis Cloud: ${redisUrl.replace(/\/\/.*@/, '//***@')}`);
+        
+        this.client = createClient({
+          url: redisUrl,
+          socket: {
+            connectTimeout: 10000, // 10 секунд
+          },
+          pingInterval: 30000,
+        });
+      } else {
+        // Fallback для локального Redis
+        this.logger.log('Using local Redis configuration');
+        this.client = createClient({
+          socket: {
+            host: this.configService.get<string>('REDIS_HOST', 'localhost'),
+            port: this.configService.get<number>('REDIS_PORT', 6379),
+            connectTimeout: 5000,
+          },
+          password: this.configService.get<string>('REDIS_PASSWORD'),
+          database: this.configService.get<number>('REDIS_DB', 0),
+        });
+      }
+
+      this.client.on('error', (error) => {
+        this.logger.error('Redis connection error:', error.message);
       });
-    } else {
-      // Fallback для локального Redis
-      this.client = createClient({
-        socket: {
-          host: this.configService.get<string>('REDIS_HOST', 'localhost'),
-          port: this.configService.get<number>('REDIS_PORT', 6379),
-        },
-        password: this.configService.get<string>('REDIS_PASSWORD'),
-        database: this.configService.get<number>('REDIS_DB', 0),
+
+      this.client.on('connect', () => {
+        this.logger.log('Connected to Redis');
       });
+
+      this.client.on('ready', () => {
+        this.logger.log('Redis client ready');
+      });
+
+      this.client.on('reconnecting', () => {
+        this.logger.warn('Redis reconnecting...');
+      });
+
+      this.client.on('end', () => {
+        this.logger.warn('Redis connection ended');
+      });
+
+      // Подключаемся к Redis
+      await this.client.connect();
+      
+      // Тестируем соединение
+      await this.client.ping();
+      this.logger.log('Redis ping successful');
+      
+    } catch (error) {
+      this.logger.error(`Failed to connect to Redis: ${error.message}`);
+      // Не выбрасываем ошибку, позволяем приложению работать
+      this.client = null;
     }
-
-    this.client.on('error', (error) => {
-      this.logger.error('Redis connection error:', error);
-    });
-
-    this.client.on('connect', () => {
-      this.logger.log('Connected to Redis');
-    });
-
-    this.client.on('ready', () => {
-      this.logger.log('Redis client ready');
-    });
-
-    await this.client.connect();
   }
 
   async onModuleDestroy() {
     if (this.client) {
-      await this.client.disconnect();
+      try {
+        await this.client.disconnect();
+        this.logger.log('Redis client disconnected');
+      } catch (error) {
+        this.logger.error('Error disconnecting Redis:', error.message);
+      }
     }
   }
 
-  // Методы для работы с онлайн статусом пользователей
+  // Проверка подключения перед операциями
+  private async ensureConnection(): Promise<RedisClientType> {
+    if (!this.client) {
+      throw new Error('Redis client not initialized');
+    }
+    
+    if (!this.client.isReady) {
+      this.logger.warn('Redis not ready, attempting to reconnect...');
+      await this.client.connect();
+    }
+    
+    return this.client;
+  }
+
+  // Обновленные методы с проверкой подключения
   async setUserOnline(userId: string, ttl: number = 300): Promise<void> {
-    await this.client.setEx(`user:online:${userId}`, ttl, 'true');
+    try {
+      const client = await this.ensureConnection();
+      await client.setEx(`user:online:${userId}`, ttl, 'true');
+    } catch (error) {
+      this.logger.error('Error setting user online:', error.message);
+    }
   }
 
   async setUserOffline(userId: string): Promise<void> {
-    await this.client.del(`user:online:${userId}`);
+    try {
+      const client = await this.ensureConnection();
+      await client.del(`user:online:${userId}`);
+    } catch (error) {
+      this.logger.error('Error setting user offline:', error.message);
+    }
   }
 
   async isUserOnline(userId: string): Promise<boolean> {
-    const result = await this.client.get(`user:online:${userId}`);
-    return result === 'true';
+    try {
+      const client = await this.ensureConnection();
+      const result = await client.get(`user:online:${userId}`);
+      return result === 'true';
+    } catch (error) {
+      this.logger.error('Error checking user online status:', error.message);
+      return false;
+    }
   }
 
   async getOnlineUsers(): Promise<string[]> {
-    const keys = await this.client.keys('user:online:*');
-    return keys.map(key => key.replace('user:online:', ''));
+    try {
+      const client = await this.ensureConnection();
+      const keys = await client.keys('user:online:*');
+      return keys.map(key => key.replace('user:online:', ''));
+    } catch (error) {
+      this.logger.error('Error getting online users:', error.message);
+      return [];
+    }
   }
 
-  // Методы для работы с сессиями WebSocket
+  // Остальные методы аналогично обновите...
   async setSocketSession(socketId: string, userId: string, ttl: number = 7200): Promise<void> {
-    await this.client.setEx(`socket:${socketId}`, ttl, userId);
+    try {
+      const client = await this.ensureConnection();
+      await client.setEx(`socket:${socketId}`, ttl, userId);
+    } catch (error) {
+      this.logger.error('Error setting socket session:', error.message);
+    }
   }
 
   async getSocketSession(socketId: string): Promise<string | null> {
-    return await this.client.get(`socket:${socketId}`);
+    try {
+      const client = await this.ensureConnection();
+      return await client.get(`socket:${socketId}`);
+    } catch (error) {
+      this.logger.error('Error getting socket session:', error.message);
+      return null;
+    }
   }
 
   async deleteSocketSession(socketId: string): Promise<void> {
-    await this.client.del(`socket:${socketId}`);
+    try {
+      const client = await this.ensureConnection();
+      await client.del(`socket:${socketId}`);
+    } catch (error) {
+      this.logger.error('Error deleting socket session:', error.message);
+    }
   }
 
   // Методы для работы с активными чатами
   async addUserToChat(chatId: string, userId: string): Promise<void> {
-    await this.client.sAdd(`chat:${chatId}:users`, userId);
+    try {
+      const client = await this.ensureConnection();
+      await client.sAdd(`chat:${chatId}:users`, userId);
+    } catch (error) {
+      this.logger.error('Error adding user to chat:', error.message);
+    }
   }
 
   async removeUserFromChat(chatId: string, userId: string): Promise<void> {
-    await this.client.sRem(`chat:${chatId}:users`, userId);
+    try {
+      const client = await this.ensureConnection();
+      await client.sRem(`chat:${chatId}:users`, userId);
+    } catch (error) {
+      this.logger.error('Error removing user from chat:', error.message);
+    }
   }
 
   async getChatUsers(chatId: string): Promise<string[]> {
-    return await this.client.sMembers(`chat:${chatId}:users`);
+    try {
+      const client = await this.ensureConnection();
+      return await client.sMembers(`chat:${chatId}:users`);
+    } catch (error) {
+      this.logger.error('Error getting chat users:', error.message);
+      return [];
+    }
   }
 
   async isChatActive(chatId: string): Promise<boolean> {
-    const userCount = await this.client.sCard(`chat:${chatId}:users`);
-    return userCount > 0;
-  }
-
-  // Методы для pub/sub уведомлений
-  async publishNotification(channel: string, message: any): Promise<void> {
-    await this.client.publish(channel, JSON.stringify(message));
-  }
-
-  async subscribeToChannel(channel: string, callback: (message: any) => void): Promise<void> {
-    const subscriber = this.client.duplicate();
-    await subscriber.connect();
-    
-    await subscriber.subscribe(channel, (message) => {
-      try {
-        const parsedMessage = JSON.parse(message);
-        callback(parsedMessage);
-      } catch (error) {
-        this.logger.error('Error parsing message:', error);
-      }
-    });
-  }
-
-  // Rate limiting
-  async checkRateLimit(key: string, limit: number, window: number): Promise<{ allowed: boolean; remaining: number }> {
-    const current = await this.client.incr(key);
-    
-    if (current === 1) {
-      await this.client.expire(key, window);
+    try {
+      const client = await this.ensureConnection();
+      const userCount = await client.sCard(`chat:${chatId}:users`);
+      return userCount > 0;
+    } catch (error) {
+      this.logger.error('Error checking chat activity:', error.message);
+      return false;
     }
-    
-    return {
-      allowed: current <= limit,
-      remaining: Math.max(0, limit - current),
-    };
   }
 
-  // Геттер для прямого доступа к клиенту (если нужно)
-  getClient(): RedisClientType {
+  // Геттер для прямого доступа к клиенту
+  getClient(): RedisClientType | null {
     return this.client;
+  }
+
+  // Проверка здоровья Redis
+  async healthCheck(): Promise<boolean> {
+    try {
+      if (!this.client || !this.client.isReady) {
+        return false;
+      }
+      await this.client.ping();
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  // Метод для проверки лимитов запросов
+  async checkRateLimit(key: string, limit: number, window: number): Promise<{ allowed: boolean; remaining: number; resetTime: number }> {
+    try {
+      const client = await this.ensureConnection();
+      
+      const now = Date.now();
+      const windowStart = now - window * 1000;
+      
+      // Используем sorted set для хранения timestamps запросов
+      const pipe = client.multi();
+      
+      // Удаляем старые записи
+      pipe.zRemRangeByScore(key, '-inf', windowStart);
+      
+      // Добавляем текущий запрос
+      pipe.zAdd(key, { score: now, value: now.toString() });
+      
+      // Подсчитываем количество запросов в окне
+      pipe.zCard(key);
+      
+      // Устанавливаем TTL для ключа
+      pipe.expire(key, window);
+      
+      const results = await pipe.exec();
+      
+      if (!results || results.length < 3) {
+        return { allowed: false, remaining: 0, resetTime: now + window * 1000 };
+      }
+      
+      const count = Number(results[2]) || 0;
+      const allowed = count <= limit;
+      const remaining = Math.max(0, limit - count);
+      const resetTime = now + window * 1000;
+      
+      return { allowed, remaining, resetTime };
+    } catch (error) {
+      this.logger.error('Error checking rate limit:', error.message);
+      // В случае ошибки разрешаем запрос
+      return { allowed: true, remaining: limit, resetTime: Date.now() + window * 1000 };
+    }
   }
 }

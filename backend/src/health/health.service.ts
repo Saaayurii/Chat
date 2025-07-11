@@ -50,6 +50,9 @@ export class HealthService {
   private async redisHealthCheck(): Promise<any> {
     try {
       const client = this.redisService.getClient();
+      if (!client) {
+        throw new Error('Redis client is not available');
+      }
       const result = await client.ping();
       
       if (result === 'PONG') {

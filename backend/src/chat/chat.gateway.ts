@@ -9,6 +9,7 @@ import {
   OnGatewayInit,
 } from '@nestjs/websockets';
 import { UseGuards, ValidationPipe, UsePipes, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Server, Socket } from 'socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { createClient } from 'redis';
@@ -35,36 +36,39 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   constructor(
     private readonly chatService: ChatService,
     private readonly redisService: RedisService,
+    private readonly configService: ConfigService,
   ) {}
 
-  async afterInit(server: Server) {
-    try {
-      // Настройка Redis адаптера для горизонтального масштабирования
-      const redisUrl = process.env.REDIS_URL;
-      
-      if (redisUrl) {
-        const pubClient = createClient({
-          url: redisUrl,
-        });
-        
-        const subClient = pubClient.duplicate();
-        
-        await Promise.all([
-          pubClient.connect(),
-          subClient.connect(),
-        ]);
-
-        server.adapter(createAdapter(pubClient, subClient));
-        
-        this.logger.log('Redis adapter configured for Socket.IO with cloud Redis');
-      } else {
-        this.logger.warn('REDIS_URL not configured, Socket.IO will work in single instance mode');
-      }
-    } catch (error) {
-      this.logger.error('Failed to configure Redis adapter:', error);
-      this.logger.warn('Socket.IO will work in single instance mode');
+  // В ChatGateway и TransferGateway
+async afterInit(server: Server) {
+  try {
+    // Проверяем доступность Redis
+    const redisHealthy = await this.redisService.healthCheck();
+    
+    if (!redisHealthy) {
+      this.logger.warn('Redis not available, using memory adapter');
+      return;
     }
+
+    const redisClient = this.redisService.getClient();
+    if (!redisClient) {
+      this.logger.warn('Redis client not available, using memory adapter');
+      return;
+    }
+
+    // Создаем дублирующий клиент для адаптера
+    const subClient = redisClient.duplicate();
+    await subClient.connect();
+
+    // Устанавливаем адаптер
+    server.adapter(createAdapter(redisClient, subClient));
+    
+    this.logger.log('Redis adapter configured successfully');
+  } catch (error) {
+    this.logger.error(`Redis adapter setup failed: ${error.message}`);
+    this.logger.warn('Using memory adapter - single instance mode');
   }
+}
 
   async handleConnection(client: Socket) {
     try {

@@ -3,6 +3,13 @@ import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/commo
 import { ConfigService } from '@nestjs/config';
 import { createClient, RedisClientType } from 'redis';
 import { PresenceData, PresenceStatus, DeviceTypeString, OnlineUser } from '../interfaces/presence.interface';
+import { 
+  ensureNumber, 
+  ensureString, 
+  ensureStringArray, 
+  safeParseRedisResult,
+  RedisZSetMember 
+} from '../interfaces/redis-types.interface';
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
@@ -171,7 +178,14 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       userIds.forEach((userId, index) => {
         const presenceData = results?.[index];
         if (presenceData && typeof presenceData === 'string') {
-          presenceMap[userId] = JSON.parse(presenceData);
+          try {
+            presenceMap[userId] = JSON.parse(presenceData);
+          } catch (error) {
+            presenceMap[userId] = {
+              status: PresenceStatus.OFFLINE,
+              lastSeen: Date.now() - 300000
+            };
+          }
         } else {
           presenceMap[userId] = {
             status: PresenceStatus.OFFLINE,
@@ -378,7 +392,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         return { allowed: false, remaining: 0, resetTime: now + window * 1000 };
       }
       
-      const count = Number(results[2]) || 0;
+      // Результат zCard находится в третьем элементе результата
+      const countResult = results[2];
+      const count = typeof countResult === 'number' ? countResult : Number(countResult) || 0;
       const allowed = count <= limit;
       const remaining = Math.max(0, limit - count);
       const resetTime = now + window * 1000;
@@ -388,6 +404,533 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       this.logger.error('Error checking rate limit:', error.message);
       // В случае ошибки разрешаем запрос
       return { allowed: true, remaining: limit, resetTime: Date.now() + window * 1000 };
+    }
+  }
+
+  // ============================================
+  // МЕТОДЫ ДЛЯ PUB/SUB УВЕДОМЛЕНИЙ
+  // ============================================
+
+  /**
+   * Публикует уведомление в канал
+   */
+  async publishNotification(channel: string, data: any): Promise<void> {
+    try {
+      const client = await this.ensureConnection();
+      await client.publish(channel, JSON.stringify({
+        ...data,
+        timestamp: Date.now(),
+        id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      }));
+      
+      this.logger.debug(`Notification published to channel ${channel}`);
+    } catch (error) {
+      this.logger.error('Error publishing notification:', error.message);
+    }
+  }
+
+  /**
+   * Подписывается на канал уведомлений
+   */
+  async subscribe(channel: string, callback: (message: any) => void): Promise<void> {
+    try {
+      // Создаем отдельный клиент для подписки
+      const subscriber = this.client?.duplicate();
+      if (!subscriber) {
+        throw new Error('Redis client not available');
+      }
+
+      if (!subscriber.isOpen) {
+        await subscriber.connect();
+      }
+      
+      // Настраиваем обработчик сообщений
+      await subscriber.subscribe(channel, (message: string, channelName: string) => {
+        if (channelName === channel) {
+          try {
+            const parsedMessage = JSON.parse(message);
+            callback(parsedMessage);
+          } catch (error) {
+            this.logger.error('Error parsing subscription message:', error.message);
+          }
+        }
+      });
+      
+      this.logger.log(`Subscribed to channel ${channel}`);
+    } catch (error) {
+      this.logger.error('Error subscribing to channel:', error.message);
+    }
+  }
+
+  /**
+   * Публикует уведомление о новом сообщении
+   */
+  async publishMessageNotification(conversationId: string, message: any, recipientIds: string[]): Promise<void> {
+    try {
+      const notification = {
+        type: 'new_message',
+        conversationId,
+        message: {
+          id: message._id || message.id,
+          content: message.content || message.text,
+          senderId: message.senderId,
+          timestamp: message.timestamp || message.createdAt
+        },
+        recipientIds
+      };
+
+      // Публикуем в общий канал сообщений
+      await this.publishNotification('chat:messages', notification);
+
+      // Публикуем в персональные каналы пользователей
+      for (const userId of recipientIds) {
+        await this.publishNotification(`user:${userId}:notifications`, notification);
+      }
+    } catch (error) {
+      this.logger.error('Error publishing message notification:', error.message);
+    }
+  }
+
+  /**
+   * Публикует уведомление о статусе набора
+   */
+  async publishTypingNotification(conversationId: string, userId: string, isTyping: boolean): Promise<void> {
+    try {
+      const notification = {
+        type: 'typing',
+        conversationId,
+        userId,
+        isTyping,
+        timestamp: Date.now()
+      };
+
+      await this.publishNotification(`chat:${conversationId}:typing`, notification);
+    } catch (error) {
+      this.logger.error('Error publishing typing notification:', error.message);
+    }
+  }
+
+  /**
+   * Публикует уведомление об изменении статуса присутствия
+   */
+  async publishPresenceNotification(userId: string, status: PresenceStatus, additionalData?: any): Promise<void> {
+    try {
+      const notification = {
+        type: 'presence_update',
+        userId,
+        status,
+        lastSeen: Date.now(),
+        ...additionalData
+      };
+
+      await this.publishNotification('presence:updates', notification);
+      await this.publishNotification(`user:${userId}:presence`, notification);
+    } catch (error) {
+      this.logger.error('Error publishing presence notification:', error.message);
+    }
+  }
+
+  // ============================================
+  // МЕТОДЫ ДЛЯ КЭШИРОВАНИЯ ПОЛЬЗОВАТЕЛЬСКИХ ДАННЫХ
+  // ============================================
+
+  /**
+   * Кэширует данные пользователя
+   */
+  async cacheUser(userId: string, userData: any, ttl: number = 3600): Promise<void> {
+    try {
+      const client = await this.ensureConnection();
+      const userKey = `user:${userId}:profile`;
+      
+      const cachedData = {
+        ...userData,
+        cachedAt: Date.now(),
+        _id: userData._id || userData.id
+      };
+
+      await client.setEx(userKey, ttl, JSON.stringify(cachedData));
+      this.logger.debug(`User data cached for user ${userId}`);
+    } catch (error) {
+      this.logger.error('Error caching user data:', error.message);
+    }
+  }
+
+  /**
+   * Получает кэшированные данные пользователя
+   */
+  async getCachedUser(userId: string): Promise<any | null> {
+    try {
+      const client = await this.ensureConnection();
+      const userKey = `user:${userId}:profile`;
+      const userData = await client.get(userKey);
+      
+      return userData ? JSON.parse(userData) : null;
+    } catch (error) {
+      this.logger.error('Error getting cached user:', error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Кэширует сессию пользователя
+   */
+  async cacheUserSession(sessionId: string, sessionData: any, ttl: number = 7200): Promise<void> {
+    try {
+      const client = await this.ensureConnection();
+      const sessionKey = `session:${sessionId}`;
+      
+      const cachedSession = {
+        ...sessionData,
+        createdAt: Date.now(),
+        expiresAt: Date.now() + (ttl * 1000)
+      };
+
+      await client.setEx(sessionKey, ttl, JSON.stringify(cachedSession));
+      this.logger.debug(`Session cached for session ${sessionId}`);
+    } catch (error) {
+      this.logger.error('Error caching session:', error.message);
+    }
+  }
+
+  /**
+   * Получает кэшированную сессию
+   */
+  async getCachedSession(sessionId: string): Promise<any | null> {
+    try {
+      const client = await this.ensureConnection();
+      const sessionKey = `session:${sessionId}`;
+      const sessionData = await client.get(sessionKey);
+      
+      return sessionData ? JSON.parse(sessionData) : null;
+    } catch (error) {
+      this.logger.error('Error getting cached session:', error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Удаляет сессию из кэша
+   */
+  async deleteCachedSession(sessionId: string): Promise<void> {
+    try {
+      const client = await this.ensureConnection();
+      const sessionKey = `session:${sessionId}`;
+      await client.del(sessionKey);
+      this.logger.debug(`Session deleted for session ${sessionId}`);
+    } catch (error) {
+      this.logger.error('Error deleting session:', error.message);
+    }
+  }
+
+  // ============================================
+  // СИСТЕМА ОЧЕРЕДЕЙ ДЛЯ ОБРАБОТКИ СООБЩЕНИЙ
+  // ============================================
+
+  /**
+   * Добавляет задачу в очередь
+   */
+  async enqueueTask(queueName: string, taskData: any, priority: number = 0): Promise<void> {
+    try {
+      const client = await this.ensureConnection();
+      const task = {
+        id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        data: taskData,
+        createdAt: Date.now(),
+        priority,
+        attempts: 0,
+        maxAttempts: 3
+      };
+
+      // Используем sorted set для приоритетной очереди
+      await client.zAdd(`queue:${queueName}`, { score: priority, value: JSON.stringify(task) });
+      this.logger.debug(`Task enqueued to ${queueName} with priority ${priority}`);
+    } catch (error) {
+      this.logger.error('Error enqueuing task:', error.message);
+    }
+  }
+
+  /**
+   * Получает задачу из очереди
+   */
+  async dequeueTask(queueName: string): Promise<any | null> {
+    try {
+      const client = await this.ensureConnection();
+      
+      // Получаем задачу с наивысшим приоритетом
+      const result = await client.zPopMax(`queue:${queueName}`);
+      
+      if (result && Array.isArray(result) && result.length > 0) {
+        // zPopMax возвращает массив объектов {value, score}
+        const task = result[0];
+        return JSON.parse(task.value);
+      } else if (result && typeof result === 'object' && 'value' in result) {
+        // Если возвращается один объект
+        return JSON.parse(result.value);
+      }
+      
+      return null;
+    } catch (error) {
+      this.logger.error('Error dequeuing task:', error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Получает размер очереди
+   */
+  async getQueueSize(queueName: string): Promise<number> {
+    try {
+      const client = await this.ensureConnection();
+      return await client.zCard(`queue:${queueName}`);
+    } catch (error) {
+      this.logger.error('Error getting queue size:', error.message);
+      return 0;
+    }
+  }
+
+  /**
+   * Обрабатывает неудачную задачу (retry mechanism)
+   */
+  async requeueFailedTask(queueName: string, task: any): Promise<void> {
+    try {
+      if (task.attempts < task.maxAttempts) {
+        task.attempts++;
+        task.retriedAt = Date.now();
+        // Снижаем приоритет для повторных попыток
+        const newPriority = Math.max(0, task.priority - task.attempts);
+        await this.enqueueTask(queueName, task, newPriority);
+      } else {
+        // Перемещаем в очередь неудачных задач
+        await this.enqueueTask(`${queueName}:failed`, task, 0);
+        this.logger.warn(`Task ${task.id} moved to failed queue after ${task.attempts} attempts`);
+      }
+    } catch (error) {
+      this.logger.error('Error requeuing failed task:', error.message);
+    }
+  }
+
+  // ============================================
+  // АНАЛИТИКА И МЕТРИКИ ЧАТА
+  // ============================================
+
+  /**
+   * Увеличивает счетчик метрики
+   */
+  async incrementMetric(metricName: string, value: number = 1): Promise<void> {
+    try {
+      const client = await this.ensureConnection();
+      const today = new Date().toISOString().split('T')[0];
+      const hour = new Date().getHours();
+      
+      // Дневная метрика
+      await client.incrBy(`metrics:${metricName}:${today}`, value);
+      
+      // Почасовая метрика
+      await client.incrBy(`metrics:${metricName}:${today}:${hour}`, value);
+      
+      // Общая метрика
+      await client.incrBy(`metrics:${metricName}:total`, value);
+      
+      // Устанавливаем TTL для дневных метрик (30 дней)
+      await client.expire(`metrics:${metricName}:${today}`, 30 * 24 * 60 * 60);
+      await client.expire(`metrics:${metricName}:${today}:${hour}`, 30 * 24 * 60 * 60);
+    } catch (error) {
+      this.logger.error('Error incrementing metric:', error.message);
+    }
+  }
+
+  /**
+   * Получает значение метрики
+   */
+  async getMetric(metricName: string, date?: string): Promise<number> {
+    try {
+      const client = await this.ensureConnection();
+      const targetDate = date || new Date().toISOString().split('T')[0];
+      const value = await client.get(`metrics:${metricName}:${targetDate}`);
+      return parseInt(value || '0', 10);
+    } catch (error) {
+      this.logger.error('Error getting metric:', error.message);
+      return 0;
+    }
+  }
+
+  /**
+   * Получает метрики за период
+   */
+  async getMetricsRange(metricName: string, startDate: string, endDate: string): Promise<{[date: string]: number}> {
+    try {
+      const client = await this.ensureConnection();
+      const pipeline = client.multi();
+      
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const dates: string[] = [];
+      
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const dateStr = d.toISOString().split('T')[0];
+        dates.push(dateStr);
+        pipeline.get(`metrics:${metricName}:${dateStr}`);
+      }
+      
+      const results = await pipeline.exec();
+      const metrics: {[date: string]: number} = {};
+      
+      dates.forEach((date, index) => {
+        const value = results?.[index];
+        const stringValue = typeof value === 'string' ? value : String(value || '0');
+        metrics[date] = parseInt(stringValue, 10);
+      });
+      
+      return metrics;
+    } catch (error) {
+      this.logger.error('Error getting metrics range:', error.message);
+      return {};
+    }
+  }
+
+  /**
+   * Записывает пользовательскую активность
+   */
+  async recordUserActivity(userId: string, activity: string, metadata?: any): Promise<void> {
+    try {
+      const client = await this.ensureConnection();
+      const activityData = {
+        userId,
+        activity,
+        timestamp: Date.now(),
+        metadata: metadata || {}
+      };
+      
+      // Добавляем в список активности пользователя
+      await client.lPush(`activity:${userId}`, JSON.stringify(activityData));
+      
+      // Ограничиваем историю активности
+      await client.lTrim(`activity:${userId}`, 0, 999);
+      
+      // Увеличиваем счетчик активности
+      await this.incrementMetric(`activity:${activity}`);
+      await this.incrementMetric(`user_activity:${userId}`);
+    } catch (error) {
+      this.logger.error('Error recording user activity:', error.message);
+    }
+  }
+
+  /**
+   * Получает активность пользователя
+   */
+  async getUserActivity(userId: string, limit: number = 50): Promise<any[]> {
+    try {
+      const client = await this.ensureConnection();
+      const activities = await client.lRange(`activity:${userId}`, 0, limit - 1);
+      return activities.map(activity => JSON.parse(activity));
+    } catch (error) {
+      this.logger.error('Error getting user activity:', error.message);
+      return [];
+    }
+  }
+
+  // ============================================
+  // ВРЕМЕННОЕ ХРАНЕНИЕ ФАЙЛОВ И МЕДИА
+  // ============================================
+
+  /**
+   * Сохраняет временный файл
+   */
+  async storeTempFile(fileId: string, fileData: Buffer, metadata: any, ttl: number = 3600): Promise<void> {
+    try {
+      const client = await this.ensureConnection();
+      const fileKey = `temp:file:${fileId}`;
+      const metaKey = `temp:meta:${fileId}`;
+      
+      // Сохраняем данные файла
+      await client.setEx(fileKey, ttl, fileData.toString('base64'));
+      
+      // Сохраняем метаданные
+      await client.setEx(metaKey, ttl, JSON.stringify({
+        ...metadata,
+        uploadedAt: Date.now(),
+        size: fileData.length
+      }));
+      
+      this.logger.debug(`Temp file ${fileId} stored for ${ttl} seconds`);
+    } catch (error) {
+      this.logger.error('Error storing temp file:', error.message);
+    }
+  }
+
+  /**
+   * Получает временный файл
+   */
+  async getTempFile(fileId: string): Promise<{data: Buffer; metadata: any} | null> {
+    try {
+      const client = await this.ensureConnection();
+      const fileKey = `temp:file:${fileId}`;
+      const metaKey = `temp:meta:${fileId}`;
+      
+      const [fileData, metadata] = await Promise.all([
+        client.get(fileKey),
+        client.get(metaKey)
+      ]);
+      
+      if (fileData && metadata) {
+        return {
+          data: Buffer.from(fileData, 'base64'),
+          metadata: JSON.parse(metadata)
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      this.logger.error('Error getting temp file:', error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Удаляет временный файл
+   */
+  async deleteTempFile(fileId: string): Promise<void> {
+    try {
+      const client = await this.ensureConnection();
+      const fileKey = `temp:file:${fileId}`;
+      const metaKey = `temp:meta:${fileId}`;
+      
+      await Promise.all([
+        client.del(fileKey),
+        client.del(metaKey)
+      ]);
+      
+      this.logger.debug(`Temp file ${fileId} deleted`);
+    } catch (error) {
+      this.logger.error('Error deleting temp file:', error.message);
+    }
+  }
+
+  /**
+   * Очищает устаревшие временные файлы
+   */
+  async cleanupExpiredTempFiles(): Promise<number> {
+    try {
+      const client = await this.ensureConnection();
+      let cleaned = 0;
+      
+      // Эта операция требует осторожности в production
+      // Лучше использовать отдельный процесс для очистки
+      const keys = await client.keys('temp:*');
+      
+      for (const key of keys) {
+        const ttl = await client.ttl(key);
+        if (ttl === -1 || ttl === 0) {
+          await client.del(key);
+          cleaned++;
+        }
+      }
+      
+      this.logger.debug(`Cleaned up ${cleaned} expired temp files`);
+      return cleaned;
+    } catch (error) {
+      this.logger.error('Error cleaning up temp files:', error.message);
+      return 0;
     }
   }
 

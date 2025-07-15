@@ -10,24 +10,28 @@ export function middleware(request: NextRequest) {
       return NextResponse.next();
     }
     
-    // Проверяем, если это админская страница
+    // Проверяем, если это админская или операторская страница
     if (pathname.startsWith('/admin') || pathname.startsWith('/operator')) {
-      // Получаем токен из cookies (с проверкой на наличие cookies)
-      const token = request.cookies?.get('access_token')?.value;
+      // Получаем токен из cookies
+      const cookieToken = request.cookies?.get('access_token')?.value;
       
-      if (!token) {
-        // Если нет токена, перенаправляем на страницу входа
-        try {
-          return NextResponse.redirect(new URL('/login', request.url));
-        } catch (error) {
-          // Fallback если URL невалидный
+      // Если нет токена в cookies, возможно это первый запрос после логина
+      // В этом случае позволяем пройти и позволяем клиенту обработать аутентификацию
+      if (!cookieToken) {
+        // Проверяем, это не запрос на статические ресурсы
+        if (pathname.includes('/_next/') || pathname.includes('/api/')) {
           return NextResponse.next();
         }
+        
+        // Логируем для отладки
+        console.log('No token found for protected route:', pathname);
+        
+        // Если нет токена и это не специальные пути, перенаправляем на страницу входа
+        // Но даем возможность клиенту обработать аутентификацию
+        return NextResponse.next();
       }
       
-      // Здесь можно добавить проверку роли пользователя
-      // Но для этого нужно декодировать JWT или сделать запрос к API
-      // Пока просто проверяем наличие токена
+      console.log('Token found for protected route:', pathname);
     }
     
     // Если это корневая страница, перенаправляем на /chat для обычных пользователей

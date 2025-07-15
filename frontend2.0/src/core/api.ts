@@ -267,6 +267,51 @@ export const chatAPI = {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
   },
+
+  // Transfer and operator management methods
+  getOperators: () =>
+    api.get<{
+      id: string;
+      email: string;
+      profile: {
+        username: string;
+        fullName: string;
+        avatarUrl?: string;
+        isOnline: boolean;
+        status?: 'free' | 'busy' | 'break' | 'offline';
+      };
+      role: UserRole;
+      activeChats: number;
+      lastActivity: string;
+    }[]>('/users/operators'),
+
+  transferChat: (conversationId: string, operatorId: string) =>
+    api.post(`/transfer/initiate`, { conversationId, operatorId }),
+
+  getPendingTransferRequests: () =>
+    api.get<{
+      id: string;
+      fromOperator: {
+        id: string;
+        name: string;
+        avatar?: string;
+      };
+      visitor: {
+        id: string;
+        name: string;
+        email: string;
+        avatar?: string;
+      };
+      conversationId: string;
+      reason?: string;
+      timestamp: string;
+    }[]>('/transfer/pending'),
+
+  respondToTransfer: (requestId: string, accept: boolean) =>
+    api.post(`/transfer/respond`, { requestId, accept }),
+
+  blockUser: (userId: string, data: { reason: string; comment: string; conversationId: string }) =>
+    api.post('/blacklist', { userId, reason: data.reason, comment: data.comment, conversationId: data.conversationId }),
 };
 
 // Email API
@@ -565,6 +610,58 @@ export const statisticsAPI = {
         operatorAdmin: number;
       };
     }>('/chat/conversations/stats', { params }),
+};
+
+// Transfer and operator management API
+export const transferAPI = {
+  // Get available operators
+  getOperators: () =>
+    api.get<{
+      id: string;
+      email: string;
+      profile: {
+        username: string;
+        fullName: string;
+        avatarUrl?: string;
+        isOnline: boolean;
+        status?: 'free' | 'busy' | 'break' | 'offline';
+      };
+      role: UserRole;
+      activeChats: number;
+      lastActivity: string;
+    }[]>('/users/operators'),
+
+  // Transfer chat to another operator
+  transferChat: (conversationId: string, operatorId: string) =>
+    api.post(`/transfer/initiate`, { conversationId, operatorId }),
+
+  // Get pending transfer requests
+  getPendingTransferRequests: () =>
+    api.get<{
+      id: string;
+      fromOperator: {
+        id: string;
+        name: string;
+        avatar?: string;
+      };
+      visitor: {
+        id: string;
+        name: string;
+        email: string;
+        avatar?: string;
+      };
+      conversationId: string;
+      reason?: string;
+      timestamp: string;
+    }[]>('/transfer/pending'),
+
+  // Respond to transfer request
+  respondToTransfer: (requestId: string, accept: boolean) =>
+    api.post(`/transfer/respond`, { requestId, accept }),
+
+  // Block user
+  blockUser: (userId: string, data: { reason: string; comment: string; conversationId: string }) =>
+    api.post('/blacklist', { userId, reason: data.reason, comment: data.comment, conversationId: data.conversationId }),
 };
 
 export default api;

@@ -19,7 +19,8 @@ import {
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
 import { usersAPI, statisticsAPI } from '@/core/api';
-import { User as UserType } from '@/types';
+import { User as UserType, UserRole } from '@/types';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import Button from '@/components/UI/Button';
 import { Card } from '@/components/UI/Card';
 import { 
@@ -45,7 +46,7 @@ type UserRoleFilter = 'all' | 'admin' | 'operator';
 // Color schemes for charts
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
-export default function AdminStatisticsPage() {
+function AdminStatisticsPageContent() {
   const { user } = useAuthStore();
   
   // State management
@@ -724,5 +725,13 @@ export default function AdminStatisticsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function AdminStatisticsPage() {
+  return (
+    <ProtectedRoute requiredRole={UserRole.ADMIN}>
+      <AdminStatisticsPageContent />
+    </ProtectedRoute>
   );
 }

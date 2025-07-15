@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/authStore';
 import { chatAPI } from '@/core/api';
 import { useChat } from '@/hooks/useChat';
 import { User as UserType, UserRole } from '@/types';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 interface SenderType {
   id: string;
@@ -30,7 +31,7 @@ import { Badge } from '@/components/UI';
 import Button from '@/components/UI/Button';
 import { PresenceIndicator, PresenceAvatar, OnlineUsersList, PresenceStatus, usePresence } from '@/components/Presence';
 
-export default function AdminChatPage() {
+function AdminChatPageContent() {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -633,5 +634,13 @@ export default function AdminChatPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function AdminChatPage() {
+  return (
+    <ProtectedRoute requiredRole={UserRole.ADMIN}>
+      <AdminChatPageContent />
+    </ProtectedRoute>
   );
 }

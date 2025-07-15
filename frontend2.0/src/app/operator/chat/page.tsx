@@ -2,11 +2,15 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Search, Send, Paperclip, MoreVertical, Wifi, WifiOff, User, Phone, Mail, Shield, Globe, UserX, ArrowRightLeft } from 'lucide-react';
+import { Search, Send, Paperclip, MoreVertical, Wifi, WifiOff, User, Phone, Mail, Shield, Globe, UserX, ArrowRightLeft, Bell } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { chatAPI } from '@/core/api';
 import { useChat } from '@/hooks/useChat';
 import { User as UserType, UserRole } from '@/types';
+import TransferModal from '@/components/Chat/TransferModal';
+import BlockUserModal from '@/components/Chat/BlockUserModal';
+import TransferRequestModal from '@/components/Chat/TransferRequestModal';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 interface SenderType {
   id: string;
@@ -30,7 +34,7 @@ import Button from '@/components/UI/Button';
 import { PresenceIndicator, PresenceAvatar, OnlineUsersList, PresenceStatus, usePresence } from '@/components/Presence';
 
 
-export default function OperatorChatPage() {
+function OperatorChatPageContent() {
   const { user } = useAuthStore();
   useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -41,6 +45,10 @@ export default function OperatorChatPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [selectedSender, setSelectedSender] = useState<SenderType | null>(null);
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [showBlockModal, setShowBlockModal] = useState(false);
+  const [transferRequest, setTransferRequest] = useState<any>(null);
+  const [showTransferRequestModal, setShowTransferRequestModal] = useState(false);
 
   // WebSocket chat hook
   const {
@@ -79,6 +87,16 @@ export default function OperatorChatPage() {
       return response.data;
     },
     enabled: !!selectedConversation
+  });
+
+  // Получаем pending transfer requests
+  const { data: transferRequests } = useQuery({
+    queryKey: ['transfer-requests', 'pending'],
+    queryFn: async () => {
+      const response = await chatAPI.getPendingTransferRequests();
+      return response.data;
+    },
+    refetchInterval: 5000 // Обновляем каждые 5 секунд
   });
 
   const handleSendMessage = useCallback(() => {
@@ -131,15 +149,25 @@ export default function OperatorChatPage() {
 
   const handleTransferChat = useCallback(() => {
     if (!selectedSender) return;
-    // TODO: Implement transfer functionality
-    console.log('Transfer chat for user:', selectedSender);
+    setShowTransferModal(true);
   }, [selectedSender]);
 
   const handleBlockUser = useCallback(() => {
     if (!selectedSender) return;
-    // TODO: Implement block functionality
-    console.log('Block user:', selectedSender);
+    setShowBlockModal(true);
   }, [selectedSender]);
+
+  const handleTransferComplete = useCallback(() => {
+    // Обновляем список разговоров после успешной передачи
+    setSelectedConversation(null);
+    setSelectedSender(null);
+  }, []);
+
+  const handleBlockComplete = useCallback(() => {
+    // Обновляем список разговоров после успешной блокировки
+    setSelectedConversation(null);
+    setSelectedSender(null);
+  }, []);
 
   // Присоединяемся к беседе при выборе - исправленная версия
   useEffect(() => {
@@ -241,6 +269,17 @@ export default function OperatorChatPage() {
     setSelectedConversation(sender.conversationId || null);
   }, []);
 
+  // Показываем уведомление о pending transfer request
+  useEffect(() => {
+    if (transferRequests && transferRequests.length > 0) {
+      const latestRequest = transferRequests[0];
+      if (!showTransferRequestModal && latestRequest.id !== transferRequest?.id) {
+        setTransferRequest(latestRequest);
+        setShowTransferRequestModal(true);
+      }
+    }
+  }, [transferRequests, showTransferRequestModal, transferRequest]);
+
   return (
     <div className="h-screen flex bg-background">
       {/* Sidebar - список отправителей */}
@@ -256,6 +295,31 @@ export default function OperatorChatPage() {
               )}
             </div>
             <div className="flex items-center space-x-2">
+              {/* Transfer requests notification */}
+              {transferRequests && transferRequests.length > 0 && (
+                <div className="relative">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      if (transferRequests.length > 0) {
+                        setTransferRequest(transferRequests[0]);
+                        setShowTransferRequestModal(true);
+                      }
+                    }}
+                    className="h-8 w-8"
+                  >
+                    <Bell className="w-4 h-4" />
+                  </Button>
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs flex items-center justify-center"
+                  >
+                    {transferRequests.length}
+                  </Badge>
+                </div>
+              )}
+              
               {/* WebSocket статус */}
               <div className="flex items-center">
                 {isConnected ? <Wifi className="w-4 h-4 text-green-500" /> : isConnecting ? <Radix.Spinner size="1" /> : <div className="cursor-pointer" title="Не подключено. Нажмите для переподключения" onClick={reconnect}><WifiOff className="w-4 h-4 text-red-500" /></div>}
@@ -627,6 +691,54 @@ export default function OperatorChatPage() {
           </div>
         )}
       </div>
+
+      {/* Modal windows */}
+      {selectedSender && (
+        <>
+          <TransferModal
+            isOpen={showTransferModal}
+            onClose={() => setShowTransferModal(false)}
+            visitorId={selectedSender.id}
+            visitorName={selectedSender.name}
+            conversationId={selectedConversation || ''}
+            onTransferComplete={handleTransferComplete}
+          />
+          
+          <BlockUserModal
+            isOpen={showBlockModal}
+            onClose={() => setShowBlockModal(false)}
+            userId={selectedSender.id}
+            userName={selectedSender.name}
+            userEmail={selectedSender.email}
+            userAvatar={selectedSender.avatar}
+            conversationId={selectedConversation || ''}
+            onBlockComplete={handleBlockComplete}
+          />
+        </>
+      )}
+
+      {transferRequest && (
+        <TransferRequestModal
+          isOpen={showTransferRequestModal}
+          onClose={() => {
+            setShowTransferRequestModal(false);
+            setTransferRequest(null);
+          }}
+          transferRequest={transferRequest}
+          onRequestProcessed={() => {
+            setShowTransferRequestModal(false);
+            setTransferRequest(null);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+export default function OperatorChatPage() {
+  return (
+    <ProtectedRoute requiredRole={UserRole.OPERATOR}>
+      <OperatorChatPageContent />
+    </ProtectedRoute>
   );
 }

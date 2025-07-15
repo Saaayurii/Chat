@@ -6,6 +6,7 @@ import { Search, Users, Mail, Phone, User, Shield, ChevronLeft, ChevronRight, Me
 import { useAuthStore } from '@/store/authStore';
 import { usersAPI } from '@/core/api';
 import { UserRole } from '@/types';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/UI/Card';
 import { Input } from '@/components/UI/Input';
 import { Avatar } from '@/components/UI/Avatar';
@@ -13,7 +14,7 @@ import { Badge, Loading } from '@/components/UI';
 import Button from '@/components/UI/Button';
 import { PresenceIndicator, PresenceAvatar, PresenceStatus } from '@/components/Presence';
 
-export default function OperatorColleaguesPage() {
+function OperatorColleaguesPageContent() {
   const { user } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -270,5 +271,13 @@ export default function OperatorColleaguesPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function OperatorColleaguesPage() {
+  return (
+    <ProtectedRoute requiredRole={UserRole.OPERATOR}>
+      <OperatorColleaguesPageContent />
+    </ProtectedRoute>
   );
 }

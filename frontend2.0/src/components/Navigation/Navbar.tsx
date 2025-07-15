@@ -69,9 +69,15 @@ const getMainNavigation = (userRole: UserRole): NavItem[] => [
     roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.VISITOR]
   },
   {
-    name: 'Пользователи',
+    name: 'Сотрудники',
     href: '/admin/users',
     icon: Users,
+    roles: [UserRole.ADMIN]
+  },
+  {
+    name: 'Посетители',
+    href: '/admin/visitors',
+    icon: User,
     roles: [UserRole.ADMIN]
   }
 ];
@@ -111,6 +117,12 @@ const adminManagementItems: NavItem[] = [
 
 const operatorItems: NavItem[] = [
   {
+    name: 'Коллеги',
+    href: '/operator/colleagues',
+    icon: Users,
+    roles: [UserRole.OPERATOR]
+  },
+  {
     name: 'Мои вопросы',
     href: '/operator/questions',
     icon: HelpCircle,
@@ -124,26 +136,7 @@ const operatorItems: NavItem[] = [
   }
 ];
 
-const userItems: NavItem[] = [
-  {
-    name: 'Мои вопросы',
-    href: '/user/questions',
-    icon: HelpCircle,
-    roles: [UserRole.VISITOR]
-  },
-  {
-    name: 'Мои жалобы',
-    href: '/user/complaints',
-    icon: AlertTriangle,
-    roles: [UserRole.VISITOR]
-  },
-  {
-    name: 'Мои оценки',
-    href: '/user/ratings',
-    icon: Star,
-    roles: [UserRole.VISITOR]
-  }
-];
+const userItems: NavItem[] = [];
 
 const commonItems: NavItem[] = [
   {

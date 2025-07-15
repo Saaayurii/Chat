@@ -118,17 +118,23 @@ frontend2.0/
 ├── src/
 │   ├── app/               # Next.js App Router
 │   │   ├── admin/         # Админ панель
+│   │   │   ├── chat/      # Админ чат с операторами/посетителями
+│   │   │   ├── visitors/  # Управление посетителями
+│   │   │   └── users/     # Управление сотрудниками
 │   │   ├── operator/      # Интерфейс оператора
-│   │   ├── user/          # Пользовательский интерфейс
+│   │   │   ├── chat/      # Оператор чат с уведомлениями
+│   │   │   ├── colleagues/# Список коллег
+│   │   │   └── statistics/# Статистика оператора
 │   │   └── chat/          # Основной чат
 │   ├── components/        # React компоненты
 │   │   ├── ChatWidget/    # Виджет чата
+│   │   ├── Chat/          # Модальные окна передачи и блокировки
 │   │   ├── UI/            # Shadcn/ui компоненты
 │   │   ├── Presence/      # Система присутствия
 │   │   └── Blacklist/     # Управление черным списком
 │   ├── hooks/             # Кастомные хуки
 │   └── core/              # API интеграция
-└── public/widget/         # Встраиваемый виджет
+└── public/widget/         # Встраиваемый виджет для посетителей
 ```
 
 ---
@@ -136,9 +142,9 @@ frontend2.0/
 ## 🎯 Ключевые функции
 
 ### 👥 Система ролей
-- **Администратор:** Полный доступ, управление операторами, статистика
-- **Оператор:** Ответы на вопросы, чат с пользователями, передача чатов
-- **Посетитель:** Задавать вопросы, чат с операторами, оценки
+- **Администратор:** Полный доступ, управление операторами, статистика, блокировка пользователей
+- **Оператор:** Ответы на вопросы, чат с пользователями, передача чатов, предложения блокировки
+- **Посетитель:** Использование встраиваемого виджета для общения с операторами
 
 ### 🔐 Аутентификация и безопасность
 - ✅ JWT с refresh токенами
@@ -161,6 +167,8 @@ frontend2.0/
 - ✅ Queue management
 - ✅ Automatic operator assignment
 - ✅ Manual transfer between operators
+- ✅ Transfer request notifications
+- ✅ Accept/Reject transfer requests
 - ✅ Transfer history tracking
 - ✅ Queue position monitoring
 
@@ -177,6 +185,14 @@ frontend2.0/
 - ✅ Responsive design
 - ✅ Easy integration
 - ✅ Configuration interface
+- ✅ Основной интерфейс для посетителей
+
+### 🛡️ Система блокировки
+- ✅ Operator block proposals
+- ✅ Admin approval system
+- ✅ Block reasons (spam, inappropriate language, behavior)
+- ✅ Comment system for blocks
+- ✅ Block history tracking
 
 ---
 
@@ -201,6 +217,7 @@ POST   /users               # Создать пользователя
 GET    /users/:id           # Пользователь по ID
 PUT    /users/:id           # Обновить пользователя
 DELETE /users/:id           # Удалить пользователя
+GET    /users/operators     # Список операторов для передачи
 ```
 
 ### 💬 Chat (`/chat`)
@@ -213,6 +230,8 @@ WebSocket: ws://localhost:3001/chat
 ```
 POST /transfer/initiate      # Инициировать передачу
 GET  /transfer/queue         # Состояние очереди
+GET  /transfer/pending       # Ожидающие запросы передачи
+POST /transfer/respond       # Ответить на запрос передачи
 POST /transfer/accept        # Принять передачу
 POST /transfer/reject        # Отклонить передачу
 ```
@@ -236,9 +255,10 @@ GET    /ratings/stats        # Статистика рейтингов
 ### 🚫 Blacklist (`/blacklist`)
 ```
 GET    /blacklist            # Список заблокированных
-POST   /blacklist            # Заблокировать пользователя
-PUT    /blacklist/:id/approve # Одобрить блокировку
-DELETE /blacklist/:id        # Разблокировать
+POST   /blacklist            # Предложить блокировку пользователя
+PUT    /blacklist/:id/approve # Одобрить блокировку (админ)
+DELETE /blacklist/:id        # Разблокировать (админ)
+GET    /blacklist/pending    # Ожидающие одобрения блокировки
 ```
 
 ---

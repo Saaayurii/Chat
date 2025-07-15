@@ -14,13 +14,13 @@ const ChatPage: React.FC = () => {
     if (!isLoading && user) {
       // Редирект оператора на его интерфейс
       if (user.role === UserRole.OPERATOR) {
-        router.replace('/operator/chat');
+        router.replace('/admin/statistics');
         return;
       }
       
       // Редирект админа на его интерфейс
       if (user.role === UserRole.ADMIN) {
-        router.replace('/admin/chat');
+        router.replace('/admin/statistics');
         return;
       }
     }

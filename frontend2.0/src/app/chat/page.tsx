@@ -1,9 +1,44 @@
 "use client";
 
-import React from 'react';
-import ChatWidget from '@/components/ChatWidget/ChatWidget';
+import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/authStore';
+import { UserRole } from '@/types';
+import { Loading } from '@/components/UI';
 
 const ChatPage: React.FC = () => {
+  const { user, isLoading } = useAuthStore();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      // Редирект оператора на его интерфейс
+      if (user.role === UserRole.OPERATOR) {
+        router.replace('/operator/chat');
+        return;
+      }
+      
+      // Редирект админа на его интерфейс
+      if (user.role === UserRole.ADMIN) {
+        router.replace('/admin/chat');
+        return;
+      }
+    }
+  }, [user, isLoading, router]);
+
+  // Показываем лоадер пока определяем роль
+  if (isLoading || (user && (user.role === UserRole.OPERATOR || user.role === UserRole.ADMIN))) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <Loading className="mx-auto mb-4" />
+          <p className="text-gray-600">Переадресация...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Для посетителей или неавторизованных пользователей показываем информацию о чате
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center">
       <div className="text-center">
@@ -40,16 +75,6 @@ const ChatPage: React.FC = () => {
           </div>
         </div>
       </div>
-      
-      {/* Виджет чата */}
-      <ChatWidget
-        welcomeMessage="Добро пожаловать в чат поддержки! Как могу помочь?"
-        operatorName="Оператор поддержки"
-        allowFileUpload={true}
-        allowComplaint={true}
-        allowRating={true}
-        placeholder="Введите ваше сообщение..."
-      />
     </div>
   );
 };

@@ -51,7 +51,7 @@ export class RedisCompatService {
           }
         });
 
-        await subscriber.subscribe(channel);
+        await subscriber.subscribe(channel, callback);
       }
 
       return subscriber;
@@ -88,13 +88,13 @@ export class RedisCompatService {
       } catch (error) {
         this.logger.warn('zPopMax not available, using alternative method');
         
-        // Fallback на zRevRange + zRem
-        const results = await client.zRevRange(`queue:${queueName}`, 0, 0, { withScores: true });
+        // Fallback на zRange + zRem
+        const results = await client.zRange(`queue:${queueName}`, -1, -1);
         
         if (results && results.length > 0) {
           const taskData = results[0];
-          await client.zRem(`queue:${queueName}`, taskData.value);
-          return JSON.parse(taskData.value);
+          await client.zRem(`queue:${queueName}`, taskData);
+          return JSON.parse(taskData);
         }
 
         return null;

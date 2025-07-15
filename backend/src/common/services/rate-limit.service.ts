@@ -273,7 +273,7 @@ export class RateLimitService {
       for (const pattern of patterns) {
         const keys = await client.keys(pattern);
         if (keys.length > 0) {
-          await client.del(...keys);
+          await client.del(keys);
         }
       }
 
@@ -292,7 +292,7 @@ export class RateLimitService {
       if (!client) return [];
 
       const banKeys = await client.keys('ban:*');
-      const bannedUsers = [];
+      const bannedUsers: any[] = [];
 
       for (const key of banKeys) {
         const banData = await client.get(key);

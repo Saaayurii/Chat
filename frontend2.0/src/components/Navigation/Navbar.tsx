@@ -55,16 +55,16 @@ interface NavCategory {
   roles: UserRole[];
 }
 
-const mainNavigation: NavItem[] = [
+const getMainNavigation = (userRole: UserRole): NavItem[] => [
   {
     name: 'Статистика',
-    href: '/admin/statistics',
+    href: userRole === UserRole.ADMIN ? '/admin/statistics' : '/operator/statistics',
     icon: BarChart3,
     roles: [UserRole.ADMIN, UserRole.OPERATOR]
   },
   {
-    name: 'Чат',
-    href: '/chat',
+    name: 'Сообщения',
+    href: userRole === UserRole.ADMIN ? '/admin/chat' : userRole === UserRole.OPERATOR ? '/operator/chat' : '/chat',
     icon: MessageSquare,
     roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.VISITOR]
   },
@@ -229,6 +229,7 @@ export default function Navbar() {
     const categories: NavCategory[] = [];
     
     // Main navigation items
+    const mainNavigation = getMainNavigation(user?.role as UserRole);
     const filteredMain = mainNavigation.filter(item => 
       user?.role && item.roles.includes(user.role as UserRole)
     );
@@ -315,7 +316,7 @@ export default function Navbar() {
               {/* Main navigation items */}
               {mainItems.map((item) => {
                 const isActive = pathname === item.href;
-                const isChatItem = item.href === '/chat';
+                const isChatItem = item.name === 'Сообщения';
                 const showBadge = isChatItem && user?.role === UserRole.ADMIN && totalUnreadMessages > 0;
                 
                 return (
@@ -501,7 +502,7 @@ export default function Navbar() {
             {/* Main items */}
             {mainItems.map((item) => {
               const isActive = pathname === item.href;
-              const isChatItem = item.href === '/chat';
+              const isChatItem = item.name === 'Сообщения';
               const showBadge = isChatItem && user?.role === UserRole.ADMIN && totalUnreadMessages > 0;
               
               return (

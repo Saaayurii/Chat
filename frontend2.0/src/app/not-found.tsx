@@ -67,10 +67,10 @@ export default function NotFound() {
           </p>
           <div className="flex flex-wrap justify-center gap-4 text-sm">
             <Link 
-              href="/chat" 
+              href="/widget-demo" 
               className="text-blue-500 hover:text-blue-600 hover:underline"
             >
-              Чат с поддержкой
+              Демо чата
             </Link>
             <Link 
               href="/profile" 

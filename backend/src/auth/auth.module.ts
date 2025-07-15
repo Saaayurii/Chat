@@ -8,11 +8,13 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { UsersModule } from '../users/users.module';
 import { RedisModule } from 'src/common/services/redis.module';
+import { CommonModule } from 'src/common/common.module';
 
 @Module({
   imports: [
     UsersModule,
     RedisModule,
+    CommonModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

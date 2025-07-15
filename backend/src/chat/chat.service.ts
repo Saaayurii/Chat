@@ -478,4 +478,16 @@ export class ChatService {
       clearedTempFiles
     };
   }
+
+  /**
+   * Получает статистику кэша для конкретной беседы
+   */
+  async getCacheStats(conversationId: string): Promise<{
+    messageCount: number;
+    lastCached: number | null;
+    ttl: number;
+    isEnabled: boolean;
+  }> {
+    return this.messageCacheService.getCacheStats(conversationId);
+  }
 }

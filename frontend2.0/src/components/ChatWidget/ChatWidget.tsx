@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MessageCircle, X, Send, Paperclip, Star, Flag, User } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../UI/Card';
 import { Input } from '../UI/Input';
@@ -68,6 +68,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   const [userToken, setUserToken] = useState<string | null>(null);
   const [userData, setUserData] = useState<any>(null);
   const [operatorInfo, setOperatorInfo] = useState<any>(null);
+  const [isCreatingConversation, setIsCreatingConversation] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -170,7 +171,118 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     deleteCookie('chat_widget_user');
   };
 
-  const checkExistingAuth = async () => {
+  const handleGuestRegistration = useCallback(async () => {
+    // Проверяем есть ли уже сохраненный токен гостя
+    const guestToken = getCookie('chat_widget_guest_token');
+    if (guestToken) {
+      try {
+        const response = await fetch(`${apiUrl}/auth/me`, {
+          headers: {
+            'Authorization': `Bearer ${guestToken}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setUserToken(guestToken);
+          setUserData(data.user);
+          return;
+        }
+      } catch (error) {
+        console.error('Ошибка проверки гостевого токена:', error);
+      }
+    }
+
+    // Создаем нового гостя
+    try {
+      const guestId = getCookie('chat_widget_guest_id') || `guest_${Date.now()}`;
+      setCookie('chat_widget_guest_id', guestId, 365);
+      
+      const response = await registerVisitor(() => 
+        fetch(`${apiUrl}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: `${guestId}@temp.com`,
+            password: `temp_${Date.now()}`,
+            firstName: 'Посетитель',
+            lastName: 'Сайта',
+            role: 'VISITOR'
+          })
+        }).then(res => res.json())
+      );
+      
+      if (response.success) {
+        setUserToken(response.data.token);
+        setUserData(response.data.user);
+        setCookie('chat_widget_guest_token', response.data.token, 30);
+      }
+    } catch (error) {
+      console.error('Ошибка регистрации посетителя:', error);
+    }
+  }, [apiUrl, registerVisitor]);
+
+  const handleCreateConversation = useCallback(async () => {
+    if (!userToken || isCreatingConversation) {
+      console.log('Нет токена пользователя для создания беседы или уже создается');
+      return;
+    }
+    
+    setIsCreatingConversation(true);
+    try {
+      console.log('Создание беседы...');
+      const response = await createConversation(() => 
+        fetch(`${apiUrl}/chat/conversations`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${userToken}`
+          },
+          body: JSON.stringify({
+            type: 'support',
+            title: 'Обращение с сайта'
+          })
+        }).then(res => res.json())
+      );
+      
+      console.log('Ответ создания беседы:', response);
+      
+      if (response.success) {
+        setConversationId(response.data.id);
+        
+        // Добавляем приветственное сообщение
+        const welcomeMsg = {
+          id: 'welcome',
+          content: welcomeMessage,
+          timestamp: new Date(),
+          sender: 'operator' as const,
+          senderName: operatorName,
+          type: 'system' as const
+        };
+        
+        console.log('Добавляем приветственное сообщение:', welcomeMsg);
+        setMessages([welcomeMsg]);
+        
+        // Устанавливаем информацию об операторе (заглушка)
+        setOperatorInfo({
+          id: 'operator_1',
+          name: operatorName,
+          avatar: operatorAvatar,
+          isOnline: true
+        });
+        
+        setIsConnected(true);
+      } else {
+        console.error('Ошибка создания беседы:', response.error);
+      }
+    } catch (error) {
+      console.error('Ошибка создания беседы:', error);
+    } finally {
+      setIsCreatingConversation(false);
+    }
+  }, [userToken, isCreatingConversation, apiUrl, createConversation, welcomeMessage, operatorName, operatorAvatar]);
+
+  const checkExistingAuth = useCallback(async () => {
     // Сначала проверяем токены основного приложения
     const appToken = getCookie('access_token') || localStorage.getItem('access_token');
     const appUserData = localStorage.getItem('user_data');
@@ -224,10 +336,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
             setCookie('chat_widget_user', encodeURIComponent(JSON.stringify(data.user)));
           }
           
-          // Если есть данные пользователя, создаем беседу
-          if (data.user && !conversationId) {
-            await handleCreateConversation();
-          }
+          // Conversation will be created by useEffect when userToken changes
         } else {
           console.error('Токен недействителен, статус:', response.status);
           clearAuth();
@@ -239,7 +348,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     } else {
       console.log('Токен не найден, пользователь не авторизован');
     }
-  };
+  }, [apiUrl]);
 
   useEffect(() => {
     checkExistingAuth();
@@ -263,15 +372,15 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
       window.removeEventListener('storage', handleStorageChange);
       clearInterval(interval);
     };
-  }, []);
+  }, [checkExistingAuth]);
 
   useEffect(() => {
     if (isOpen && !userToken) {
       handleGuestRegistration();
-    } else if (isOpen && userToken && !conversationId) {
+    } else if (isOpen && userToken && !conversationId && !isCreatingConversation) {
       handleCreateConversation();
     }
-  }, [isOpen, userToken, conversationId]);
+  }, [isOpen, userToken, conversationId, isCreatingConversation, handleGuestRegistration, handleCreateConversation]);
 
   useEffect(() => {
     if (conversationId && userToken) {
@@ -282,7 +391,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
         emitSocketEvent('join_conversation', { conversationId });
       }
     }
-  }, [conversationId, userToken, socketConnected, emitSocketEvent]);
+  }, [conversationId, userToken, socketConnected]);
 
   useEffect(() => {
     scrollToBottom();
@@ -290,116 +399,6 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const handleGuestRegistration = async () => {
-    // Проверяем есть ли уже сохраненный токен гостя
-    const guestToken = getCookie('chat_widget_guest_token');
-    if (guestToken) {
-      try {
-        const response = await fetch(`${apiUrl}/auth/me`, {
-          headers: {
-            'Authorization': `Bearer ${guestToken}`
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setUserToken(guestToken);
-          setUserData(data.user);
-          await handleCreateConversation();
-          return;
-        }
-      } catch (error) {
-        console.error('Ошибка проверки гостевого токена:', error);
-      }
-    }
-
-    // Создаем нового гостя
-    try {
-      const guestId = getCookie('chat_widget_guest_id') || `guest_${Date.now()}`;
-      setCookie('chat_widget_guest_id', guestId, 365);
-      
-      const response = await registerVisitor(() => 
-        fetch(`${apiUrl}/auth/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: `${guestId}@temp.com`,
-            password: `temp_${Date.now()}`,
-            firstName: 'Посетитель',
-            lastName: 'Сайта',
-            role: 'VISITOR'
-          })
-        }).then(res => res.json())
-      );
-      
-      if (response.success) {
-        setUserToken(response.data.token);
-        setUserData(response.data.user);
-        setCookie('chat_widget_guest_token', response.data.token, 30);
-        await handleCreateConversation();
-      }
-    } catch (error) {
-      console.error('Ошибка регистрации посетителя:', error);
-    }
-  };
-
-  const handleCreateConversation = async () => {
-    if (!userToken) {
-      console.log('Нет токена пользователя для создания беседы');
-      return;
-    }
-    
-    try {
-      console.log('Создание беседы...');
-      const response = await createConversation(() => 
-        fetch(`${apiUrl}/chat/conversations`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${userToken}`
-          },
-          body: JSON.stringify({
-            type: 'support',
-            title: 'Обращение с сайта'
-          })
-        }).then(res => res.json())
-      );
-      
-      console.log('Ответ создания беседы:', response);
-      
-      if (response.success) {
-        setConversationId(response.data.id);
-        
-        // Добавляем приветственное сообщение
-        const welcomeMsg = {
-          id: 'welcome',
-          content: welcomeMessage,
-          timestamp: new Date(),
-          sender: 'operator' as const,
-          senderName: operatorName,
-          type: 'system' as const
-        };
-        
-        console.log('Добавляем приветственное сообщение:', welcomeMsg);
-        setMessages([welcomeMsg]);
-        
-        // Устанавливаем информацию об операторе (заглушка)
-        setOperatorInfo({
-          id: 'operator_1',
-          name: operatorName,
-          avatar: operatorAvatar,
-          isOnline: true
-        });
-        
-        setIsConnected(true);
-      } else {
-        console.error('Ошибка создания беседы:', response.error);
-      }
-    } catch (error) {
-      console.error('Ошибка создания беседы:', error);
-    }
   };
 
   const handleSendMessage = async () => {

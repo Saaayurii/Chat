@@ -75,6 +75,7 @@ function OperatorChatPageContent() {
     queryKey: ['conversations'],
     queryFn: async () => {
       const response = await chatAPI.getConversations();
+      console.log('Conversations response:', response.data);
       return response.data;
     },
     enabled: !!user && !!token
@@ -83,11 +84,14 @@ function OperatorChatPageContent() {
   const { data: messages, isLoading: messagesLoading } = useQuery({
     queryKey: ['messages', selectedConversation],
     queryFn: async () => {
-      if (!selectedConversation) return null;
+      if (!selectedConversation || !selectedConversation.match(/^[0-9a-fA-F]{24}$/)) {
+        console.warn('Invalid conversation ID for messages:', selectedConversation);
+        return null;
+      }
       const response = await chatAPI.getMessages(selectedConversation);
       return response.data;
     },
-    enabled: !!selectedConversation
+    enabled: !!selectedConversation && !!selectedConversation.match(/^[0-9a-fA-F]{24}$/)
   });
 
   // Получаем pending transfer requests
@@ -173,7 +177,7 @@ function OperatorChatPageContent() {
 
   // Присоединяемся к беседе при выборе - исправленная версия
   useEffect(() => {
-    if (selectedConversation) {
+    if (selectedConversation && selectedConversation.match(/^[0-9a-fA-F]{24}$/)) {
       joinConversation(selectedConversation);
       
       return () => {
@@ -217,6 +221,9 @@ function OperatorChatPageContent() {
             const existingSender = sendersMap.get(senderId);
             
             if (!existingSender || new Date(conv.lastMessage?.timestamp || 0) > new Date(existingSender.lastMessageTime || 0)) {
+              const conversationId = conv._id || conv.id;
+              console.log('Processing conversation:', { convId: conversationId, conv });
+              
               sendersMap.set(senderId, {
                 id: senderId,
                 name: participant.profile?.fullName || participant.profile?.username || 'Неизвестный',
@@ -225,7 +232,7 @@ function OperatorChatPageContent() {
                 unreadCount: conv.unreadMessagesCount || 0,
                 lastMessageTime: conv.lastMessage?.timestamp || new Date().toISOString(),
                 isOnline: participant.profile?.isOnline || false,
-                conversationId: conv._id,
+                conversationId: conversationId,
                 email: participant.email || '',
                 phone: participant.profile?.phone || '',
                 role: participant.role || 'VISITOR',
@@ -268,7 +275,13 @@ function OperatorChatPageContent() {
   // Обработка выбора отправителя
   const handleSenderSelect = useCallback((sender: SenderType) => {
     setSelectedSender(sender);
-    setSelectedConversation(sender.conversationId || null);
+    // Проверяем, что conversationId существует и является валидным MongoDB ID
+    if (sender.conversationId && sender.conversationId.length === 24 && /^[0-9a-fA-F]{24}$/.test(sender.conversationId)) {
+      setSelectedConversation(sender.conversationId);
+    } else {
+      console.warn('Invalid conversationId:', sender.conversationId);
+      setSelectedConversation(null);
+    }
   }, []);
 
   // Показываем уведомление о pending transfer request

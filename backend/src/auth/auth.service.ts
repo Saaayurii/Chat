@@ -11,6 +11,7 @@ import { Resend } from 'resend';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { UserResponse } from '../users/interfaces/user-response.interface';
+import { PresenceService } from '../common/services/presence.service';
 
 import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 import { UserRole } from '../database/schemas/user.schema';
@@ -29,6 +30,7 @@ export class AuthService {
   private usersService: UsersService,
   private jwtService: JwtService,
   private configService: ConfigService,
+  private presenceService: PresenceService,
 ) {
   const resendApiKey = this.configService.get<string>('RESEND_API_KEY');
   if (!resendApiKey) {
@@ -81,6 +83,12 @@ export class AuthService {
 
     // Обновляем статус онлайн
     await this.usersService.updateOnlineStatus(user._id.toString(), true);
+
+    // Обновляем presence в Redis
+    await this.presenceService.setUserOnline(user._id.toString(), {
+      deviceType: 'desktop',
+      activity: 'Авторизован'
+    });
 
     // Генерируем токены
     const tokens = await this.generateTokens(user);
@@ -180,6 +188,9 @@ export class AuthService {
   async logout(userId: string): Promise<{ message: string }> {
     // Обновляем статус оффлайн
     await this.usersService.updateOnlineStatus(userId, false);
+
+    // Обновляем presence в Redis
+    await this.presenceService.setUserOffline(userId);
 
     return { message: 'Вы успешно вышли из системы' };
   }

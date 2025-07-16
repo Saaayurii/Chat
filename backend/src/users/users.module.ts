@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { UsersController } from './users.controller';
 import { ProfileController } from './profile.controller';
+import { PublicUsersController } from './public-users.controller';
 import { UsersService } from './users.service';
 import { User, UserSchema } from '../database/schemas/user.schema';
 
@@ -9,7 +10,7 @@ import { User, UserSchema } from '../database/schemas/user.schema';
   imports: [
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
   ],
-  controllers: [UsersController, ProfileController],
+  controllers: [UsersController, ProfileController, PublicUsersController],
   providers: [UsersService],
   exports: [UsersService], // Экспортируем для использования в других модулях
 })

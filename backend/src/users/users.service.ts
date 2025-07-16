@@ -676,4 +676,31 @@ export class UsersService {
       }),
     });
   }
+
+  async getOperators(onlineOnly: boolean = false, limit: number = 10): Promise<{ operators: UserResponse[]; total: number }> {
+    const filter: any = {
+      role: UserRole.OPERATOR,
+      isBlocked: false,
+      isActivated: true,
+    };
+
+    if (onlineOnly) {
+      filter['profile.isOnline'] = true;
+    }
+
+    const [operators, total] = await Promise.all([
+      this.userModel
+        .find(filter)
+        .select('-passwordHash')
+        .limit(limit)
+        .sort({ 'profile.lastSeenAt': -1 })
+        .exec(),
+      this.userModel.countDocuments(filter),
+    ]);
+
+    return {
+      operators: operators.map(op => op.toObject()) as UserResponse[],
+      total,
+    };
+  }
 }

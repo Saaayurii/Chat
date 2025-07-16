@@ -24,10 +24,10 @@ export class CreateConversationDto {
   @IsString()
   description?: string;
 
-  @ApiProperty({ description: 'ID создателя беседы' })
+  @ApiProperty({ description: 'ID создателя беседы', required: false })
+  @IsOptional()
   @IsMongoId()
-  @IsNotEmpty()
-  createdBy: string;
+  createdBy?: string;
 
   @ApiProperty({ description: 'ID связанного вопроса', required: false })
   @IsOptional()

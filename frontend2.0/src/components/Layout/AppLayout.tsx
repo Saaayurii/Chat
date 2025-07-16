@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
+import { UserRole } from '@/types';
 import Navbar from '@/components/Navigation/Navbar';
 import { Footer } from '../UI';
 
@@ -10,13 +11,22 @@ interface AppLayoutProps {
 }
 
 const publicRoutes = ['/login', '/registration', '/reset', '/reset-password'];
+const visitorRoutes = ['/widget-demo'];
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
 
   const isPublicRoute = publicRoutes.includes(pathname);
-  const showNavbar = isAuthenticated && !isPublicRoute;
+  const isVisitorRoute = visitorRoutes.includes(pathname);
+  
+  // Показываем навигацию только для админов и операторов
+  const showNavbar = isAuthenticated && !isPublicRoute && !isVisitorRoute && 
+                     user && (user.role === UserRole.ADMIN || user.role === UserRole.OPERATOR);
+  
+  // Показываем футер только для админов и операторов
+  const showFooter = !isVisitorRoute && 
+                     user && (user.role === UserRole.ADMIN || user.role === UserRole.OPERATOR);
 
   return (
     <>
@@ -26,7 +36,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           {children}
         </main>
       </div>
-      <Footer></Footer>
+      {showFooter && <Footer />}
     </>
   );
 }

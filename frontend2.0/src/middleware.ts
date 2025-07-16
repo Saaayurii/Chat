@@ -33,11 +33,16 @@ export function middleware(request: NextRequest) {
       
       console.log('Token found for protected route:', pathname);
     }
+
+    // Блокируем доступ обычных пользователей к /profile и /chat
+    if (pathname === '/profile' || pathname === '/chat') {
+      return NextResponse.redirect(new URL('/widget-demo', request.url));
+    }
     
-    // Если это корневая страница, перенаправляем на /chat для обычных пользователей
+    // Если это корневая страница, перенаправляем на /widget-demo для обычных пользователей
     if (pathname === '/') {
       try {
-        return NextResponse.redirect(new URL('/chat', request.url));
+        return NextResponse.redirect(new URL('/widget-demo', request.url));
       } catch (error) {
         // Fallback если URL невалидный
         return NextResponse.next();

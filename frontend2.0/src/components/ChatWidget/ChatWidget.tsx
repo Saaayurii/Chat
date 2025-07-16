@@ -249,44 +249,42 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   const getAvailableOperator = useCallback(async () => {
     try {
       // Сначала пытаемся получить онлайн операторов
-      const response = await fetch(`${apiUrl}/users?role=OPERATOR&isOnline=true&limit=1`, {
+      const response = await fetch(`${apiUrl}/public/users/operators?online=true&limit=1`, {
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userToken}`
+          'Content-Type': 'application/json'
         }
       });
       
       if (response.ok) {
         const data = await response.json();
-        if (data.data && data.data.length > 0) {
-          const operator = data.data[0];
+        if (data.operators && data.operators.length > 0) {
+          const operator = data.operators[0];
           console.log('Найден онлайн оператор:', operator);
           return {
-            id: operator.id,
-            name: `${operator.firstName} ${operator.lastName}`.trim() || operator.email,
-            avatar: operator.profile?.avatar,
+            id: operator._id || operator.id,
+            name: operator.profile?.fullName || operator.profile?.username || operator.email,
+            avatar: operator.profile?.avatarUrl,
             isOnline: true
           };
         }
       }
       
       // Если нет онлайн операторов, получаем любого оператора
-      const fallbackResponse = await fetch(`${apiUrl}/users?role=OPERATOR&limit=1`, {
+      const fallbackResponse = await fetch(`${apiUrl}/public/users/operators?limit=1`, {
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userToken}`
+          'Content-Type': 'application/json'
         }
       });
       
       if (fallbackResponse.ok) {
         const fallbackData = await fallbackResponse.json();
-        if (fallbackData.data && fallbackData.data.length > 0) {
-          const operator = fallbackData.data[0];
+        if (fallbackData.operators && fallbackData.operators.length > 0) {
+          const operator = fallbackData.operators[0];
           console.log('Найден оператор (оффлайн):', operator);
           return {
-            id: operator.id,
-            name: `${operator.firstName} ${operator.lastName}`.trim() || operator.email,
-            avatar: operator.profile?.avatar,
+            id: operator._id || operator.id,
+            name: operator.profile?.fullName || operator.profile?.username || operator.email,
+            avatar: operator.profile?.avatarUrl,
             isOnline: false
           };
         }
@@ -302,13 +300,13 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     } catch (error) {
       console.error('Ошибка получения оператора:', error);
       return {
-        id: 'default_operator',
-        name: 'Оператор поддержки',
+        id: 'system_support',
+        name: 'Система поддержки',
         avatar: operatorAvatar,
         isOnline: false
       };
     }
-  }, [apiUrl, userToken, operatorAvatar]);
+  }, [apiUrl, operatorAvatar]);
 
   const handleCreateConversation = useCallback(async () => {
     if (!userToken || isCreatingConversation) {
@@ -345,6 +343,20 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
       }
       
       console.log('Создание беседы для авторизованного пользователя...');
+      
+      // Проверяем, что у нас есть валидный оператор
+      if (operator.id === 'system_support' || !operator.id.match(/^[0-9a-fA-F]{24}$/)) {
+        throw new Error('В данный момент нет доступных операторов. Попробуйте позже.');
+      }
+      
+      const requestBody = {
+        type: 'user-operator',
+        title: 'Обращение с сайта',
+        participantIds: [userData.id, operator.id] // Добавляем текущего пользователя
+      };
+      
+      console.log('Отправляем запрос на создание беседы:', requestBody);
+      
       const response = await createConversation(() => 
         fetch(`${apiUrl}/chat/conversations`, {
           method: 'POST',
@@ -352,12 +364,15 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${userToken}`
           },
-          body: JSON.stringify({
-            type: 'USER_OPERATOR',
-            title: 'Обращение с сайта',
-            participants: [operator.id] // Добавляем оператора как участника
-          })
-        }).then(res => res.json())
+          body: JSON.stringify(requestBody)
+        }).then(async res => {
+          const data = await res.json();
+          if (!res.ok) {
+            console.error('Ошибка создания беседы:', res.status, data);
+            throw new Error(data.message || `HTTP ${res.status}`);
+          }
+          return data;
+        })
       );
       
       console.log('Ответ создания беседы:', response);
@@ -529,7 +544,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     if (isOpen && userToken && !conversationId && !isCreatingConversation) {
       handleCreateConversation();
     }
-  }, [isOpen, userToken, conversationId, isCreatingConversation, handleCreateConversation]);
+  }, [isOpen, userToken, conversationId, isCreatingConversation]);
 
   useEffect(() => {
     if (conversationId && userToken) {

@@ -379,6 +379,7 @@
       this.bindEvents();
       this.loadSocketIO();
       this.checkExistingAuth();
+      this.checkOperatorStatus();
     }
 
     createWidget() {
@@ -421,7 +422,7 @@
           </div>
           <div>
             <div style="font-weight: 600; font-size: 14px;">${this.config.operatorName}</div>
-            <div style="font-size: 12px; opacity: 0.8;">В сети</div>
+            <div id="operator-status" style="font-size: 12px; opacity: 0.8;">Проверка статуса...</div>
           </div>
         </div>
       `;
@@ -1030,6 +1031,35 @@
       if (this.complaintBtn) {
         this.complaintBtn.style.display = this.operatorInfo ? 'inline-block' : 'none';
       }
+    }
+
+    async checkOperatorStatus() {
+      try {
+        const response = await fetch(`${this.config.apiUrl}/users/operators?online=true&limit=1`);
+        if (response.ok) {
+          const data = await response.json();
+          const operatorStatusElement = document.getElementById('operator-status');
+          if (operatorStatusElement) {
+            if (data.operators && data.operators.length > 0) {
+              operatorStatusElement.textContent = 'В сети';
+              operatorStatusElement.style.color = '#22c55e';
+            } else {
+              operatorStatusElement.textContent = 'Не в сети';
+              operatorStatusElement.style.color = '#ef4444';
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Ошибка при проверке статуса оператора:', error);
+        const operatorStatusElement = document.getElementById('operator-status');
+        if (operatorStatusElement) {
+          operatorStatusElement.textContent = 'Статус неизвестен';
+          operatorStatusElement.style.color = '#6b7280';
+        }
+      }
+      
+      // Повторяем проверку каждые 30 секунд
+      setTimeout(() => this.checkOperatorStatus(), 30000);
     }
   }
 

@@ -20,6 +20,7 @@ import {
   usePresence,
   PresenceStatus 
 } from '../Presence';
+import { useAuthStore } from '@/store/authStore';
 
 interface Message {
   id: string;
@@ -64,9 +65,10 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [showComplaintModal, setShowComplaintModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userToken, setUserToken] = useState<string | null>(null);
-  const [userData, setUserData] = useState<any>(null);
+  const { token: authToken, user: authUser, isAuthenticated: authIsAuthenticated, setAuth } = useAuthStore();
+  const [isAuthenticated, setIsAuthenticated] = useState(authIsAuthenticated);
+  const [userToken, setUserToken] = useState<string | null>(authToken);
+  const [userData, setUserData] = useState<any>(authUser);
   const [operatorInfo, setOperatorInfo] = useState<any>(null);
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
   
@@ -100,7 +102,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
       } else if (message.type === 'typing') {
         setIsTyping(message.data.isTyping);
       } else if (message.type === 'operator_status') {
-        setOperatorInfo(prev => ({
+        setOperatorInfo((prev: any) => ({
           ...prev,
           isOnline: message.data.isOnline
         }));
@@ -112,7 +114,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
       
       // Присоединяемся к комнате беседы
       if (conversationId) {
-        emitSocketEvent('join_conversation', { conversationId });
+        emitSocketEvent('join-room', { conversationId });
       }
     },
     onDisconnect: () => {
@@ -123,7 +125,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
       console.error('Ошибка WebSocket:', error);
       setIsConnected(false);
     },
-    autoConnect: false
+    autoConnect: userToken ? true : false
   });
   
   const { execute: createConversation } = useApiCall();
@@ -159,6 +161,11 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     setUserData(user);
     setIsAuthenticated(user.role !== 'VISITOR');
     
+    // Update auth store for socket connection
+    if (user.role !== 'VISITOR') {
+      setAuth(token, user);
+    }
+    
     setCookie('chat_widget_token', token);
     setCookie('chat_widget_user', encodeURIComponent(JSON.stringify(user)));
   };
@@ -186,41 +193,122 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
           const data = await response.json();
           setUserToken(guestToken);
           setUserData(data.user);
+          console.log('Гостевой токен валиден, пользователь авторизован');
           return;
+        } else {
+          // Токен недействителен, удаляем его
+          deleteCookie('chat_widget_guest_token');
+          console.log('Гостевой токен недействителен, удаляем');
         }
       } catch (error) {
         console.error('Ошибка проверки гостевого токена:', error);
+        deleteCookie('chat_widget_guest_token');
       }
     }
 
     // Создаем нового гостя
     try {
-      const guestId = getCookie('chat_widget_guest_id') || `guest_${Date.now()}`;
+      const guestId = getCookie('chat_widget_guest_id') || `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       setCookie('chat_widget_guest_id', guestId, 365);
       
-      const response = await registerVisitor(() => 
-        fetch(`${apiUrl}/auth/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: `${guestId}@temp.com`,
-            password: `temp_${Date.now()}`,
-            firstName: 'Посетитель',
-            lastName: 'Сайта',
-            role: 'VISITOR'
-          })
-        }).then(res => res.json())
-      );
+      const registrationData = {
+        email: `${guestId}@widget.guest`,
+        password: `${guestId}_${Date.now()}`,
+        firstName: 'Посетитель',
+        lastName: 'Сайта',
+        role: 'VISITOR'
+      };
+
+      console.log('Регистрация нового гостя:', registrationData.email);
+
+      const response = await fetch(`${apiUrl}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(registrationData)
+      });
       
-      if (response.success) {
-        setUserToken(response.data.token);
-        setUserData(response.data.user);
-        setCookie('chat_widget_guest_token', response.data.token, 30);
+      const data = await response.json();
+      console.log('Ответ регистрации:', data);
+      
+      if (data.success || data.accessToken) { // некоторые API возвращают accessToken напрямую
+        const token = data.accessToken || data.token || data.data?.token;
+        const user = data.user || data.data?.user || { ...registrationData, id: Date.now().toString(), role: 'VISITOR' };
+        
+        setUserToken(token);
+        setUserData(user);
+        setCookie('chat_widget_guest_token', token, 30);
+        console.log('Гость успешно зарегистрирован');
+      } else {
+        console.error('Ошибка регистрации посетителя:', data);
       }
     } catch (error) {
       console.error('Ошибка регистрации посетителя:', error);
     }
-  }, [apiUrl, registerVisitor]);
+  }, [apiUrl]);
+
+  const getAvailableOperator = useCallback(async () => {
+    try {
+      // Сначала пытаемся получить онлайн операторов
+      const response = await fetch(`${apiUrl}/users?role=OPERATOR&isOnline=true&limit=1`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userToken}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.data && data.data.length > 0) {
+          const operator = data.data[0];
+          console.log('Найден онлайн оператор:', operator);
+          return {
+            id: operator.id,
+            name: `${operator.firstName} ${operator.lastName}`.trim() || operator.email,
+            avatar: operator.profile?.avatar,
+            isOnline: true
+          };
+        }
+      }
+      
+      // Если нет онлайн операторов, получаем любого оператора
+      const fallbackResponse = await fetch(`${apiUrl}/users?role=OPERATOR&limit=1`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userToken}`
+        }
+      });
+      
+      if (fallbackResponse.ok) {
+        const fallbackData = await fallbackResponse.json();
+        if (fallbackData.data && fallbackData.data.length > 0) {
+          const operator = fallbackData.data[0];
+          console.log('Найден оператор (оффлайн):', operator);
+          return {
+            id: operator.id,
+            name: `${operator.firstName} ${operator.lastName}`.trim() || operator.email,
+            avatar: operator.profile?.avatar,
+            isOnline: false
+          };
+        }
+      }
+      
+      // Если нет операторов вообще, возвращаем дефолт
+      return {
+        id: 'default_operator',
+        name: 'Оператор поддержки',
+        avatar: operatorAvatar,
+        isOnline: false
+      };
+    } catch (error) {
+      console.error('Ошибка получения оператора:', error);
+      return {
+        id: 'default_operator',
+        name: 'Оператор поддержки',
+        avatar: operatorAvatar,
+        isOnline: false
+      };
+    }
+  }, [apiUrl, userToken, operatorAvatar]);
 
   const handleCreateConversation = useCallback(async () => {
     if (!userToken || isCreatingConversation) {
@@ -230,7 +318,33 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     
     setIsCreatingConversation(true);
     try {
-      console.log('Создание беседы...');
+      console.log('Получение доступного оператора...');
+      const operator = await getAvailableOperator();
+      setOperatorInfo(operator);
+      
+      // Для анонимных пользователей создаем локальную беседу
+      if (userToken === 'anonymous' || userData?.isAnonymous) {
+        console.log('Создание анонимной беседы...');
+        const anonymousConversationId = `anonymous_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        setConversationId(anonymousConversationId);
+        
+        // Добавляем приветственное сообщение
+        const welcomeMsg = {
+          id: 'welcome',
+          content: `${welcomeMessage} Вас обслуживает ${operator.name}. Ваши сообщения будут переданы оператору.`,
+          timestamp: new Date(),
+          sender: 'operator' as const,
+          senderName: operator.name,
+          type: 'system' as const
+        };
+        
+        console.log('Добавляем приветственное сообщение для анонимного пользователя:', welcomeMsg);
+        setMessages([welcomeMsg]);
+        setIsConnected(true);
+        return;
+      }
+      
+      console.log('Создание беседы для авторизованного пользователя...');
       const response = await createConversation(() => 
         fetch(`${apiUrl}/chat/conversations`, {
           method: 'POST',
@@ -239,48 +353,42 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
             'Authorization': `Bearer ${userToken}`
           },
           body: JSON.stringify({
-            type: 'support',
-            title: 'Обращение с сайта'
+            type: 'USER_OPERATOR',
+            title: 'Обращение с сайта',
+            participants: [operator.id] // Добавляем оператора как участника
           })
         }).then(res => res.json())
       );
       
       console.log('Ответ создания беседы:', response);
       
-      if (response.success) {
-        setConversationId(response.data.id);
+      if (response.success || response.data || response.id) {
+        const conversationData = response.data || response;
+        setConversationId(conversationData.id || conversationData._id);
         
         // Добавляем приветственное сообщение
         const welcomeMsg = {
           id: 'welcome',
-          content: welcomeMessage,
+          content: `${welcomeMessage} Вас обслуживает ${operator.name}.`,
           timestamp: new Date(),
           sender: 'operator' as const,
-          senderName: operatorName,
+          senderName: operator.name,
           type: 'system' as const
         };
         
         console.log('Добавляем приветственное сообщение:', welcomeMsg);
         setMessages([welcomeMsg]);
         
-        // Устанавливаем информацию об операторе (заглушка)
-        setOperatorInfo({
-          id: 'operator_1',
-          name: operatorName,
-          avatar: operatorAvatar,
-          isOnline: true
-        });
-        
         setIsConnected(true);
       } else {
-        console.error('Ошибка создания беседы:', response.error);
+        console.error('Ошибка создания беседы:', response.error || response);
       }
     } catch (error) {
       console.error('Ошибка создания беседы:', error);
     } finally {
       setIsCreatingConversation(false);
     }
-  }, [userToken, isCreatingConversation, apiUrl, createConversation, welcomeMessage, operatorName, operatorAvatar]);
+  }, [userToken, isCreatingConversation, apiUrl, createConversation, welcomeMessage, getAvailableOperator, userData]);
 
   const checkExistingAuth = useCallback(async () => {
     // Сначала проверяем токены основного приложения
@@ -294,18 +402,23 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     console.log('Проверка авторизации:', { appToken: !!appToken, widgetToken: !!widgetToken, appUserData: !!appUserData, widgetUserData: !!widgetUserData });
     
     const token = appToken || widgetToken;
-    let userData = null;
+    let localUserData = null;
+    
+    // Если уже авторизован, не проверяем снова
+    if (userToken && userData && userData.id) {
+      return;
+    }
     
     if (appUserData) {
       try {
-        userData = JSON.parse(appUserData);
+        localUserData = JSON.parse(appUserData);
         console.log('Данные пользователя из основного приложения:', userData);
       } catch (e) {
         console.error('Ошибка парсинга данных пользователя из основного приложения:', e);
       }
     } else if (widgetUserData) {
       try {
-        userData = JSON.parse(decodeURIComponent(widgetUserData));
+        localUserData = JSON.parse(decodeURIComponent(widgetUserData));
         console.log('Данные пользователя виджета:', userData);
       } catch (e) {
         console.error('Ошибка парсинга данных пользователя виджета:', e);
@@ -329,6 +442,11 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
           setUserData(data.user);
           setIsAuthenticated(data.user.role !== 'VISITOR');
           
+          // Update auth store for socket connection
+          if (data.user.role !== 'VISITOR') {
+            setAuth(token, data.user);
+          }
+          
           // Синхронизируем токены между приложением и виджетом
           if (appToken && !widgetToken) {
             console.log('Синхронизация токенов основного приложения с виджетом');
@@ -336,19 +454,49 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
             setCookie('chat_widget_user', encodeURIComponent(JSON.stringify(data.user)));
           }
           
-          // Conversation will be created by useEffect when userToken changes
+          return; // Успешная авторизация
         } else {
-          console.error('Токен недействителен, статус:', response.status);
+          console.log('Токен недействителен, переходим в анонимный режим');
+          // Очищаем недействительные токены
+          if (appToken) {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('user_data');
+            setCookie('access_token', '', -1);
+          }
+          if (widgetToken) {
+            setCookie('chat_widget_token', '', -1);
+            setCookie('chat_widget_user', '', -1);
+          }
           clearAuth();
         }
       } catch (error) {
-        console.error('Ошибка восстановления авторизации:', error);
+        console.log('Ошибка проверки токена, переходим в анонимный режим:', error);
         clearAuth();
       }
-    } else {
-      console.log('Токен не найден, пользователь не авторизован');
     }
-  }, [apiUrl]);
+    
+    // Анонимный режим - создаем временного пользователя
+    console.log('Создание анонимного пользователя для виджета');
+    const anonymousUser = {
+      id: `anonymous_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      email: `anonymous@widget.temp`,
+      firstName: 'Анонимный',
+      lastName: 'Пользователь',
+      role: 'VISITOR',
+      isAnonymous: true
+    };
+    
+    setUserData(anonymousUser);
+    setUserToken('anonymous'); // Специальный токен для анонимных пользователей
+    setIsAuthenticated(false);
+  }, [apiUrl, userToken, userData]);
+
+  // Sync with auth store
+  useEffect(() => {
+    setIsAuthenticated(authIsAuthenticated);
+    setUserToken(authToken);
+    setUserData(authUser);
+  }, [authIsAuthenticated, authToken, authUser]);
 
   useEffect(() => {
     checkExistingAuth();
@@ -364,23 +512,24 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     window.addEventListener('storage', handleStorageChange);
     
     // Также проверяем каждые 5 секунд для случая, когда пользователь авторизуется в том же табе
+    // Но только если пользователь не авторизован
     const interval = setInterval(() => {
-      checkExistingAuth();
+      if (!userToken || !userData || !userData.id) {
+        checkExistingAuth();
+      }
     }, 5000);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       clearInterval(interval);
     };
-  }, [checkExistingAuth]);
+  }, [apiUrl, checkExistingAuth, userToken, userData]);
 
   useEffect(() => {
-    if (isOpen && !userToken) {
-      handleGuestRegistration();
-    } else if (isOpen && userToken && !conversationId && !isCreatingConversation) {
+    if (isOpen && userToken && !conversationId && !isCreatingConversation) {
       handleCreateConversation();
     }
-  }, [isOpen, userToken, conversationId, isCreatingConversation, handleGuestRegistration, handleCreateConversation]);
+  }, [isOpen, userToken, conversationId, isCreatingConversation, handleCreateConversation]);
 
   useEffect(() => {
     if (conversationId && userToken) {
@@ -388,7 +537,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
       
       // Подключаемся к WebSocket и присоединяемся к комнате беседы
       if (socketConnected) {
-        emitSocketEvent('join_conversation', { conversationId });
+        emitSocketEvent('join-room', { conversationId });
       }
     }
   }, [conversationId, userToken, socketConnected]);
@@ -416,8 +565,29 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     setMessages(prev => [...prev, newMessage]);
     setInputMessage('');
     
+    // Для анонимных пользователей - только локальное сохранение и имитация ответа
+    if (userToken === 'anonymous' || userData?.isAnonymous) {
+      console.log('Отправка анонимного сообщения:', messageText);
+      
+      // Имитируем ответ оператора через несколько секунд
+      setTimeout(() => {
+        const operatorResponse: Message = {
+          id: Date.now().toString(),
+          content: 'Спасибо за ваше сообщение! Ваш вопрос передан оператору. Для полноценного общения рекомендуем авторизоваться.',
+          timestamp: new Date(),
+          sender: 'operator',
+          senderName: operatorInfo?.name || operatorName,
+          type: 'text'
+        };
+        
+        setMessages(prev => [...prev, operatorResponse]);
+      }, 1500);
+      return;
+    }
+    
+    // Для авторизованных пользователей - отправка на сервер
     try {
-      console.log('Отправка сообщения:', messageText);
+      console.log('Отправка сообщения авторизованного пользователя:', messageText);
       
       const response = await sendMessage(() => 
         fetch(`${apiUrl}/chat/conversations/${conversationId}/messages`, {
@@ -438,7 +608,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
       if (response.success) {
         // Отправляем сообщение через WebSocket для реального времени
         if (socketConnected) {
-          emitSocketEvent('send_message', {
+          emitSocketEvent('send-message', {
             conversationId,
             message: {
               id: response.data.id || Date.now().toString(),
@@ -455,7 +625,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
             content: 'Спасибо за ваше сообщение! Оператор скоро ответит.',
             timestamp: new Date(),
             sender: 'operator',
-            senderName: operatorName,
+            senderName: operatorInfo?.name || operatorName,
             type: 'text'
           };
           
@@ -623,8 +793,12 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   };
 
   const toggleWidget = () => {
-    setIsOpen(!isOpen);
-    if (onClose && isOpen) onClose();
+    if (isMinimized) {
+      setIsMinimized(false);
+    } else if (!isOpen) {
+      setIsOpen(true);
+    }
+    if (onClose && isOpen && !isMinimized) onClose();
   };
 
   const minimizeWidget = () => {
@@ -642,15 +816,20 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     dark: 'bg-gray-800 text-white'
   };
 
-  if (!isOpen) {
+  if (!isOpen || isMinimized) {
     return (
       <div className={`${positionClasses[position]} z-50`}>
         <Button
           onClick={toggleWidget}
-          className="rounded-full w-16 h-16 shadow-lg hover:shadow-xl transition-shadow"
+          className="rounded-full h-16 shadow-lg hover:shadow-xl transition-shadow flex items-center pr-4 pl-4"
           style={{ backgroundColor: primaryColor }}
         >
           <MessageCircle className="w-8 h-8" />
+          {(!isOpen || isMinimized) && (
+            <span className="ml-1 text-white text-sm whitespace-nowrap">
+              Написать сообщение
+            </span>
+          )}
         </Button>
       </div>
     );
@@ -678,7 +857,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                 {operatorAvatar ? (
                   <img src={operatorAvatar} alt={operatorName} />
                 ) : (
-                  <User className="w-4 h-4" />
+                  <User className="w-4 h-4 ml-2 mt-2" />
                 )}
               </Avatar>
             )}
@@ -687,7 +866,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                 <CardTitle className="text-white text-sm">
                   {isAuthenticated && userData ? 
                     (userData.fullName || userData.username) : 
-                    (operatorInfo?.name || operatorName)
+                    `${operatorName}${operatorInfo?.name ? ` (${operatorInfo.name})` : ''}`
                   }
                 </CardTitle>
                 {showPresence && presence.currentPresence && (
@@ -718,21 +897,13 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                 className="mr-2"
               />
             )}
+            
             <Button
               variant="ghost"
               size="sm"
               onClick={minimizeWidget}
               className="text-white hover:bg-white/20 p-1"
               aria-label="minimize"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleWidget}
-              className="text-white hover:bg-white/20 p-1"
-              aria-label="close"
             >
               <X className="w-4 h-4" />
             </Button>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { PresenceAvatarProps, PresenceStatus, PRESENCE_COLORS } from './types';
-import { Avatar } from '../UI';
+import { Avatar, AvatarImage, AvatarFallback } from '../UI';
 
 const PresenceAvatar: React.FC<PresenceAvatarProps> = ({
   userId,
@@ -48,12 +48,10 @@ const PresenceAvatar: React.FC<PresenceAvatarProps> = ({
 
   return (
     <div className={`relative inline-block ${className}`}>
-      <Avatar
-        src={avatar}
-        alt={userName}
-        className={`${getAvatarSize()} ring-2 ring-white`}
-        fallback={userName.substring(0, 2).toUpperCase()}
-      />
+      <Avatar className={`${getAvatarSize()} ring-2 ring-white`}>
+        <AvatarImage src={avatar} alt={userName} />
+        <AvatarFallback>{userName.substring(0, 2).toUpperCase()}</AvatarFallback>
+      </Avatar>
       
       {showStatus && (
         <div className={`absolute ${getStatusPosition()}`}>

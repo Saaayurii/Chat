@@ -6,7 +6,7 @@ import { X, AlertTriangle, MessageSquare, Ban, FileText } from 'lucide-react';
 import { chatAPI } from '@/core/api';
 import Button from '@/components/UI/Button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/UI/Dialog';
-import { Badge } from '@/components/UI/Badge';
+import Badge from '@/components/UI/Badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/UI/Avatar';
 
 interface BlockUserModalProps {

@@ -240,6 +240,18 @@ export class TransferService {
     });
   }
 
+  async getPendingTransfers(operatorId: string): Promise<Transfer[]> {
+    return this.transferModel
+      .find({
+        toOperatorId: new Types.ObjectId(operatorId),
+        status: TransferStatus.PENDING
+      })
+      .sort({ requestedAt: -1 })
+      .populate('fromOperatorId', 'name email avatar')
+      .populate('visitorId', 'name email')
+      .exec();
+  }
+
   async getTransferHistory(operatorId: string, limit: number = 10): Promise<Transfer[]> {
     return this.transferModel
       .find({

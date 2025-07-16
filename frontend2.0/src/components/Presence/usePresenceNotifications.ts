@@ -67,8 +67,7 @@ export const usePresenceNotifications = ({
       new Notification(title, {
         body,
         icon: icon || '/favicon.ico',
-        tag: 'presence-notification',
-        renotify: false
+        tag: 'presence-notification'
       });
     }
   };

@@ -10,6 +10,7 @@ import { useMutation } from '@tanstack/react-query';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { authAPI, LoginData } from '@/core/api';
+import { UserRole } from '@/types';
 
 import  Button  from "@/components/UI/Button";
 import { Input } from "@/components/UI/Input";
@@ -64,7 +65,7 @@ export default function LoginPage() {
         setAuth(result.access_token, userData);
         
         // Перенаправляем в зависимости от роли пользователя
-        if (userData.role === 'ADMIN' || userData.role === 'OPERATOR') {
+        if (userData.role === UserRole.ADMIN || userData.role === UserRole.OPERATOR) {
           router.push('/admin/statistics');
         } else {
           // Обычные пользователи попадают на страницу с виджетом

@@ -143,7 +143,7 @@ describe('RatingsManagement', () => {
       operatorId: 'operator-1',
       isVisible: true,
       isHidden: false,
-      createdAt: '2024-01-01T00:00:00.000Z',
+      createdAt: new Date('2024-01-01T00:00:00.000Z'),
       user: {
         _id: 'user-1',
         profile: { fullName: 'John Doe', username: 'johndoe' }
@@ -161,7 +161,7 @@ describe('RatingsManagement', () => {
       operatorId: 'operator-1',
       isVisible: true,
       isHidden: false,
-      createdAt: '2024-01-02T00:00:00.000Z',
+      createdAt: new Date('2024-01-02T00:00:00.000Z'),
       user: {
         _id: 'user-2',
         profile: { fullName: 'Bob User', username: 'bobuser' }

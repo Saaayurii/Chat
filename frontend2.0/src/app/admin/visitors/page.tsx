@@ -9,12 +9,12 @@ import { UserRole } from '@/types';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Button from '@/components/UI/Button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/UI/Avatar';
-import { Badge } from '@/components/UI/Badge';
+import Badge from '@/components/UI/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/UI/Card';
 import { Input } from '@/components/UI/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/UI/Select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/UI/Table';
-import { Pagination } from '@/components/UI/Pagination';
+import Pagination from '@/components/UI/Pagination';
 import { PresenceIndicator, PresenceStatus } from '@/components/Presence';
 
 function VisitorsPageContent() {
@@ -32,9 +32,7 @@ function VisitorsPageContent() {
         role: UserRole.VISITOR,
         search: searchQuery,
         page: currentPage,
-        limit: pageSize,
-        status: statusFilter !== 'all' ? statusFilter : undefined,
-        source: sourceFilter !== 'all' ? sourceFilter : undefined
+        limit: pageSize
       });
       return response.data;
     }
@@ -42,8 +40,29 @@ function VisitorsPageContent() {
 
   const filteredVisitors = useMemo(() => {
     if (!visitorsData?.data) return [];
-    return visitorsData.data;
-  }, [visitorsData]);
+    
+    let filtered = visitorsData.data;
+    
+    // Filter by status
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(visitor => {
+        switch (statusFilter) {
+          case 'authorized':
+            return visitor.isActivated && !visitor.isBlocked;
+          case 'unauthorized':
+            return !visitor.isActivated && !visitor.isBlocked;
+          case 'blocked':
+            return visitor.isBlocked;
+          default:
+            return true;
+        }
+      });
+    }
+    
+    // Filter by source - removed as this property doesn't exist in User type
+    
+    return filtered;
+  }, [visitorsData, statusFilter, sourceFilter]);
 
   const handleChatOpen = (visitorId: string) => {
     // Navigate to chat with specific visitor
@@ -133,7 +152,7 @@ function VisitorsPageContent() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {visitorsData?.data?.filter(v => v.activeChats > 0).length || 0}
+              {0}
             </div>
             <p className="text-xs text-muted-foreground">
               Ведут диалоги
@@ -265,18 +284,14 @@ function VisitorsPageContent() {
                       <TableCell>
                         <div className="space-y-1">
                           {getStatusBadge(visitor)}
-                          {visitor.activeChats > 0 && (
-                            <Badge variant="outline" className="text-xs">
-                              {visitor.activeChats} чат{visitor.activeChats > 1 ? 'а' : ''}
-                            </Badge>
-                          )}
+                          {/* Active chats info removed - property doesn't exist in User type */}
                         </div>
                       </TableCell>
                       
                       <TableCell>
                         <div className="flex items-center space-x-2">
                           <Globe className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{visitor.source || 'Веб-сайт'}</span>
+                          <span className="text-sm">Веб-сайт</span>
                         </div>
                       </TableCell>
                       

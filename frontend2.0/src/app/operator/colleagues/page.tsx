@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, Users, Mail, Phone, User, Shield, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';

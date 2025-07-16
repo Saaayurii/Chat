@@ -27,10 +27,18 @@ export const useSocketIO = (namespace: string, options: UseSocketIOOptions = {})
 
   const { token, isAuthenticated } = useAuthStore();
   const socketRef = useRef<Socket | null>(null);
+  const isAuthenticatedRef = useRef(isAuthenticated);
+  const tokenRef = useRef(token);
   
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Update refs when auth state changes
+  useEffect(() => {
+    isAuthenticatedRef.current = isAuthenticated;
+    tokenRef.current = token;
+  }, [isAuthenticated, token]);
 
   const connect = useCallback(() => {
     // Проверяем актуальное состояние аутентификации
@@ -53,7 +61,7 @@ export const useSocketIO = (namespace: string, options: UseSocketIOOptions = {})
     setError(null);
 
     try {
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL ;
+      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3004';
       
       socketRef.current = io(`${wsUrl}${namespace}`, {
         auth: {
@@ -182,14 +190,7 @@ export const useSocketIO = (namespace: string, options: UseSocketIOOptions = {})
     setTimeout(connect, 100);
   }, [connect, disconnect]);
 
-  // Исправленный useEffect без циклических зависимостей
-  const isAuthenticatedRef = useRef(isAuthenticated);
-  const tokenRef = useRef(token);
-  
-  useEffect(() => {
-    isAuthenticatedRef.current = isAuthenticated;
-    tokenRef.current = token;
-  }, [isAuthenticated, token]);
+  // Duplicate ref definitions removed - already defined above
   
   useEffect(() => {
     if (autoConnect && isAuthenticatedRef.current && tokenRef.current) {

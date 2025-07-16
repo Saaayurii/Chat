@@ -67,7 +67,7 @@ export const usePresence = ({
       else if (isActive && socket && !heartbeatIntervalRef.current) {
         heartbeatIntervalRef.current = setInterval(() => {
           socket.emit('presence:heartbeat', {
-            status: currentPresence?.status || PresenceStatus.ONLINE
+            status: PresenceStatus.ONLINE
           });
         }, heartbeatInterval);
       }
@@ -115,7 +115,7 @@ export const usePresence = ({
       
       heartbeatIntervalRef.current = setInterval(() => {
         newSocket.emit('presence:heartbeat', {
-          status: currentPresence?.status || PresenceStatus.ONLINE
+          status: PresenceStatus.ONLINE
         });
       }, heartbeatInterval);
 
@@ -224,7 +224,7 @@ export const usePresence = ({
     });
 
     setSocket(newSocket);
-  }, [apiUrl, token, userId, heartbeatInterval, currentPresence?.status]);
+  }, [apiUrl, token, userId, heartbeatInterval, enableCrossTabSync, crossTabSync.isActiveTab]);
 
   const disconnect = useCallback(() => {
     if (heartbeatIntervalRef.current) {
@@ -245,10 +245,11 @@ export const usePresence = ({
   }, [socket]);
 
   const setStatus = useCallback((status: PresenceStatus, activity?: string) => {
-    const newPresence = currentPresence ? { ...currentPresence, status, activity } : {
+    const newPresence: PresenceData = {
       status,
       lastSeen: Date.now(),
-      activity
+      activity,
+      deviceType: 'desktop'
     };
     
     // Обновляем локальное состояние
@@ -263,7 +264,7 @@ export const usePresence = ({
     if (socket?.connected && (!enableCrossTabSync || crossTabSync.isActiveTab)) {
       socket.emit('presence:set_status', { status, activity });
     }
-  }, [socket, currentPresence, enableCrossTabSync, crossTabSync]);
+  }, [socket, enableCrossTabSync, crossTabSync]);
 
   const requestPresence = useCallback((userIds?: string[]) => {
     if (!socket?.connected) return;
@@ -289,21 +290,19 @@ export const usePresence = ({
       if (document.hidden) {
         // Страница скрыта - устанавливаем статус "away" через 5 минут
         setTimeout(() => {
-          if (document.hidden && currentPresence?.status === PresenceStatus.ONLINE) {
+          if (document.hidden) {
             setStatus(PresenceStatus.AWAY, 'Неактивен');
           }
         }, 300000); // 5 минут
       } else {
         // Страница видна - возвращаем онлайн статус
-        if (currentPresence?.status === PresenceStatus.AWAY) {
-          setStatus(PresenceStatus.ONLINE);
-        }
+        setStatus(PresenceStatus.ONLINE);
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [socket, currentPresence?.status, setStatus]);
+  }, [socket, setStatus]);
 
   return {
     socket,

@@ -7,7 +7,7 @@ import { chatAPI } from '@/core/api';
 import { UserRole } from '@/types';
 import Button from '@/components/UI/Button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/UI/Avatar';
-import { Badge } from '@/components/UI/Badge';
+import Badge from '@/components/UI/Badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/UI/Dialog';
 import { PresenceAvatar, PresenceStatus } from '@/components/Presence';
 
@@ -131,7 +131,7 @@ export default function TransferModal({
       case 'busy':
         return PresenceStatus.ONLINE;
       case 'break':
-        return PresenceStatus.IDLE;
+        return PresenceStatus.AWAY;
       case 'offline':
         return PresenceStatus.OFFLINE;
       default:

@@ -35,7 +35,7 @@ import { PresenceIndicator, PresenceAvatar, OnlineUsersList, PresenceStatus, use
 
 
 function OperatorChatPageContent() {
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -66,7 +66,7 @@ function OperatorChatPageContent() {
   const presence = usePresence({
     apiUrl: process.env.NEXT_PUBLIC_API_URL || '',
     userId: user?.id || 'anonymous',
-    token: user?.token,
+    token: token || undefined,
     autoConnect: !!user,
     enableCrossTabSync: true
   });
@@ -76,7 +76,8 @@ function OperatorChatPageContent() {
     queryFn: async () => {
       const response = await chatAPI.getConversations();
       return response.data;
-    }
+    },
+    enabled: !!user && !!token
   });
 
   const { data: messages, isLoading: messagesLoading } = useQuery({
@@ -96,6 +97,7 @@ function OperatorChatPageContent() {
       const response = await chatAPI.getPendingTransferRequests();
       return response.data;
     },
+    enabled: !!user && !!token,
     refetchInterval: 5000 // Обновляем каждые 5 секунд
   });
 
@@ -558,9 +560,7 @@ function OperatorChatPageContent() {
                 <h3 className="text-lg font-medium text-foreground mb-2">
                   Выберите чат
                 </h3>
-                <p className="text-muted-foreground">
-                  Выберите существующий чат или создайте новый
-                </p>
+                
               </div>
             </div>
           )}

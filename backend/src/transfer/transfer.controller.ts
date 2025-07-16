@@ -120,6 +120,15 @@ export class TransferController {
     return this.transferService.removeFromQueue(queueId);
   }
 
+  @Get('pending')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.OPERATOR, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Получить ожидающие запросы на перенаправление' })
+  @ApiResponse({ status: 200, description: 'Ожидающие запросы получены' })
+  async getPendingTransfers(@Request() req: any) {
+    return this.transferService.getPendingTransfers(req.user.id);
+  }
+
   @Get('my-transfers')
   @UseGuards(RolesGuard)
   @Roles(UserRole.OPERATOR)

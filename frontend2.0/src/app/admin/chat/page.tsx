@@ -32,7 +32,7 @@ import Button from '@/components/UI/Button';
 import { PresenceIndicator, PresenceAvatar, OnlineUsersList, PresenceStatus, usePresence } from '@/components/Presence';
 
 function AdminChatPageContent() {
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -59,7 +59,7 @@ function AdminChatPageContent() {
   const presence = usePresence({
     apiUrl: process.env.NEXT_PUBLIC_API_URL || '',
     userId: user?.id || 'anonymous',
-    token: user?.token,
+    token: token || undefined,
     autoConnect: !!user,
     enableCrossTabSync: true
   });

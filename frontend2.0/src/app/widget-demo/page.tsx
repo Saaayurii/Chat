@@ -7,7 +7,7 @@ import { Input } from '../../components/UI/Input';
 import Button from '@/components/UI/Button';
 import { Badge } from '@/components/UI';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3004';
 
 const WidgetDemo: React.FC = () => {
   const [config, setConfig] = useState({

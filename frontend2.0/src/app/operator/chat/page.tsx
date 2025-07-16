@@ -183,9 +183,9 @@ function OperatorChatPageContent() {
   }, [selectedConversation, joinConversation, leaveConversation]);
 
   // Автоскролл к последнему сообщению - оптимизированная версия
-  const messagesLength = messages?.data?.length;
+  const messagesLength = messages?.data?.length || 0;
   useEffect(() => {
-    if (messagesLength && messagesLength > 0) {
+    if (messagesLength > 0) {
       const timer = setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
@@ -273,14 +273,15 @@ function OperatorChatPageContent() {
 
   // Показываем уведомление о pending transfer request
   useEffect(() => {
-    if (transferRequests && transferRequests.length > 0) {
+    if (transferRequests && transferRequests.length > 0 && !showTransferRequestModal) {
       const latestRequest = transferRequests[0];
-      if (!showTransferRequestModal && latestRequest.id !== transferRequest?.id) {
+      const currentRequestId = transferRequest?.id;
+      if (latestRequest.id !== currentRequestId) {
         setTransferRequest(latestRequest);
         setShowTransferRequestModal(true);
       }
     }
-  }, [transferRequests, showTransferRequestModal, transferRequest]);
+  }, [transferRequests, showTransferRequestModal]);
 
   return (
     <div className="h-screen flex bg-background">

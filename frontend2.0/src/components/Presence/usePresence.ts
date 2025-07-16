@@ -280,7 +280,7 @@ export const usePresence = ({
     return () => {
       disconnect();
     };
-  }, [autoConnect, connect, disconnect]);
+  }, [autoConnect]);
 
   // Обработка видимости страницы для автоматической смены статуса
   useEffect(() => {
@@ -302,7 +302,7 @@ export const usePresence = ({
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [socket, setStatus]);
+  }, [socket?.connected]);
 
   return {
     socket,

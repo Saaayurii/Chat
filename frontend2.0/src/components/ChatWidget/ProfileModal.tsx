@@ -50,7 +50,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               {userData.fullName || userData.username || "Не указано"}
             </div>
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Email
@@ -59,7 +58,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               {userData.email}
             </div>
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Статус аккаунта
@@ -70,7 +68,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               </Badge>
             </div>
           </div>
-
           {userData.role && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

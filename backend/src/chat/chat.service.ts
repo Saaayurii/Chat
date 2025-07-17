@@ -534,18 +534,33 @@ export class ChatService {
    * Создает беседу для анонимного пользователя
    */
   async createAnonymousConversation(createData: CreateAnonymousConversationDto) {
-    // Находим доступного оператора
-    const operators = await this.userModel.find({ 
-      role: { $in: ['OPERATOR', 'ADMIN'] },
-      isActivated: true,
-      isBlocked: false 
-    }).limit(1);
+    try {
+      console.log('Создание анонимной беседы:', createData);
+      
+      // Находим любого оператора (не обязательно онлайн) - используем тот же фильтр что и в UsersService
+      const operators = await this.userModel.find({ 
+        role: 'operator',
+        isBlocked: false 
+      }).limit(1);
 
-    if (operators.length === 0) {
-      throw new Error('В данный момент нет доступных операторов');
-    }
+      console.log('Найдено операторов:', operators.length);
 
-    const operator = operators[0];
+      if (operators.length === 0) {
+        throw new Error('В системе нет зарегистрированных операторов');
+      }
+
+      const operator = operators[0];
+      console.log('Выбранный оператор:', operator._id);
+      
+      // Проверяем, есть ли онлайн операторы для определения статуса беседы
+      const onlineOperators = await this.userModel.find({ 
+        role: 'operator',
+        isBlocked: false,
+        'profile.isOnline': true
+      }).limit(1);
+      
+      const hasOnlineOperators = onlineOperators.length > 0;
+      console.log('Онлайн операторов:', onlineOperators.length);
 
     // Создаем временного пользователя для анонимной сессии
     const anonymousUser = {
@@ -566,33 +581,74 @@ export class ChatService {
       updatedAt: new Date(),
     };
 
-    const conversation = new this.conversationModel({
-      participants: [operator._id], // Только оператор как реальный участник
-      type: 'anonymous-support',
-      title: createData.title || `Обращение от ${createData.visitorName}`,
-      description: 'Анонимная беседа с оператором',
-      createdBy: operator._id, // Создана оператором (технически)
-      anonymousUser: anonymousUser, // Сохраняем данные анонимного пользователя
-      unreadByParticipant: new Map([
-        [anonymousUser._id.toString(), 0],
-        [operator._id.toString(), 0]
-      ]),
-      status: 'active',
-    });
-
-    const savedConversation = await conversation.save();
-
-    // Если есть начальное сообщение, создаем его
-    if (createData.initialMessage) {
-      await this.createAnonymousMessage({
-        conversationId: (savedConversation._id as Types.ObjectId).toString(),
-        text: createData.initialMessage,
-        sessionId: createData.sessionId,
-        senderName: createData.visitorName,
+      console.log('Создание модели беседы...');
+      
+      const conversation = new this.conversationModel({
+        participants: [operator._id], // Только оператор как реальный участник
+        type: 'anonymous-support',
+        title: createData.title || `Обращение от ${createData.visitorName}`,
+        description: 'Анонимная беседа с оператором',
+        createdBy: operator._id, // Создана оператором (технически)
+        anonymousUser: anonymousUser, // Сохраняем данные анонимного пользователя
+        unreadByParticipant: new Map([
+          [anonymousUser._id.toString(), 0],
+          [operator._id.toString(), 0]
+        ]),
+        status: 'active',
+        waitingForAssignment: !hasOnlineOperators, // Ожидает назначения, если нет онлайн операторов
       });
-    }
 
-    return savedConversation;
+      console.log('Сохранение беседы...');
+      const savedConversation = await conversation.save();
+      console.log('Беседа сохранена:', savedConversation._id);
+
+      // Если есть начальное сообщение, создаем его
+      if (createData.initialMessage) {
+        console.log('Создание начального сообщения...');
+        try {
+          await this.createAnonymousMessage({
+            conversationId: (savedConversation._id as Types.ObjectId).toString(),
+            text: createData.initialMessage,
+            sessionId: createData.sessionId,
+            senderName: createData.visitorName,
+          });
+          console.log('Начальное сообщение создано');
+        } catch (messageError) {
+          console.error('Ошибка создания начального сообщения:', messageError);
+          // Не прерываем выполнение, беседа уже создана
+        }
+      }
+
+      // Если нет онлайн операторов, добавляем системное сообщение
+      if (!hasOnlineOperators) {
+        console.log('Добавление системного сообщения об отсутствии онлайн операторов...');
+        try {
+          const systemMessage = new this.messageModel({
+            conversationId: savedConversation._id,
+            senderId: operator._id,
+            text: 'В данный момент все операторы не в сети. Ваше сообщение будет обработано при первой возможности.',
+            type: MessageType.TEXT,
+            status: MessageStatus.SENT,
+            senderName: 'Система',
+            isSystemMessage: true,
+            readBy: [operator._id],
+            readTimestamps: new Map([[operator._id.toString(), new Date()]]),
+          });
+          
+          await systemMessage.save();
+          console.log('Системное сообщение добавлено');
+        } catch (systemMessageError) {
+          console.error('Ошибка создания системного сообщения:', systemMessageError);
+        }
+      }
+
+      console.log('Беседа создана:', savedConversation._id);
+      return savedConversation;
+      
+    } catch (error) {
+      console.error('Ошибка создания анонимной беседы:', error);
+      throw error;
+    }
   }
 
   /**

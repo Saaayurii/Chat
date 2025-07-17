@@ -425,7 +425,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${userToken}`
+            ...(userToken && userToken !== 'anonymous' ? { 'Authorization': `Bearer ${userToken}` } : {})
           },
           body: JSON.stringify(requestBody)
         }).then(async res => {
@@ -721,7 +721,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${userToken}`
+              ...(userToken && userToken !== 'anonymous' ? { 'Authorization': `Bearer ${userToken}` } : {})
             },
             body: JSON.stringify({
               text: messageText,
@@ -771,7 +771,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
         fetch(`${apiUrl}/chat/conversations/${conversationId}/attachments`, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${userToken}`
+            ...(userToken && userToken !== 'anonymous' ? { 'Authorization': `Bearer ${userToken}` } : {})
           },
           body: formData
         }).then(res => res.json())
@@ -816,7 +816,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${userToken}`
+          ...(userToken && userToken !== 'anonymous' ? { Authorization: `Bearer ${userToken}` } : {})
         },
         body: JSON.stringify({
           operatorId: operatorInfo.id,
@@ -860,7 +860,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${userToken}`
+          ...(userToken && userToken !== 'anonymous' ? { Authorization: `Bearer ${userToken}` } : {})
         },
         body: JSON.stringify({
           operatorId: operatorInfo.id,
@@ -891,7 +891,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
         await fetch(`${apiUrl}/auth/logout`, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${userToken}`
+            ...(userToken && userToken !== 'anonymous' ? { 'Authorization': `Bearer ${userToken}` } : {})
           }
         });
       } catch (error) {

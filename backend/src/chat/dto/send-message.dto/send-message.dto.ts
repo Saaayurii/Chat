@@ -19,3 +19,14 @@ export class SendMessageDto {
   @IsOptional()
   senderId?: string; // Заполняется автоматически в gateway
 }
+
+export class SendMessageHttpDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(2000, { message: 'Сообщение не может превышать 2000 символов' })
+  text: string;
+
+  @IsOptional()
+  @IsEnum(MessageType)
+  type?: MessageType = MessageType.TEXT;
+}

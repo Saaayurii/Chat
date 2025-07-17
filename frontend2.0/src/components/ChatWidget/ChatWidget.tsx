@@ -129,13 +129,6 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     onConnect: () => {
       console.log('WebSocket подключен');
       setIsConnected(true);
-      
-      // Присоединяемся к комнате беседы
-      if (conversationId) {
-        emitSocketEvent('join-room', { conversationId });
-        // Запрашиваем кэшированные сообщения
-        emitSocketEvent('get-cached-messages', { conversationId, limit: 50 });
-      }
     },
     onDisconnect: () => {
       console.log('WebSocket отключен');
@@ -145,7 +138,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
       console.error('Ошибка WebSocket:', error);
       setIsConnected(false);
     },
-    autoConnect: userToken && userToken !== 'anonymous' && isAuthenticated ? true : false
+    autoConnect: false // Отключаем автоподключение
   });
   
   const { execute: createConversation } = useApiCall();
@@ -194,8 +187,15 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     setUserToken(null);
     setUserData(null);
     setIsAuthenticated(false);
+    
+    // Очищаем токены и данные пользователя
     deleteCookie('chat_widget_token');
     deleteCookie('chat_widget_user');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('user_data');
+    
+    // Обновляем auth store
+    setAuth(null, null);
   };
 
   const handleGuestRegistration = useCallback(async () => {
@@ -574,39 +574,40 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     setIsAuthenticated(false);
   }, [apiUrl, userToken, userData]);
 
-  // Sync with auth store
+  // Sync with auth store (только если нет локальных данных)
   useEffect(() => {
-    setIsAuthenticated(authIsAuthenticated);
-    setUserToken(authToken);
-    setUserData(authUser);
-  }, [authIsAuthenticated, authToken, authUser]);
+    if (!userToken && !userData) {
+      setIsAuthenticated(authIsAuthenticated);
+      setUserToken(authToken);
+      setUserData(authUser);
+    }
+  }, [authIsAuthenticated, authToken, authUser, userToken, userData]);
 
   useEffect(() => {
-    checkExistingAuth();
+    let isMounted = true;
+    
+    // Проверяем авторизацию только один раз при монтировании
+    if (!userToken && !userData) {
+      checkExistingAuth();
+    }
     
     // Слушаем изменения в localStorage для синхронизации с основным приложением
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'access_token' || e.key === 'user_data') {
+      if (isMounted && (e.key === 'access_token' || e.key === 'user_data')) {
         console.log('Изменение в localStorage:', e.key, e.newValue);
-        checkExistingAuth();
+        if (!userToken && !userData) {
+          checkExistingAuth();
+        }
       }
     };
     
     window.addEventListener('storage', handleStorageChange);
     
-    // Также проверяем каждые 5 секунд для случая, когда пользователь авторизуется в том же табе
-    // Но только если пользователь не авторизован
-    const interval = setInterval(() => {
-      if (!userToken || !userData || !userData.id) {
-        checkExistingAuth();
-      }
-    }, 5000);
-    
     return () => {
+      isMounted = false;
       window.removeEventListener('storage', handleStorageChange);
-      clearInterval(interval);
     };
-  }, [apiUrl, checkExistingAuth, userToken, userData]);
+  }, [apiUrl]); // Убираем зависимости checkExistingAuth, userToken, userData
 
   useEffect(() => {
     if (isOpen && userToken && !conversationId && !isCreatingConversation) {
@@ -615,15 +616,15 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   }, [isOpen, userToken, conversationId, isCreatingConversation]);
 
   useEffect(() => {
-    if (conversationId && userToken) {
+    if (conversationId && userToken && userToken !== 'anonymous' && socketConnected) {
       console.log('Подключение к WebSocket для беседы:', conversationId);
       
       // Подключаемся к WebSocket и присоединяемся к комнате беседы
-      if (socketConnected) {
-        emitSocketEvent('join-room', { conversationId });
-      }
+      emitSocketEvent('join-room', { conversationId });
+      // Запрашиваем кэшированные сообщения
+      emitSocketEvent('get-cached-messages', { conversationId, limit: 50 });
     }
-  }, [conversationId, userToken, socketConnected]);
+  }, [conversationId, userToken, socketConnected, emitSocketEvent]);
 
   useEffect(() => {
     scrollToBottom();
@@ -695,7 +696,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
               'Authorization': `Bearer ${userToken}`
             },
             body: JSON.stringify({
-              content: messageText,
+              text: messageText,
               type: 'text'
             })
           }).then(res => res.json())
@@ -874,7 +875,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     clearAuth();
     setConversationId(null);
     setOperatorInfo(null);
-    setMessages(prev => [...prev, {
+    setMessages([{
       id: Date.now().toString(),
       content: 'Вы вышли из системы',
       timestamp: new Date(),
@@ -1125,7 +1126,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                 </Button>
               )}
               
-              {allowRating && operatorInfo && (
+              {allowRating && operatorInfo && isAuthenticated && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -1137,7 +1138,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                 </Button>
               )}
               
-              {allowComplaint && operatorInfo && (
+              {allowComplaint && operatorInfo && isAuthenticated && (
                 <Button
                   variant="outline"
                   size="sm"

@@ -18,6 +18,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { ChatService } from './chat.service';
 import { JwtAuthGuard } from '../common/guards/auth.guard';
 import { CreateConversationDto } from './dto/create-conversation.dto/create-conversation.dto';
+import { SendMessageDto, SendMessageHttpDto } from './dto/send-message.dto/send-message.dto';
 import { GetMessagesDto } from './dto/get-messages.dto';
 import { MarkMessagesReadDto } from './dto/mark-read.dto';
 import { UploadAttachmentDto } from './dto/upload-attachment.dto';
@@ -64,6 +65,30 @@ export class ChatController {
       query.limit,
       query.skip,
     );
+  }
+
+  @Post('conversations/:conversationId/messages')
+  @ApiOperation({ summary: 'Отправить сообщение в беседу' })
+  @ApiResponse({ status: 201, description: 'Сообщение успешно отправлено' })
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+  async sendMessage(
+    @Param('conversationId') conversationId: string,
+    @Body() sendMessageDto: SendMessageHttpDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    const messageData = {
+      ...sendMessageDto,
+      conversationId,
+      senderId: req.user._id,
+    };
+    
+    const message = await this.chatService.createMessage(messageData);
+    
+    return {
+      success: true,
+      data: message,
+      message: 'Сообщение успешно отправлено'
+    };
   }
 
   @Put('conversations/:conversationId/read')

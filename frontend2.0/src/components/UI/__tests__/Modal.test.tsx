@@ -243,7 +243,7 @@ describe('Modal Component', () => {
     const originalAddEventListener = document.addEventListener;
     document.addEventListener = jest.fn((type, handler) => {
       if (type === 'click') {
-        handler({ stopPropagation: mockStopPropagation } as any);
+        (handler as any)({ stopPropagation: mockStopPropagation } as any);
       }
     });
 

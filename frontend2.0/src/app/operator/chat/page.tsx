@@ -115,7 +115,7 @@ function OperatorChatPageContent() {
       
       // Определяем тип беседы для выбора правильного API
       const conversation = conversations?.find(conv => 
-        (conv._id === selectedConversation || conv.id === selectedConversation)
+        (conv._id === selectedConversation || (conv as any).id === selectedConversation)
       );
       
       let response;
@@ -132,7 +132,7 @@ function OperatorChatPageContent() {
         } catch (operatorError) {
           console.log('Operator API failed, trying anonymous API:', operatorError);
           // Если operator API не работает, пробуем anonymous API
-          if (conversation?.type === 'anonymous-support') {
+          if ((conversation as any)?.type === 'anonymous-support') {
             console.log('Using anonymous messages API for conversation:', selectedConversation);
             response = await chatAPI.getAnonymousMessages(selectedConversation);
           } else {
@@ -165,7 +165,7 @@ function OperatorChatPageContent() {
     
     // Находим беседу для определения типа
     const conversation = conversations?.find(conv => 
-      (conv._id === selectedConversation || conv.id === selectedConversation)
+      (conv._id === selectedConversation || (conv as any).id === selectedConversation)
     );
     
     // Отправляем через Socket.IO
@@ -281,11 +281,11 @@ function OperatorChatPageContent() {
     // Создаем список уникальных отправителей из бесед
     const sendersMap = new Map();
     conversations.forEach(conv => {
-      const conversationId = conv._id || conv.id;
+      const conversationId = conv._id || (conv as any).id;
       
       // Обработка анонимных бесед
-      if (conv.type === 'anonymous-support' && conv.anonymousUser) {
-        const anonymousUser = conv.anonymousUser;
+      if ((conv as any).type === 'anonymous-support' && (conv as any).anonymousUser) {
+        const anonymousUser = (conv as any).anonymousUser;
         const senderId = anonymousUser._id || anonymousUser.id || `anonymous_${conversationId}`;
         
         sendersMap.set(senderId, {

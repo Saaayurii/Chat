@@ -21,7 +21,7 @@ export const useOperatorNotifications = () => {
     console.log('Получено уведомление о новом сообщении:', data);
     
     // Только для операторов
-    if (user?.role !== 'OPERATOR') return;
+    if (user?.role !== 'operator') return;
     
     // Проверяем, что это не наше сообщение
     if (data.senderId === user?.id) return;
@@ -101,7 +101,7 @@ export const useOperatorNotifications = () => {
 
   // Подписка на уведомления из backend
   useEffect(() => {
-    if (user?.role !== 'OPERATOR') return;
+    if (user?.role !== 'operator') return;
 
     const eventSource = new EventSource(`/api/operator/notifications?userId=${user.id}`);
     

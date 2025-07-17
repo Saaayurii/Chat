@@ -113,7 +113,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
         console.log('Сообщение успешно отправлено:', message);
       } else if (message.type === 'cached-messages') {
         // Загружаем кэшированные сообщения
-        const cachedMessages = message.messages.map((msg: any) => ({
+        const cachedMessages = (message as any).messages.map((msg: any) => ({
           id: msg.id,
           content: msg.text,
           timestamp: new Date(msg.timestamp),
@@ -123,7 +123,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
         }));
         
         setMessages(prev => [...cachedMessages, ...prev]);
-        console.log('Загружены кэшированные сообщения:', cachedMessages.length, 'из', message.source);
+        console.log('Загружены кэшированные сообщения:', cachedMessages.length, 'из', (message as any).source);
       }
     },
     onConnect: () => {
@@ -195,7 +195,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     localStorage.removeItem('user_data');
     
     // Обновляем auth store
-    setAuth(null, null);
+    setAuth(null as any, null as any);
   };
 
   const handleGuestRegistration = useCallback(async () => {
@@ -232,7 +232,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
       if (presence?.onlineUsers && presence.onlineUsers.length > 0) {
         // Фильтруем только операторов среди онлайн пользователей
         const onlineOperators = presence.onlineUsers.filter(user => 
-          user.role === 'OPERATOR' || user.role === 'ADMIN'
+          (user as any).role === 'operator' || (user as any).role === 'admin'
         );
         
         if (onlineOperators.length > 0) {
@@ -240,8 +240,8 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
           console.log('Найден онлайн оператор через presence:', operator);
           return {
             id: operator.userId,
-            name: operator.displayName || 'Оператор',
-            avatar: operator.avatar,
+            name: (operator as any).displayName || 'Оператор',
+            avatar: (operator as any).avatar,
             isOnline: true
           };
         }
@@ -379,7 +379,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
           setConversationId(convId);
           
           // Обновляем userData с sessionId
-          setUserData(prev => ({
+          setUserData((prev: any) => ({
             ...prev,
             sessionId: sessionId
           }));

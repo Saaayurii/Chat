@@ -125,9 +125,9 @@ export const useSocketIO = (namespace: string, options: UseSocketIOOptions = {})
       socketRef.current.on('connect_error', (error) => {
         const timestamp = new Date().toISOString();
         console.error(`[${timestamp}] SocketIO connection error to ${namespace}:`, error);
-        console.error(`[${timestamp}] SocketIO: Error type: ${error.type}, message: ${error.message}`);
-        console.error(`[${timestamp}] SocketIO: Error context:`, error.context);
-        console.error(`[${timestamp}] SocketIO: Error data:`, error.data);
+        console.error(`[${timestamp}] SocketIO: Error type: ${(error as any).type}, message: ${error.message}`);
+        console.error(`[${timestamp}] SocketIO: Error context:`, (error as any).context);
+        console.error(`[${timestamp}] SocketIO: Error data:`, (error as any).data);
         console.error(`[${timestamp}] SocketIO: Error stack:`, error.stack);
         const errorMessage = error.message || 'Connection failed';
         

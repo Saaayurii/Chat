@@ -166,7 +166,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const resetEmailMutation = useMutation({
     mutationFn: async (data: ResetEmailFormData) => {
-      const response = await authAPI.requestPasswordReset(data);
+      const response = await authAPI.forgotPassword(data);
       return response.data;
     },
     onSuccess: () => {

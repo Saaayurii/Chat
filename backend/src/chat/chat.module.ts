@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ChatController } from './chat.controller';
+import { PublicChatController } from './public-chat.controller';
 import { ChatService } from './chat.service';
 import { ChatGateway } from './chat.gateway';
 import { UsersModule } from '../users/users.module';
@@ -30,7 +31,7 @@ import { User, UserSchema } from '../database/schemas/user.schema';
     CommonModule,
     ConfigModule,
   ],
-  controllers: [ChatController],
+  controllers: [ChatController, PublicChatController],
   providers: [ChatService, ChatGateway],
   exports: [ChatService],
 })

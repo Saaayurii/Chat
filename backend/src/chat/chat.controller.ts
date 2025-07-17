@@ -44,6 +44,11 @@ export class ChatController {
     // Добавляем создателя беседы к участникам
     const participantIds = [...new Set([req.user._id, ...createConversationDto.participantIds])];
     
+    console.log('Создание беседы:');
+    console.log('req.user._id:', req.user._id);
+    console.log('createConversationDto.participantIds:', createConversationDto.participantIds);
+    console.log('final participantIds:', participantIds);
+    
     return this.chatService.createConversation({
       ...createConversationDto,
       participantIds,

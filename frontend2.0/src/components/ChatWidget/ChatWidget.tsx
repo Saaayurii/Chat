@@ -81,7 +81,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   // Presence system integration
   const presence = usePresence({
     apiUrl: apiUrl || '',
-    userId: userData?.id || 'anonymous',
+    userId: userData?._id || userData?.id || 'anonymous',
     token: userToken || undefined,
     autoConnect: isAuthenticated && showPresence,
     enableCrossTabSync: true
@@ -96,7 +96,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
           id: message.data.id || Date.now().toString(),
           content: message.data.text || message.data.content,
           timestamp: new Date(message.data.timestamp),
-          sender: message.data.senderId === userData?.id ? 'user' : 'operator',
+          sender: message.data.senderId === (userData?._id || userData?.id) ? 'user' : 'operator',
           senderName: message.data.senderName || operatorName,
           type: message.data.type || 'text'
         };
@@ -117,7 +117,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
           id: msg.id,
           content: msg.text,
           timestamp: new Date(msg.timestamp),
-          sender: msg.senderId === userData?.id ? 'user' : 'operator',
+          sender: msg.senderId === (userData?._id || userData?.id) ? 'user' : 'operator',
           senderName: msg.senderName || operatorName,
           type: msg.type || 'text'
         }));
@@ -199,71 +199,26 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   };
 
   const handleGuestRegistration = useCallback(async () => {
-    // Проверяем есть ли уже сохраненный токен гостя
-    const guestToken = getCookie('chat_widget_guest_token');
-    if (guestToken) {
-      try {
-        const response = await fetch(`${apiUrl}/auth/me`, {
-          headers: {
-            'Authorization': `Bearer ${guestToken}`
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setUserToken(guestToken);
-          setUserData(data.user);
-          console.log('Гостевой токен валиден, пользователь авторизован');
-          return;
-        } else {
-          // Токен недействителен, удаляем его
-          deleteCookie('chat_widget_guest_token');
-          console.log('Гостевой токен недействителен, удаляем');
-        }
-      } catch (error) {
-        console.error('Ошибка проверки гостевого токена:', error);
-        deleteCookie('chat_widget_guest_token');
-      }
-    }
-
-    // Создаем нового гостя
-    try {
-      const guestId = getCookie('chat_widget_guest_id') || `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      setCookie('chat_widget_guest_id', guestId, 365);
-      
-      const registrationData = {
-        email: `${guestId}@widget.guest`,
-        password: `${guestId}_${Date.now()}`,
-        firstName: 'Посетитель',
-        lastName: 'Сайта',
-        role: 'VISITOR'
-      };
-
-      console.log('Регистрация нового гостя:', registrationData.email);
-
-      const response = await fetch(`${apiUrl}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(registrationData)
-      });
-      
-      const data = await response.json();
-      console.log('Ответ регистрации:', data);
-      
-      if (data.success || data.accessToken) { // некоторые API возвращают accessToken напрямую
-        const token = data.accessToken || data.token || data.data?.token;
-        const user = data.user || data.data?.user || { ...registrationData, id: Date.now().toString(), role: 'VISITOR' };
-        
-        setUserToken(token);
-        setUserData(user);
-        setCookie('chat_widget_guest_token', token, 30);
-        console.log('Гость успешно зарегистрирован');
-      } else {
-        console.error('Ошибка регистрации посетителя:', data);
-      }
-    } catch (error) {
-      console.error('Ошибка регистрации посетителя:', error);
-    }
+    // Для анонимных пользователей не используем токены, сразу создаем временного пользователя
+    console.log('Создание анонимного пользователя для виджета');
+    const anonymousUserId = `anonymous_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const sessionId = crypto.randomUUID();
+    const anonymousUser = {
+      id: anonymousUserId,
+      _id: anonymousUserId,
+      email: `anonymous@widget.temp`,
+      firstName: 'Посетитель',
+      lastName: 'Сайта',
+      role: 'VISITOR',
+      isAnonymous: true,
+      sessionId: sessionId
+    };
+    
+    setUserData(anonymousUser);
+    setUserToken('anonymous');
+    setIsAuthenticated(false);
+    console.log('Анонимный пользователь создан');
+    return;
   }, [apiUrl]);
 
   const getAvailableOperator = useCallback(async () => {
@@ -381,25 +336,69 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
       const operator = await getAvailableOperator();
       setOperatorInfo(operator);
       
-      // Для анонимных пользователей создаем локальную беседу
+      // Для анонимных пользователей создаем беседу через публичный API
       if (userToken === 'anonymous' || userData?.isAnonymous) {
-        console.log('Создание анонимной беседы...');
-        const anonymousConversationId = `anonymous_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        setConversationId(anonymousConversationId);
+        console.log('Создание анонимной беседы через публичный API...');
         
-        // Добавляем приветственное сообщение
-        const welcomeMsg = {
-          id: 'welcome',
-          content: `${welcomeMessage} Вас обслуживает ${operator.name}. Ваши сообщения будут переданы оператору.`,
-          timestamp: new Date(),
-          sender: 'operator' as const,
-          senderName: operator.name,
-          type: 'system' as const
+        // Генерируем sessionId для анонимного пользователя (UUID формат)
+        const sessionId = userData?.sessionId || crypto.randomUUID();
+        
+        const requestBody = {
+          visitorName: userData?.firstName || 'Посетитель',
+          visitorEmail: userData?.email || undefined,
+          title: 'Обращение с сайта',
+          sessionId: sessionId,
+          initialMessage: 'Здравствуйте! У меня есть вопрос.'
         };
         
-        console.log('Добавляем приветственное сообщение для анонимного пользователя:', welcomeMsg);
-        setMessages([welcomeMsg]);
-        setIsConnected(true);
+        console.log('Отправляем запрос на создание анонимной беседы:', requestBody);
+        
+        const response = await createConversation(() => 
+          fetch(`${apiUrl}/public/chat/conversations`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+          }).then(async res => {
+            const data = await res.json();
+            if (!res.ok) {
+              console.error('Ошибка создания анонимной беседы:', res.status, data);
+              throw new Error(data.message || `HTTP ${res.status}`);
+            }
+            return data;
+          })
+        );
+        
+        console.log('Ответ создания анонимной беседы:', response);
+        
+        const conversationData = response.data || response;
+        const convId = conversationData.id || conversationData._id;
+        
+        if (convId) {
+          setConversationId(convId);
+          
+          // Обновляем userData с sessionId
+          setUserData(prev => ({
+            ...prev,
+            sessionId: sessionId
+          }));
+          
+          // Добавляем приветственное сообщение
+          const welcomeMsg = {
+            id: 'welcome',
+            content: `${welcomeMessage} Вас обслуживает ${operator.name}.`,
+            timestamp: new Date(),
+            sender: 'operator' as const,
+            senderName: operator.name,
+            type: 'system' as const
+          };
+          
+          console.log('Добавляем приветственное сообщение для анонимного пользователя:', welcomeMsg);
+          setMessages([welcomeMsg]);
+          setIsConnected(true);
+        }
+        
         return;
       }
       
@@ -410,13 +409,16 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
         throw new Error('В данный момент нет доступных операторов. Попробуйте позже.');
       }
       
+      const userId = userData._id || userData.id;
       const requestBody = {
         type: 'user-operator',
         title: 'Обращение с сайта',
-        participantIds: [userData.id, operator.id] // Добавляем текущего пользователя
+        participantIds: [userId, operator.id] // Добавляем текущего пользователя
       };
       
       console.log('Отправляем запрос на создание беседы:', requestBody);
+      console.log('ID текущего пользователя:', userId);
+      console.log('Данные пользователя:', userData);
       
       const response = await createConversation(() => 
         fetch(`${apiUrl}/chat/conversations`, {
@@ -508,7 +510,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
       }
     }
     
-    if (token) {
+    if (token && token !== 'anonymous') {
       try {
         // Проверяем валидность токена
         const response = await fetch(`${apiUrl}/auth/me`, {
@@ -560,13 +562,17 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     
     // Анонимный режим - создаем временного пользователя
     console.log('Создание анонимного пользователя для виджета');
+    const anonymousUserId = `anonymous_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const sessionId = crypto.randomUUID();
     const anonymousUser = {
-      id: `anonymous_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: anonymousUserId,
+      _id: anonymousUserId,
       email: `anonymous@widget.temp`,
-      firstName: 'Анонимный',
-      lastName: 'Пользователь',
+      firstName: 'Посетитель',
+      lastName: 'Сайта',
       role: 'VISITOR',
-      isAnonymous: true
+      isAnonymous: true,
+      sessionId: sessionId
     };
     
     setUserData(anonymousUser);
@@ -652,23 +658,45 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     setMessages(prev => [...prev, newMessage]);
     setInputMessage('');
     
-    // Для анонимных пользователей - только локальное сохранение и имитация ответа
+    // Для анонимных пользователей - отправка через публичный API
     if (userToken === 'anonymous' || userData?.isAnonymous) {
       console.log('Отправка анонимного сообщения:', messageText);
       
-      // Имитируем ответ оператора через несколько секунд
-      setTimeout(() => {
-        const operatorResponse: Message = {
-          id: Date.now().toString(),
-          content: 'Спасибо за ваше сообщение! Ваш вопрос передан оператору. Для полноценного общения рекомендуем авторизоваться.',
-          timestamp: new Date(),
-          sender: 'operator',
-          senderName: operatorInfo?.name || operatorName,
-          type: 'text'
-        };
+      try {
+        const response = await sendMessage(() => 
+          fetch(`${apiUrl}/public/chat/conversations/${conversationId}/messages`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              text: messageText,
+              type: 'text',
+              sessionId: userData?.sessionId,
+              senderName: userData?.firstName || 'Посетитель'
+            })
+          }).then(res => res.json())
+        );
         
-        setMessages(prev => [...prev, operatorResponse]);
-      }, 1500);
+        console.log('Ответ отправки анонимного сообщения:', response);
+        
+        if (response.success) {
+          // Обновляем локальное сообщение с реальным ID
+          setMessages(prev => prev.map(msg => 
+            msg.id === tempId 
+              ? { ...msg, id: response.data.id || response.data._id }
+              : msg
+          ));
+        } else {
+          // Удаляем сообщение в случае ошибки
+          setMessages(prev => prev.filter(msg => msg.id !== tempId));
+          console.error('Ошибка отправки анонимного сообщения:', response.error);
+        }
+      } catch (error) {
+        console.error('Ошибка отправки анонимного сообщения:', error);
+        // Удаляем сообщение в случае ошибки
+        setMessages(prev => prev.filter(msg => msg.id !== tempId));
+      }
       return;
     }
     

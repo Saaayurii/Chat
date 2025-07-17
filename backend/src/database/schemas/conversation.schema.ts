@@ -7,6 +7,7 @@ export enum ConversationType {
   USER_OPERATOR = 'user-operator',
   OPERATOR_OPERATOR = 'operator-operator',
   OPERATOR_ADMIN = 'operator-admin',
+  ANONYMOUS_SUPPORT = 'anonymous-support',
 }
 
 export enum ConversationStatus {
@@ -95,6 +96,26 @@ export class Conversation {
 
   @Prop({ type: Types.ObjectId, ref: 'User' })
   closedBy?: Types.ObjectId;
+
+  // Для анонимных бесед - данные временного пользователя
+  @Prop({ type: Object })
+  anonymousUser?: {
+    _id: Types.ObjectId;
+    email: string;
+    profile: {
+      username: string;
+      fullName: string;
+      isOnline: boolean;
+      lastSeenAt: Date;
+    };
+    role: string;
+    isActivated: boolean;
+    isBlocked: boolean;
+    isAnonymous: boolean;
+    sessionId: string;
+    createdAt: Date;
+    updatedAt: Date;
+  };
 
   createdAt: Date;
   updatedAt: Date;

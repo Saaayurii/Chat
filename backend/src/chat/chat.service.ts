@@ -6,6 +6,8 @@ import { Message, MessageDocument, MessageType, MessageStatus } from '../databas
 import { User, UserDocument } from '../database/schemas/user.schema';
 import { SendMessageDto } from './dto/send-message.dto/send-message.dto';
 import { CreateConversationDto } from './dto/create-conversation.dto/create-conversation.dto';
+import { CreateAnonymousConversationDto } from './dto/create-anonymous-conversation.dto';
+import { SendAnonymousMessageDto } from './dto/send-anonymous-message.dto';
 import { UploadAttachmentDto } from './dto/upload-attachment.dto';
 import { UploadedFile } from '../common/interfaces/uploaded-file.interface';
 import { MessageCacheService } from '../common/services/message-cache.service';
@@ -73,6 +75,11 @@ export class ChatService {
     const isParticipant = conversation.participants.some(
       participantId => participantId.toString() === senderId
     );
+
+    console.log('Проверка участника беседы:');
+    console.log('senderId:', senderId);
+    console.log('conversation.participants:', conversation.participants.map(p => p.toString()));
+    console.log('isParticipant:', isParticipant);
 
     if (!isParticipant) {
       throw new ForbiddenException('Вы не являетесь участником этой беседы');
@@ -521,5 +528,162 @@ export class ChatService {
     isEnabled: boolean;
   }> {
     return this.messageCacheService.getCacheStats(conversationId);
+  }
+
+  /**
+   * Создает беседу для анонимного пользователя
+   */
+  async createAnonymousConversation(createData: CreateAnonymousConversationDto) {
+    // Находим доступного оператора
+    const operators = await this.userModel.find({ 
+      role: { $in: ['OPERATOR', 'ADMIN'] },
+      isActivated: true,
+      isBlocked: false 
+    }).limit(1);
+
+    if (operators.length === 0) {
+      throw new Error('В данный момент нет доступных операторов');
+    }
+
+    const operator = operators[0];
+
+    // Создаем временного пользователя для анонимной сессии
+    const anonymousUser = {
+      _id: new Types.ObjectId(),
+      email: createData.visitorEmail || `anonymous_${createData.sessionId}@widget.temp`,
+      profile: {
+        username: createData.visitorName,
+        fullName: createData.visitorName,
+        isOnline: true,
+        lastSeenAt: new Date(),
+      },
+      role: 'VISITOR',
+      isActivated: true,
+      isBlocked: false,
+      isAnonymous: true,
+      sessionId: createData.sessionId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const conversation = new this.conversationModel({
+      participants: [operator._id], // Только оператор как реальный участник
+      type: 'anonymous-support',
+      title: createData.title || `Обращение от ${createData.visitorName}`,
+      description: 'Анонимная беседа с оператором',
+      createdBy: operator._id, // Создана оператором (технически)
+      anonymousUser: anonymousUser, // Сохраняем данные анонимного пользователя
+      unreadByParticipant: new Map([
+        [anonymousUser._id.toString(), 0],
+        [operator._id.toString(), 0]
+      ]),
+      status: 'active',
+    });
+
+    const savedConversation = await conversation.save();
+
+    // Если есть начальное сообщение, создаем его
+    if (createData.initialMessage) {
+      await this.createAnonymousMessage({
+        conversationId: (savedConversation._id as Types.ObjectId).toString(),
+        text: createData.initialMessage,
+        sessionId: createData.sessionId,
+        senderName: createData.visitorName,
+      });
+    }
+
+    return savedConversation;
+  }
+
+  /**
+   * Создает сообщение от анонимного пользователя
+   */
+  async createAnonymousMessage(messageData: SendAnonymousMessageDto & { conversationId: string }) {
+    const { conversationId, text, sessionId, senderName, type = MessageType.TEXT } = messageData;
+
+    // Получаем беседу
+    const conversation = await this.conversationModel.findById(conversationId);
+    if (!conversation) {
+      throw new NotFoundException('Беседа не найдена');
+    }
+
+    // Для анонимных бесед проверяем sessionId
+    if (conversation.type === 'anonymous-support') {
+      if (!conversation.anonymousUser || conversation.anonymousUser.sessionId !== sessionId) {
+        throw new ForbiddenException('Неверный идентификатор сессии');
+      }
+    }
+
+    if (!conversation.anonymousUser) {
+      throw new ForbiddenException('Данные анонимного пользователя не найдены');
+    }
+
+    // Создаем сообщение
+    const message = new this.messageModel({
+      conversationId: new Types.ObjectId(conversationId),
+      senderId: conversation.anonymousUser._id,
+      text,
+      type,
+      status: MessageStatus.SENT,
+      senderName: senderName || conversation.anonymousUser.profile.username,
+      readBy: [conversation.anonymousUser._id],
+      readTimestamps: new Map([[conversation.anonymousUser._id.toString(), new Date()]]),
+    });
+
+    const savedMessage = await message.save();
+
+    // Добавляем сообщение в кэш Redis
+    await this.messageCacheService.addMessage(savedMessage);
+    
+    // Также сохраняем в Redis для real-time доступа
+    await this.redisService.cacheConversationMessage(conversationId, {
+      id: (savedMessage._id as Types.ObjectId).toString(),
+      text: savedMessage.text,
+      senderId: savedMessage.senderId.toString(),
+      timestamp: savedMessage.createdAt,
+      type: savedMessage.type,
+      status: savedMessage.status,
+      senderName: senderName || conversation.anonymousUser.profile.username,
+    });
+
+    // Получаем операторов для уведомлений
+    const operatorIds = conversation.participants
+      .filter(pid => pid.toString() !== conversation.anonymousUser!._id.toString())
+      .map(pid => pid.toString());
+
+    // Отправляем уведомления операторам
+    await this.notificationService.publishMessageNotification(
+      conversationId,
+      savedMessage,
+      operatorIds
+    );
+
+    // Обновляем последнее сообщение в беседе
+    await this.conversationModel.findByIdAndUpdate(conversationId, {
+      $set: {
+        'lastMessage.text': text,
+        'lastMessage.senderId': conversation.anonymousUser!._id,
+        'lastMessage.timestamp': new Date(),
+      },
+      $inc: { 
+        unreadMessagesCount: 1,
+        ...Object.fromEntries(
+          operatorIds.map(pid => [`unreadByParticipant.${pid}`, 1])
+        )
+      }
+    });
+
+    return savedMessage;
+  }
+
+  /**
+   * Получает беседу для публичного доступа (без проверки аутентификации)
+   */
+  async getPublicConversation(conversationId: string) {
+    return this.conversationModel
+      .findById(conversationId)
+      .populate('participants', 'email profile.username profile.avatarUrl role')
+      .populate('lastMessage.senderId', 'profile.username')
+      .exec();
   }
 }

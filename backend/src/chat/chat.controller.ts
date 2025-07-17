@@ -58,7 +58,7 @@ export class ChatController {
     @Query() query: GetMessagesDto,
     @Request() req: AuthenticatedRequest,
   ) {
-    return this.chatService.getConversationMessages(
+    return this.chatService.getConversationMessagesWithAuth(
       conversationId,
       req.user._id,
       query.limit,

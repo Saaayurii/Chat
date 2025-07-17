@@ -193,10 +193,35 @@ async afterInit(server: Server) {
         senderId: user.id,
       });
 
-      // Отправляем сообщение всем участникам беседы
+      // Формируем данные сообщения для real-time отправки
+      const messageData = {
+        id: (message._id as any).toString(),
+        text: message.text,
+        senderId: message.senderId.toString(),
+        conversationId: sendMessageDto.conversationId,
+        timestamp: message.createdAt,
+        type: message.type,
+        status: message.status,
+        senderName: user.profile?.fullName || user.profile?.username || user.email
+      };
+
+      // Отправляем сообщение всем участникам беседы через Socket.IO
       this.server
         .to(`conversation:${sendMessageDto.conversationId}`)
-        .emit('new-message', message);
+        .emit('new-message', {
+          type: 'new_message',
+          data: messageData
+        });
+
+      // Также кэшируем в Redis для быстрого доступа
+      await this.redisService.cacheConversationMessage(sendMessageDto.conversationId, messageData);
+
+      // Подтверждаем отправителю успешную отправку
+      client.emit('message-sent', {
+        tempId: (sendMessageDto as any).tempId || null,
+        messageId: (message._id as any).toString(),
+        timestamp: message.createdAt
+      });
 
       this.logger.log(`Message sent by ${user.email} in conversation ${sendMessageDto.conversationId}`);
     } catch (error) {
@@ -248,6 +273,67 @@ async afterInit(server: Server) {
     } catch (error) {
       this.logger.error('Leave room error:', error);
       client.emit('error', { message: 'Failed to leave room' });
+    }
+  }
+
+  @SubscribeMessage('get-cached-messages')
+  async handleGetCachedMessages(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { conversationId: string; limit?: number },
+  ) {
+    try {
+      const user = client.data.user;
+      const { conversationId, limit = 50 } = data;
+
+      // Проверяем права доступа к беседе
+      const canAccess = await this.chatService.canUserJoinConversation(user.id, conversationId);
+      if (!canAccess) {
+        client.emit('error', { message: 'Access denied to this conversation' });
+        return;
+      }
+
+      // Получаем кэшированные сообщения из Redis
+      const cachedMessages = await this.redisService.getCachedConversationMessages(conversationId, limit);
+
+      if (cachedMessages.length > 0) {
+        // Отправляем кэшированные сообщения
+        client.emit('cached-messages', {
+          conversationId,
+          messages: cachedMessages,
+          source: 'cache'
+        });
+      } else {
+        // Если нет кэшированных сообщений, загружаем из базы данных
+        const dbMessages = await this.chatService.getConversationMessages(conversationId, limit);
+        
+        // Преобразуем сообщения для отправки
+        const formattedMessages = dbMessages.map(msg => ({
+          id: (msg._id as any).toString(),
+          text: msg.text,
+          senderId: msg.senderId.toString(),
+          conversationId: conversationId,
+          timestamp: msg.createdAt,
+          type: msg.type,
+          status: msg.status,
+          senderName: (msg.senderId as any)?.profile?.fullName || (msg.senderId as any)?.profile?.username || (msg.senderId as any)?.email || 'Unknown'
+        }));
+
+        // Кэшируем сообщения для следующих запросов
+        for (const message of formattedMessages) {
+          await this.redisService.cacheConversationMessage(conversationId, message);
+        }
+
+        client.emit('cached-messages', {
+          conversationId,
+          messages: formattedMessages,
+          source: 'database'
+        });
+      }
+
+      this.logger.log(`Cached messages sent for conversation ${conversationId} to user ${user.email}`);
+    } catch (error) {
+      this.logger.error('Get cached messages error:', error);
+      client.emit('error', { message: 'Failed to get cached messages' });
     }
   }
 

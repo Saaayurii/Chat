@@ -38,23 +38,26 @@ export class PublicUsersController {
     const isOnlineFilter = online === 'true';
     const operators = await this.usersService.findOperators(isOnlineFilter);
     
+    // Проверяем что operators это массив
+    const operatorsArray = Array.isArray(operators) ? operators : [];
+    
     // Логирование для отладки
     console.log(`[PublicUsersController] Запрос операторов: online=${isOnlineFilter}, limit=${limit}`);
-    console.log(`[PublicUsersController] Найдено операторов: ${operators.length}`);
+    console.log(`[PublicUsersController] Найдено операторов: ${operatorsArray.length}`);
     
-    if (operators.length > 0) {
-      operators.forEach((op, index) => {
+    if (operatorsArray.length > 0) {
+      operatorsArray.forEach((op, index) => {
         console.log(`[PublicUsersController] Оператор ${index + 1}: ID=${op._id}, Name=${op.profile?.fullName || op.profile?.username}, Online=${op.profile?.isOnline}`);
       });
     }
     
     // Применяем лимит если указан
-    const limitedOperators = limit ? operators.slice(0, limit) : operators;
+    const limitedOperators = limit ? operatorsArray.slice(0, limit) : operatorsArray;
     
     // Возвращаем в формате, ожидаемом фронтендом
     return {
       operators: limitedOperators,
-      total: operators.length
+      total: operatorsArray.length
     };
   }
 }

@@ -938,6 +938,62 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   // МЕТОДЫ ДЛЯ КЭШИРОВАНИЯ СООБЩЕНИЙ ЧАТА
   // ============================================
 
+  // Методы для real-time кэширования сообщений
+  async cacheConversationMessage(conversationId: string, message: any): Promise<void> {
+    try {
+      const client = await this.ensureConnection();
+      const key = `conversation:${conversationId}:messages`;
+      const messageData = JSON.stringify(message);
+      
+      // Добавляем сообщение в список с временной меткой как score
+      await client.zAdd(key, { score: message.timestamp.getTime(), value: messageData });
+      
+      // Ограничиваем количество кэшированных сообщений (последние 100)
+      await client.zRemRangeByRank(key, 0, -101);
+      
+      // Устанавливаем TTL на 24 часа
+      await client.expire(key, 86400);
+    } catch (error) {
+      this.logger.error('Error caching conversation message:', error.message);
+    }
+  }
+
+  async getCachedConversationMessages(conversationId: string, limit: number = 50): Promise<any[]> {
+    try {
+      const client = await this.ensureConnection();
+      const key = `conversation:${conversationId}:messages`;
+      
+      // Получаем последние сообщения (по убыванию score/timestamp)
+      const messages = await client.zRange(key, 0, limit - 1, { REV: true });
+      
+      return messages.map(msg => JSON.parse(msg)).reverse(); // Возвращаем в хронологическом порядке
+    } catch (error) {
+      this.logger.error('Error getting cached conversation messages:', error.message);
+      return [];
+    }
+  }
+
+  async cacheMessageStatus(messageId: string, status: string, ttl: number = 3600): Promise<void> {
+    try {
+      const client = await this.ensureConnection();
+      const key = `message:${messageId}:status`;
+      await client.setEx(key, ttl, status);
+    } catch (error) {
+      this.logger.error('Error caching message status:', error.message);
+    }
+  }
+
+  async getCachedMessageStatus(messageId: string): Promise<string | null> {
+    try {
+      const client = await this.ensureConnection();
+      const key = `message:${messageId}:status`;
+      return await client.get(key);
+    } catch (error) {
+      this.logger.error('Error getting cached message status:', error.message);
+      return null;
+    }
+  }
+
   /**
    * Добавляет сообщение в кэш чата
    * Использует Redis List для хранения последних сообщений

@@ -78,8 +78,9 @@ export const useSocketIO = (namespace: string, options: UseSocketIOOptions = {})
         rememberUpgrade: true,
         forceNew: false,
         timeout: 20000,
-        reconnectionAttempts: 3,
-        reconnectionDelay: 1000
+        reconnectionAttempts: 5,
+        reconnectionDelay: 2000,
+        reconnectionDelayMax: 10000
       });
 
       socketRef.current.on('connect', () => {
@@ -123,6 +124,9 @@ export const useSocketIO = (namespace: string, options: UseSocketIOOptions = {})
         if (reason === 'io server disconnect' || reason === 'io client disconnect') {
           // Сервер принудительно отключил или клиент отключился - не переподключаемся
           console.log('Disconnected by server or client - not reconnecting');
+        } else if (reason === 'transport close' || reason === 'transport error') {
+          // При проблемах с транспортом - переподключаемся
+          console.log('Transport issue - will reconnect');
         }
         
         onDisconnect?.();
@@ -210,12 +214,17 @@ export const useSocketIO = (namespace: string, options: UseSocketIOOptions = {})
   
   // Отдельный useEffect для отслеживания аутентификации
   useEffect(() => {
-    if (autoConnect && isAuthenticated && token && !socketRef.current?.connected) {
-      connect();
+    if (autoConnect && isAuthenticated && token && !socketRef.current?.connected && !isConnecting) {
+      // Добавляем небольшую задержку для предотвращения частых переподключений
+      const timeout = setTimeout(() => {
+        connect();
+      }, 500);
+      
+      return () => clearTimeout(timeout);
     } else if (!isAuthenticated && socketRef.current) {
       disconnect();
     }
-  }, [isAuthenticated, token]);
+  }, [isAuthenticated, token, connect, disconnect]);
 
   return {
     isConnected,

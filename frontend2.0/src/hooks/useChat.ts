@@ -23,19 +23,54 @@ export const useChat = () => {
   });
 
   const handleSocketIOMessage = useCallback((message: any) => {
+    console.log('useChat received SocketIO message:', message);
+    
     const { type, data } = message;
     const handlers = handlersRef.current;
 
-    type === 'new-message' ? handlers.handleNewMessage?.(data) :
-    type === 'message-read' ? handlers.handleMessageRead?.(data) :
-    type === 'user-typing' ? handlers.handleUserTyping?.({...data, isTyping: true}) :
-    type === 'user-stopped-typing' ? handlers.handleUserTyping?.({...data, isTyping: false}) :
-    type === 'conversation-updated' ? handlers.handleConversationUpdated?.(data) :
-    type === 'user-online' ? handlers.handleUserOnline?.(data) :
-    type === 'connected' ? console.log('Connected to chat:', data) :
-    type === 'room-joined' ? console.log('Joined room:', data) :
-    type === 'error' ? console.error('Chat error:', data) :
-    console.log('Unknown SocketIO event:', type, data);
+    // Обрабатываем оба формата сообщений - прямые и вложенные
+    const messageData = message.data || message;
+    const messageType = message.type || type;
+
+    switch (messageType) {
+      case 'new_message':
+      case 'new-message':
+        handlers.handleNewMessage?.(messageData);
+        break;
+      case 'message-read':
+        handlers.handleMessageRead?.(messageData);
+        break;
+      case 'user-typing':
+        handlers.handleUserTyping?.({...messageData, isTyping: true});
+        break;
+      case 'user-stopped-typing':
+        handlers.handleUserTyping?.({...messageData, isTyping: false});
+        break;
+      case 'conversation-updated':
+        handlers.handleConversationUpdated?.(messageData);
+        break;
+      case 'user-online':
+        handlers.handleUserOnline?.(messageData);
+        break;
+      case 'connected':
+        console.log('Connected to chat:', messageData);
+        break;
+      case 'room-joined':
+        console.log('Joined room:', messageData);
+        break;
+      case 'message-sent':
+        console.log('Message sent confirmation:', messageData);
+        break;
+      case 'cached-messages':
+        console.log('Received cached messages:', messageData);
+        // Можно добавить обработку для предзагрузки сообщений
+        break;
+      case 'error':
+        console.error('Chat error:', messageData);
+        break;
+      default:
+        console.log('Unknown SocketIO event:', messageType, messageData);
+    }
   }, []);
 
   const {
@@ -54,8 +89,31 @@ export const useChat = () => {
     }
   });
 
-  const handleNewMessage = useCallback((message: Message) => {
+  const handleNewMessage = useCallback((messageData: any) => {
+    console.log('handleNewMessage called with:', messageData);
+    
+    // Нормализуем данные сообщения для обработки разных форматов
+    const message = {
+      _id: messageData.id || messageData._id,
+      id: messageData.id || messageData._id,
+      text: messageData.text || messageData.content,
+      content: messageData.text || messageData.content,
+      senderId: messageData.senderId,
+      conversationId: messageData.conversationId,
+      createdAt: messageData.timestamp || messageData.createdAt,
+      timestamp: messageData.timestamp || messageData.createdAt,
+      type: messageData.type || 'text',
+      status: messageData.status || 'sent',
+      senderName: messageData.senderName,
+      readBy: messageData.readBy || []
+    };
+    
     const conversationId = message.conversationId;
+    
+    if (!conversationId) {
+      console.warn('No conversationId in message:', messageData);
+      return;
+    }
     
     // Обновляем кэш сообщений
     queryClient.setQueryData(
@@ -64,10 +122,14 @@ export const useChat = () => {
         if (!oldData) {
           return { data: [message], total: 1 };
         }
-        const existingMessage = oldData.data.find((m: Message) => m._id === message._id);
+        const existingMessage = oldData.data.find((m: any) => 
+          (m._id === message._id || m.id === message.id) && message._id
+        );
         if (existingMessage) {
+          console.log('Message already exists, skipping');
           return oldData;
         }
+        console.log('Adding new message to cache');
         return {
           ...oldData,
           data: [...oldData.data, message]
@@ -78,10 +140,10 @@ export const useChat = () => {
     // Обновляем список бесед
     queryClient.setQueryData(
       ['conversations'],
-      (oldData: Conversation[]) => {
-        if (!oldData) return oldData;
-        return oldData.map(conv => 
-          conv._id === conversationId ? {
+      (oldData: any) => {
+        if (!Array.isArray(oldData)) return oldData;
+        return oldData.map((conv: any) => 
+          conv._id === conversationId || conv.id === conversationId ? {
             ...conv,
             lastMessage: {
               text: message.text,
@@ -89,11 +151,16 @@ export const useChat = () => {
               timestamp: message.createdAt,
               messageId: message._id
             },
-            unreadMessagesCount: message.senderId !== user?.id ? conv.unreadMessagesCount + 1 : conv.unreadMessagesCount
+            unreadMessagesCount: message.senderId !== user?.id ? 
+              (conv.unreadMessagesCount || 0) + 1 : 
+              (conv.unreadMessagesCount || 0)
           } : conv
         );
       }
     );
+    
+    // Инвалидируем запросы для обновления
+    queryClient.invalidateQueries({ queryKey: ['conversations'] });
   }, [queryClient, user?.id]);
 
   const handleMessageRead = useCallback((data: { messageId: string; conversationId: string; userId: string }) => {

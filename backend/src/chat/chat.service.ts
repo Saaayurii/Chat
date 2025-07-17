@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Conversation, ConversationDocument } from '../database/schemas/conversation.schema';
@@ -15,6 +15,8 @@ import { RedisService } from '../common/services/redis.service';
 
 @Injectable()
 export class ChatService {
+  private readonly logger = new Logger(ChatService.name);
+
   constructor(
     @InjectModel(Conversation.name) private conversationModel: Model<ConversationDocument>,
     @InjectModel(Message.name) private messageModel: Model<MessageDocument>,
@@ -90,8 +92,18 @@ export class ChatService {
     const savedMessage = await message.save();
     const populatedMessage = await savedMessage.populate('senderId', 'email profile.username profile.avatarUrl');
 
-    // Добавляем сообщение в кэш Redis
+    // Добавляем сообщение в кэш Redis для real-time доступа
     await this.messageCacheService.addMessage(savedMessage);
+    
+    // Также сохраняем в Redis для немедленного доступа в реальном времени
+    await this.redisService.cacheConversationMessage(conversationId, {
+      id: (savedMessage._id as Types.ObjectId).toString(),
+      text: savedMessage.text,
+      senderId: savedMessage.senderId.toString(),
+      timestamp: savedMessage.createdAt,
+      type: savedMessage.type,
+      status: savedMessage.status
+    });
 
     // Получаем список получателей (все участники кроме отправителя)
     const recipientIds = conversation.participants
@@ -133,7 +145,26 @@ export class ChatService {
     return populatedMessage;
   }
 
-  async getConversationMessages(conversationId: string, userId: string, limit = 50, skip = 0) {
+  async getConversationMessages(conversationId: string, limit: number = 50, page: number = 1): Promise<MessageDocument[]> {
+    try {
+      const skip = (page - 1) * limit;
+      
+      const messages = await this.messageModel
+        .find({ conversationId: new Types.ObjectId(conversationId) })
+        .sort({ createdAt: -1 }) // Сортируем по убыванию (новые сначала)
+        .skip(skip)
+        .limit(limit)
+        .populate('senderId', 'email profile.username profile.fullName profile.avatarUrl')
+        .exec();
+
+      return messages.reverse(); // Возвращаем в хронологическом порядке
+    } catch (error) {
+      this.logger.error('Error getting conversation messages:', error);
+      return [];
+    }
+  }
+
+  async getConversationMessagesWithAuth(conversationId: string, userId: string, limit = 50, skip = 0) {
     // Проверяем доступ к беседе
     const canAccess = await this.canUserJoinConversation(userId, conversationId);
     if (!canAccess) {
@@ -242,6 +273,7 @@ export class ChatService {
       .populate('lastMessage.senderId', 'profile.username')
       .exec();
   }
+
 
   async uploadAttachment(conversationId: string, userId: string, file: UploadedFile, uploadDto: UploadAttachmentDto) {
     // Проверяем доступ к беседе

@@ -1,9 +1,9 @@
 "use client";
 
-import React from 'react';
-import { X, LogOut } from 'lucide-react';
-import Button from '../UI/Button';
-import { Badge } from '../UI';
+import React from "react";
+import { X, LogOut } from "lucide-react";
+import Button from "../UI/Button";
+import { Badge } from "../UI";
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -12,11 +12,11 @@ interface ProfileModalProps {
   onLogout: () => void;
 }
 
-export const ProfileModal: React.FC<ProfileModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  userData, 
-  onLogout 
+export const ProfileModal: React.FC<ProfileModalProps> = ({
+  isOpen,
+  onClose,
+  userData,
+  onLogout,
 }) => {
   if (!isOpen || !userData) return null;
 
@@ -26,8 +26,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   };
 
   return (
-    <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000]"
+    <div
+      className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-[10000]"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="bg-white rounded-lg w-full max-w-md mx-4 shadow-2xl">
@@ -47,7 +47,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               Имя
             </label>
             <div className="p-3 bg-gray-50 rounded-lg text-gray-900">
-              {userData.fullName || userData.username || 'Не указано'}
+              {userData.fullName || userData.username || "Не указано"}
             </div>
           </div>
 
@@ -66,7 +66,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             </label>
             <div className="p-3 bg-gray-50 rounded-lg">
               <Badge variant={userData.isActivated ? "default" : "secondary"}>
-                {userData.isActivated ? 'Активирован' : 'Не активирован'}
+                {userData.isActivated ? "Активирован" : "Не активирован"}
               </Badge>
             </div>
           </div>
@@ -77,9 +77,13 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 Роль
               </label>
               <div className="p-3 bg-gray-50 rounded-lg text-gray-900">
-                {userData.role === 'VISITOR' ? 'Посетитель' : 
-                 userData.role === 'OPERATOR' ? 'Оператор' :
-                 userData.role === 'ADMIN' ? 'Администратор' : userData.role}
+                {userData.role === "VISITOR"
+                  ? "Посетитель"
+                  : userData.role === "OPERATOR"
+                  ? "Оператор"
+                  : userData.role === "ADMIN"
+                  ? "Администратор"
+                  : userData.role}
               </div>
             </div>
           )}

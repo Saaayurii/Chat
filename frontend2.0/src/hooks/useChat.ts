@@ -13,6 +13,13 @@ export const useChat = () => {
   const queryClient = useQueryClient();
   const [typingUsers, setTypingUsers] = useState<TypingUsers>({});
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+  
+  // Логирование для отслеживания перерендеров
+  console.log(`[${new Date().toISOString()}] useChat: Hook called, user: ${user?.id || 'none'}`);
+  
+  // Проверяем состояние аутентификации для отладки
+  const { isAuthenticated, token } = useAuthStore();
+  console.log(`[${new Date().toISOString()}] useChat: Auth state - authenticated: ${isAuthenticated}, token: ${!!token}`);
 
   const handlersRef = useRef({
     handleNewMessage: null as any,
@@ -82,12 +89,15 @@ export const useChat = () => {
   } = useSocketIO('/chat', {
     onMessage: handleSocketIOMessage,
     onConnect: () => {
-      console.log('Chat Socket.IO connected');
+      console.log(`[${new Date().toISOString()}] Chat Socket.IO connected`);
     },
     onDisconnect: () => {
-      console.log('Chat Socket.IO disconnected');
+      console.log(`[${new Date().toISOString()}] Chat Socket.IO disconnected`);
     }
   });
+  
+  // Логируем состояние socket соединения
+  console.log(`[${new Date().toISOString()}] useChat: Socket state - connected: ${isConnected}, connecting: ${isConnecting}, error: ${wsError}`);
 
   const handleNewMessage = useCallback((messageData: any) => {
     console.log('handleNewMessage called with:', messageData);
@@ -354,7 +364,7 @@ export const useChat = () => {
     handlersRef.current.handleUserTyping = handleUserTyping;
     handlersRef.current.handleConversationUpdated = handleConversationUpdated;
     handlersRef.current.handleUserOnline = handleUserOnline;
-  }); // Убираем зависимости чтобы обновлять каждый рендер без циклов
+  }, [handleNewMessage, handleMessageRead, handleUserTyping, handleConversationUpdated, handleUserOnline]);
 
   return {
     // WebSocket состояние

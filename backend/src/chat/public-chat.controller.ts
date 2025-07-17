@@ -8,6 +8,7 @@ import {
   Param,
   Query,
 } from '@nestjs/common';
+import { ParseObjectIdPipe } from '../common/pipes/parse-object-id.pipe';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ChatService } from './chat.service';
 import { CreateAnonymousConversationDto } from './dto/create-anonymous-conversation.dto';
@@ -34,7 +35,7 @@ export class PublicChatController {
   @ApiResponse({ status: 201, description: 'Сообщение успешно отправлено' })
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
   async sendAnonymousMessage(
-    @Param('conversationId') conversationId: string,
+    @Param('conversationId', ParseObjectIdPipe) conversationId: string,
     @Body() sendMessageDto: SendAnonymousMessageDto,
   ) {
     const message = await this.chatService.createAnonymousMessage({
@@ -53,7 +54,7 @@ export class PublicChatController {
   @ApiOperation({ summary: 'Получить сообщения беседы для анонимного пользователя' })
   @ApiResponse({ status: 200, description: 'Список сообщений' })
   async getMessages(
-    @Param('conversationId') conversationId: string,
+    @Param('conversationId', ParseObjectIdPipe) conversationId: string,
     @Query() query: GetMessagesDto,
   ) {
     return this.chatService.getConversationMessages(
@@ -67,7 +68,7 @@ export class PublicChatController {
   @ApiOperation({ summary: 'Получить информацию о беседе для анонимного пользователя' })
   @ApiResponse({ status: 200, description: 'Информация о беседе' })
   async getConversation(
-    @Param('conversationId') conversationId: string,
+    @Param('conversationId', ParseObjectIdPipe) conversationId: string,
   ) {
     return this.chatService.getPublicConversation(conversationId);
   }

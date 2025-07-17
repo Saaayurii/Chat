@@ -23,6 +23,7 @@ import { GetMessagesDto } from './dto/get-messages.dto';
 import { MarkMessagesReadDto } from './dto/mark-read.dto';
 import { UploadAttachmentDto } from './dto/upload-attachment.dto';
 import { AttachmentValidationPipe } from '../common/pipes/attachment-validation.pipe';
+import { ParseObjectIdPipe } from '../common/pipes/parse-object-id.pipe';
 import { AuthenticatedRequest } from '../common/interfaces/auth-request.interface';
 import { UploadedFile as FileInterface } from '../common/interfaces/uploaded-file.interface';
 
@@ -60,7 +61,7 @@ export class ChatController {
   @ApiOperation({ summary: 'Получить сообщения беседы' })
   @ApiResponse({ status: 200, description: 'Список сообщений' })
   async getMessages(
-    @Param('conversationId') conversationId: string,
+    @Param('conversationId', ParseObjectIdPipe) conversationId: string,
     @Query() query: GetMessagesDto,
     @Request() req: AuthenticatedRequest,
   ) {
@@ -77,7 +78,7 @@ export class ChatController {
   @ApiResponse({ status: 201, description: 'Сообщение успешно отправлено' })
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
   async sendMessage(
-    @Param('conversationId') conversationId: string,
+    @Param('conversationId', ParseObjectIdPipe) conversationId: string,
     @Body() sendMessageDto: SendMessageHttpDto,
     @Request() req: AuthenticatedRequest,
   ) {
@@ -100,7 +101,7 @@ export class ChatController {
   @ApiOperation({ summary: 'Пометить сообщения как прочитанные' })
   @ApiResponse({ status: 200, description: 'Сообщения помечены как прочитанные' })
   async markMessagesAsRead(
-    @Param('conversationId') conversationId: string,
+    @Param('conversationId', ParseObjectIdPipe) conversationId: string,
     @Request() req: AuthenticatedRequest,
   ) {
     await this.chatService.markMessagesAsRead(conversationId, req.user._id);
@@ -112,7 +113,7 @@ export class ChatController {
   @ApiOperation({ summary: 'Загрузить вложение в беседу' })
   @ApiResponse({ status: 201, description: 'Вложение загружено' })
   async uploadAttachment(
-    @Param('conversationId') conversationId: string,
+    @Param('conversationId', ParseObjectIdPipe) conversationId: string,
     @Body() uploadDto: UploadAttachmentDto,
     @UploadedFile(AttachmentValidationPipe) file: FileInterface,
     @Request() req: AuthenticatedRequest,
@@ -131,7 +132,7 @@ export class ChatController {
   @ApiOperation({ summary: 'Получить информацию о беседе' })
   @ApiResponse({ status: 200, description: 'Информация о беседе' })
   async getConversation(
-    @Param('conversationId') conversationId: string,
+    @Param('conversationId', ParseObjectIdPipe) conversationId: string,
     @Request() req: AuthenticatedRequest,
   ) {
     return this.chatService.getConversation(conversationId, req.user._id);
@@ -141,7 +142,7 @@ export class ChatController {
   @ApiOperation({ summary: 'Получить статистику кэша сообщений' })
   @ApiResponse({ status: 200, description: 'Статистика кэша' })
   async getCacheStats(
-    @Param('conversationId') conversationId: string,
+    @Param('conversationId', ParseObjectIdPipe) conversationId: string,
     @Request() req: AuthenticatedRequest,
   ) {
     // Проверяем доступ к беседе

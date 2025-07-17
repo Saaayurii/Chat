@@ -256,6 +256,18 @@ export const chatAPI = {
   getMessages: (conversationId: string, params?: GetMessagesParams) =>
     api.get<PaginatedResponse<Message>>(`/chat/conversations/${conversationId}/messages`, { params }),
 
+  // Специальный метод для получения сообщений анонимных бесед операторами
+  getAnonymousMessages: (conversationId: string, params?: GetMessagesParams) =>
+    api.get<PaginatedResponse<Message>>(`/public/chat/conversations/${conversationId}/messages`, { 
+      params: { ...params, conversationId } // Добавляем conversationId в query параметры тоже
+    }),
+  
+  // Альтернативный метод для операторов для получения сообщений анонимных бесед
+  getOperatorConversationMessages: (conversationId: string, params?: GetMessagesParams) =>
+    api.get<PaginatedResponse<Message>>(`/chat/conversations/${conversationId}/messages`, { 
+      params: { ...params, bypassAuth: true } // Добавляем флаг для обхода проверки участия
+    }),
+
   markAsRead: (conversationId: string) =>
     api.put(`/chat/conversations/${conversationId}/read`),
 

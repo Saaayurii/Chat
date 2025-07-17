@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Calendar, MessageSquare, Clock, Star, TrendingUp, Users, Activity } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
@@ -72,6 +72,11 @@ const mockOperatorStats: OperatorStats = {
 export default function OperatorStatisticsPage() {
   const { user } = useAuthStore();
   const [selectedPeriod, setSelectedPeriod] = useState('week');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // В реальном приложении здесь был бы API запрос
   const { data: stats, isLoading } = useQuery({
@@ -119,18 +124,20 @@ export default function OperatorStatisticsPage() {
               </p>
             </div>
             <div className="flex items-center space-x-4">
-              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Выберите период" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="today">Сегодня</SelectItem>
-                  <SelectItem value="yesterday">Вчера</SelectItem>
-                  <SelectItem value="week">Неделя</SelectItem>
-                  <SelectItem value="month">Месяц</SelectItem>
-                  <SelectItem value="custom">Период</SelectItem>
-                </SelectContent>
-              </Select>
+              {mounted && (
+                <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Выберите период" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="today">Сегодня</SelectItem>
+                    <SelectItem value="yesterday">Вчера</SelectItem>
+                    <SelectItem value="week">Неделя</SelectItem>
+                    <SelectItem value="month">Месяц</SelectItem>
+                    <SelectItem value="custom">Период</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
         </div>

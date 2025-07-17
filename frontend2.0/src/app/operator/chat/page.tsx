@@ -36,7 +36,7 @@ import { PresenceIndicator, PresenceAvatar, OnlineUsersList, PresenceStatus, use
 
 function OperatorChatPageContent() {
   const { user, token } = useAuthStore();
-  useQueryClient();
+  const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -61,15 +61,36 @@ function OperatorChatPageContent() {
     leaveConversation,
     reconnect
   } = useChat();
+  
+  // Логирование для отслеживания перерендеров
+  console.log(`[${new Date().toISOString()}] OperatorChatPageContent: Component rendered, user: ${user?.id || 'none'}, token: ${!!token}`);
+  console.log(`[${new Date().toISOString()}] OperatorChatPageContent: Selected conversation: ${selectedConversation}, isConnected: ${isConnected}`);
 
-  // Presence system for operator
-  const presence = usePresence({
-    apiUrl: process.env.NEXT_PUBLIC_API_URL || '',
-    userId: user?.id || 'anonymous',
-    token: token || undefined,
-    autoConnect: !!user,
-    enableCrossTabSync: true
-  });
+  // Инвалидируем запросы при получении новых сообщений - убираем для стабилизации
+  // useEffect(() => {
+  //   if (isConnected) {
+  //     const interval = setInterval(() => {
+  //       // Обновляем список разговоров каждые 30 секунд для получения анонимных сообщений
+  //       queryClient.invalidateQueries({ queryKey: ['conversations'] });
+  //     }, 30000);
+      
+  //     return () => clearInterval(interval);
+  //   }
+  // }, [isConnected, queryClient]);
+
+  // Presence system for operator - временно отключаем для отладки
+  const presence = {
+    onlineUsers: [],
+    isConnected: false,
+    status: 'offline' as const
+  };
+  // const presence = usePresence({
+  //   apiUrl: process.env.NEXT_PUBLIC_API_URL || '',
+  //   userId: user?.id || 'anonymous',
+  //   token: token || undefined,
+  //   autoConnect: !!user,
+  //   enableCrossTabSync: true
+  // });
 
   const { data: conversations, isLoading: conversationsLoading } = useQuery({
     queryKey: ['conversations'],
@@ -78,7 +99,10 @@ function OperatorChatPageContent() {
       console.log('Conversations response:', response.data);
       return response.data;
     },
-    enabled: !!user && !!token
+    enabled: !!user && !!token,
+    refetchInterval: 60000, // Обновляем каждую минуту вместо 10 секунд
+    refetchOnWindowFocus: false, // Убираем автообновление при фокусе
+    staleTime: 30000 // Данные считаются свежими 30 секунд
   });
 
   const { data: messages, isLoading: messagesLoading } = useQuery({
@@ -88,10 +112,41 @@ function OperatorChatPageContent() {
         console.warn('Invalid conversation ID for messages:', selectedConversation);
         return null;
       }
-      const response = await chatAPI.getMessages(selectedConversation);
+      
+      // Определяем тип беседы для выбора правильного API
+      const conversation = conversations?.find(conv => 
+        (conv._id === selectedConversation || conv.id === selectedConversation)
+      );
+      
+      let response;
+      // Сначала пробуем обычный API для всех типов бесед
+      try {
+        console.log('Trying regular messages API for conversation:', selectedConversation);
+        response = await chatAPI.getMessages(selectedConversation);
+      } catch (error) {
+        console.log('Regular API failed, trying operator API:', error);
+        // Если не удалось, пробуем operator API с обходом проверки
+        try {
+          console.log('Using operator messages API for conversation:', selectedConversation);
+          response = await chatAPI.getOperatorConversationMessages(selectedConversation);
+        } catch (operatorError) {
+          console.log('Operator API failed, trying anonymous API:', operatorError);
+          // Если operator API не работает, пробуем anonymous API
+          if (conversation?.type === 'anonymous-support') {
+            console.log('Using anonymous messages API for conversation:', selectedConversation);
+            response = await chatAPI.getAnonymousMessages(selectedConversation);
+          } else {
+            throw error; // Пробрасываем оригинальную ошибку
+          }
+        }
+      }
+      
       return response.data;
     },
-    enabled: !!selectedConversation && !!selectedConversation.match(/^[0-9a-fA-F]{24}$/)
+    enabled: !!selectedConversation && !!selectedConversation.match(/^[0-9a-fA-F]{24}$/) && !!conversations,
+    refetchInterval: 30000, // Обновляем сообщения каждые 30 секунд вместо 5
+    refetchOnWindowFocus: false, // Убираем автообновление при фокусе
+    staleTime: 15000 // Данные считаются свежими 15 секунд
   });
 
   // Получаем pending transfer requests
@@ -108,6 +163,11 @@ function OperatorChatPageContent() {
   const handleSendMessage = useCallback(() => {
     if (!newMessage.trim() || !selectedConversation) return;
     
+    // Находим беседу для определения типа
+    const conversation = conversations?.find(conv => 
+      (conv._id === selectedConversation || conv.id === selectedConversation)
+    );
+    
     // Отправляем через Socket.IO
     const success = sendChatMessage(selectedConversation, newMessage);
     
@@ -121,8 +181,15 @@ function OperatorChatPageContent() {
         clearTimeout(typingTimeoutRef.current);
         typingTimeoutRef.current = null;
       }
+      
+      // Для анонимных бесед принудительно обновляем сообщения - убираем для стабилизации
+      // if (conversation?.type === 'anonymous-support') {
+      //   setTimeout(() => {
+      //     queryClient.invalidateQueries({ queryKey: ['messages', selectedConversation] });
+      //   }, 1000);
+      // }
     }
-  }, [newMessage, selectedConversation, sendChatMessage, setTyping]);
+  }, [newMessage, selectedConversation, sendChatMessage, setTyping]); // Убираем conversations и queryClient
 
   const handleMessageChange = useCallback((value: string) => {
     setNewMessage(value);
@@ -184,7 +251,7 @@ function OperatorChatPageContent() {
         leaveConversation(selectedConversation);
       };
     }
-  }, [selectedConversation, joinConversation, leaveConversation]);
+  }, [selectedConversation]);
 
   // Автоскролл к последнему сообщению - оптимизированная версия
   const messagesLength = messages?.data?.length || 0;
@@ -207,23 +274,44 @@ function OperatorChatPageContent() {
     };
   }, []);
 
-  // Мемоизируем фильтрацию отправителей для оптимизации
+  // Мемоизируем фильтрацию отправителей для оптимизации - стабилизированная версия
   const filteredSenders = useMemo(() => {
     if (!conversations || !Array.isArray(conversations)) return [];
     
     // Создаем список уникальных отправителей из бесед
     const sendersMap = new Map();
     conversations.forEach(conv => {
-      if (conv.participants && Array.isArray(conv.participants)) {
+      const conversationId = conv._id || conv.id;
+      
+      // Обработка анонимных бесед
+      if (conv.type === 'anonymous-support' && conv.anonymousUser) {
+        const anonymousUser = conv.anonymousUser;
+        const senderId = anonymousUser._id || anonymousUser.id || `anonymous_${conversationId}`;
+        
+        sendersMap.set(senderId, {
+          id: senderId,
+          name: anonymousUser.profile?.fullName || anonymousUser.profile?.username || 'Анонимный посетитель',
+          type: 'visitor',
+          avatar: anonymousUser.profile?.avatarUrl,
+          unreadCount: conv.unreadMessagesCount || 0,
+          lastMessageTime: conv.lastMessage?.timestamp || new Date().toISOString(),
+          isOnline: false, // Анонимные пользователи не показывают статус онлайн
+          conversationId: conversationId,
+          email: anonymousUser.email || 'Не указан',
+          phone: anonymousUser.profile?.phone || 'Не указан',
+          role: 'VISITOR',
+          isAuthorized: false,
+          source: 'Виджет (анонимно)'
+        });
+      }
+      // Обработка обычных бесед
+      else if (conv.participants && Array.isArray(conv.participants)) {
         conv.participants.forEach((participant: any) => {
           if (participant && participant.id !== user?.id) {
             const senderId = participant.id;
             const existingSender = sendersMap.get(senderId);
             
             if (!existingSender || new Date(conv.lastMessage?.timestamp || 0) > new Date(existingSender.lastMessageTime || 0)) {
-              const conversationId = conv._id || conv.id;
-              console.log('Processing conversation:', { convId: conversationId, conv });
-              
               sendersMap.set(senderId, {
                 id: senderId,
                 name: participant.profile?.fullName || participant.profile?.username || 'Неизвестный',
@@ -237,7 +325,7 @@ function OperatorChatPageContent() {
                 phone: participant.profile?.phone || '',
                 role: participant.role || 'VISITOR',
                 isAuthorized: participant.isActivated || false,
-                source: 'Веб-сайт' // TODO: получать из данных
+                source: 'Веб-сайт'
               });
             }
           }
@@ -274,12 +362,14 @@ function OperatorChatPageContent() {
 
   // Обработка выбора отправителя
   const handleSenderSelect = useCallback((sender: SenderType) => {
+    console.log('Selecting sender:', sender);
     setSelectedSender(sender);
     // Проверяем, что conversationId существует и является валидным MongoDB ID
     if (sender.conversationId && sender.conversationId.length === 24 && /^[0-9a-fA-F]{24}$/.test(sender.conversationId)) {
+      console.log('Setting conversation ID:', sender.conversationId);
       setSelectedConversation(sender.conversationId);
     } else {
-      console.warn('Invalid conversationId:', sender.conversationId);
+      console.warn('Invalid conversationId:', sender.conversationId, 'Length:', sender.conversationId?.length);
       setSelectedConversation(null);
     }
   }, []);
@@ -294,7 +384,7 @@ function OperatorChatPageContent() {
         setShowTransferRequestModal(true);
       }
     }
-  }, [transferRequests, showTransferRequestModal]);
+  }, [transferRequests, showTransferRequestModal, transferRequest?.id]);
 
   return (
     <div className="h-screen flex bg-background">
@@ -337,8 +427,24 @@ function OperatorChatPageContent() {
               )}
               
               {/* WebSocket статус */}
-              <div className="flex items-center">
-                {isConnected ? <Wifi className="w-4 h-4 text-green-500" /> : isConnecting ? <Radix.Spinner size="1" /> : <div className="cursor-pointer" title="Не подключено. Нажмите для переподключения" onClick={reconnect}><WifiOff className="w-4 h-4 text-red-500" /></div>}
+              <div className="flex items-center space-x-2">
+                {isConnected ? (
+                  <Wifi className="w-4 h-4 text-green-500" />
+                ) : isConnecting ? (
+                  <Radix.Spinner size="1" />
+                ) : (
+                  <div className="cursor-pointer" title="Не подключено. Нажмите для переподключения" onClick={reconnect}>
+                    <WifiOff className="w-4 h-4 text-red-500" />
+                  </div>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={reconnect}
+                  className="h-6 px-2 text-xs"
+                >
+                  Reconnect
+                </Button>
               </div>
             </div>
           </div>

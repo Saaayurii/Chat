@@ -31,7 +31,13 @@ export class WsAuthGuard implements CanActivate {
 
       // Проверяем существование и статус пользователя
       const user = await this.usersService.findByEmail(payload.email);
-      if (!user || user.isBlocked || !user.isActivated) {
+      if (!user || user.isBlocked) {
+        client.disconnect();
+        return false;
+      }
+      
+      // Операторы и администраторы могут подключаться даже если не активированы
+      if (!user.isActivated && user.role !== 'operator' && user.role !== 'admin') {
         client.disconnect();
         return false;
       }

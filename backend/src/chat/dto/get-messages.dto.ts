@@ -1,11 +1,7 @@
-import { IsOptional, IsInt, Min, Max, IsMongoId, IsNotEmpty } from 'class-validator';
+import { IsOptional, IsInt, Min, Max } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class GetMessagesDto {
-  @IsNotEmpty()
-  @IsMongoId()
-  conversationId: string;
-
   @IsOptional()
   @Transform(({ value }) => parseInt(value))
   @IsInt({ message: 'Лимит должен быть целым числом' })

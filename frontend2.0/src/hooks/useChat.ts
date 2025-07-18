@@ -116,6 +116,7 @@ export const useChat = () => {
       type: messageData.type || 'text',
       status: messageData.status || 'sent',
       senderName: messageData.senderName,
+      senderRole: messageData.senderRole, // Добавляем роль отправителя
       readBy: messageData.readBy || []
     };
     
@@ -195,6 +196,24 @@ export const useChat = () => {
             } : message
           )
         };
+      }
+    );
+    
+    // Обновляем счетчик непрочитанных сообщений в списке бесед
+    queryClient.setQueryData(
+      ['conversations'],
+      (oldData: any) => {
+        if (!Array.isArray(oldData)) return oldData;
+        return oldData.map((conv: any) => {
+          if (conv._id === conversationId || conv.id === conversationId) {
+            const newUnreadCount = Math.max(0, (conv.unreadMessagesCount || 0) - 1);
+            return {
+              ...conv,
+              unreadMessagesCount: newUnreadCount
+            };
+          }
+          return conv;
+        });
       }
     );
   }, [queryClient]);

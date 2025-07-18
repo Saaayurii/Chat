@@ -83,6 +83,7 @@ const OperatorChatPageContent = () => {
     setTyping,
     joinConversation,
     leaveConversation,
+    markAsRead,
     reconnect,
   } = useChat();
 
@@ -193,6 +194,60 @@ const OperatorChatPageContent = () => {
     console.log('Message send result:', success);
 
     if (success) {
+      // Оптимистично добавляем сообщение в локальный кэш
+      const tempMessage = {
+        _id: `temp_${Date.now()}`,
+        id: `temp_${Date.now()}`,
+        text: newMessage,
+        content: newMessage,
+        senderId: user?.id || '',
+        conversationId: selectedConversation,
+        createdAt: new Date().toISOString(),
+        timestamp: new Date().toISOString(),
+        type: 'text',
+        status: 'sent',
+        senderRole: user?.role || 'operator',
+        senderName: user?.profile?.fullName || user?.profile?.username || 'Я',
+        readBy: [user?.id || '']
+      };
+
+      // Добавляем в кэш сразу
+      queryClient.setQueryData(
+        ['messages', selectedConversation],
+        (oldData: any) => {
+          if (!oldData) {
+            return { data: [tempMessage], total: 1 };
+          }
+          
+          // Проверяем разные форматы данных
+          let messages = [];
+          if (oldData.data && Array.isArray(oldData.data)) {
+            messages = oldData.data;
+          } else if (oldData.messages && Array.isArray(oldData.messages)) {
+            messages = oldData.messages;
+          } else if (Array.isArray(oldData)) {
+            messages = oldData;
+          }
+          
+          const newMessages = [...messages, tempMessage];
+          
+          // Возвращаем в том же формате, что было
+          if (oldData.data) {
+            return {
+              ...oldData,
+              data: newMessages
+            };
+          } else if (oldData.messages) {
+            return {
+              ...oldData,
+              messages: newMessages
+            };
+          } else {
+            return newMessages;
+          }
+        }
+      );
+
       setNewMessage("");
       setIsTyping(false);
       setTyping(selectedConversation, false);
@@ -202,17 +257,10 @@ const OperatorChatPageContent = () => {
         clearTimeout(typingTimeoutRef.current);
         typingTimeoutRef.current = null;
       }
-
-      // Для анонимных бесед принудительно обновляем сообщения - убираем для стабилизации
-      // if (conversation?.type === 'anonymous-support') {
-      //   setTimeout(() => {
-      //     queryClient.invalidateQueries({ queryKey: ['messages', selectedConversation] });
-      //   }, 1000);
-      // }
     } else {
       console.error('Failed to send message - Socket not connected or other error');
     }
-  }, [newMessage, selectedConversation, sendChatMessage, setTyping]); // Убираем conversations и queryClient
+  }, [newMessage, selectedConversation, sendChatMessage, setTyping, queryClient, user?.id, user?.role, user?.profile?.fullName, user?.profile?.username]);
 
   const handleMessageChange = useCallback(
     (value: string) => {
@@ -296,16 +344,60 @@ const OperatorChatPageContent = () => {
     }
   }, [isConnected, selectedConversation, joinConversation]);
 
-  // Автоскролл к последнему сообщению - оптимизированная версия
+  // Автоскролл к последнему сообщению и отмечаем как прочитанное
   const messagesLength = (messages?.messages || messages?.data || []).length;
   useEffect(() => {
     if (messagesLength > 0) {
       const timer = setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        
+        // Отмечаем непрочитанные сообщения как прочитанные
+        let messageList = [];
+        if (messages?.data && Array.isArray(messages.data)) {
+          messageList = messages.data;
+        } else if (messages?.messages && Array.isArray(messages.messages)) {
+          messageList = messages.messages;
+        } else if (Array.isArray(messages)) {
+          messageList = messages;
+        }
+        
+        const unreadMessages = messageList.filter(msg => {
+          // Обрабатываем senderId для корректной проверки
+          let actualSenderId = msg.senderId;
+          if (typeof actualSenderId === 'string' && actualSenderId.includes('ObjectId')) {
+            const idMatch = actualSenderId.match(/ObjectId\('([^']+)'\)/);
+            if (idMatch) {
+              actualSenderId = idMatch[1];
+            }
+          }
+          
+          return actualSenderId !== user?.id && 
+            (!msg.readBy || !msg.readBy.includes(user?.id));
+        });
+        
+        if (unreadMessages.length > 0 && selectedConversation) {
+          unreadMessages.forEach(msg => {
+            markAsRead(selectedConversation, msg._id || msg.id);
+          });
+          
+          // Обновляем счетчик непрочитанных сообщений в конверсациях
+          queryClient.setQueryData(
+            ['conversations'],
+            (oldData: any) => {
+              if (!Array.isArray(oldData)) return oldData;
+              return oldData.map((conv: any) => 
+                conv._id === selectedConversation || conv.id === selectedConversation ? {
+                  ...conv,
+                  unreadMessagesCount: 0
+                } : conv
+              );
+            }
+          );
+        }
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [messagesLength]);
+  }, [messagesLength, messages, user?.id, selectedConversation, markAsRead, queryClient]);
 
   // Очистка таймера при размонтировании
   useEffect(() => {
@@ -424,6 +516,43 @@ const OperatorChatPageContent = () => {
     return selectedConversation ? typingUsers[selectedConversation] || [] : [];
   }, [selectedConversation, typingUsers]);
 
+  // Функция для определения роли пользователя
+  const getUserRole = useCallback((userId: string) => {
+    // Сначала проверяем текущего пользователя
+    if (userId === user?.id) {
+      return user?.role || 'operator';
+    }
+    
+    // Ищем среди участников текущей беседы
+    if (selectedConversation && conversations) {
+      const conversation = conversations.find(
+        (conv) => conv._id === selectedConversation || (conv as any).id === selectedConversation
+      );
+      
+      if (conversation && conversation.participants) {
+        const participant = conversation.participants.find((p: any) => p.id === userId);
+        if (participant && participant.role) {
+          return participant.role;
+        }
+      }
+    }
+    
+    // Ищем среди всех участников всех бесед
+    if (conversations) {
+      for (const conv of conversations) {
+        if (conv.participants) {
+          const participant = conv.participants.find((p: any) => p.id === userId);
+          if (participant && participant.role) {
+            return participant.role;
+          }
+        }
+      }
+    }
+    
+    // По умолчанию - посетитель
+    return 'visitor';
+  }, [user?.id, user?.role, selectedConversation, conversations]);
+
   // Подсчитываем общее количество непрочитанных сообщений
   const totalUnreadMessages = useMemo(() => {
     return filteredSenders.reduce(
@@ -436,6 +565,23 @@ const OperatorChatPageContent = () => {
   const handleSenderSelect = useCallback((sender: SenderType) => {
     console.log("Selecting sender:", sender);
     setSelectedSender(sender);
+    
+    // Очищаем счетчик непрочитанных сообщений сразу
+    if (sender.conversationId && sender.unreadCount > 0) {
+      queryClient.setQueryData(
+        ['conversations'],
+        (oldData: any) => {
+          if (!Array.isArray(oldData)) return oldData;
+          return oldData.map((conv: any) => 
+            (conv._id === sender.conversationId || conv.id === sender.conversationId) ? {
+              ...conv,
+              unreadMessagesCount: 0
+            } : conv
+          );
+        }
+      );
+    }
+    
     // Проверяем, что conversationId существует и является валидным MongoDB ID
     if (
       sender.conversationId &&
@@ -453,7 +599,7 @@ const OperatorChatPageContent = () => {
       );
       setSelectedConversation(null);
     }
-  }, []);
+  }, [queryClient]);
 
   // Показываем уведомление о pending transfer request
   useEffect(() => {
@@ -725,48 +871,120 @@ const OperatorChatPageContent = () => {
                   </div>
                 ) : (
                   (messages?.messages || messages?.data || [])?.map((message) => {
-                    const isMyMessage = message.senderId === user?.id;
-                    console.log(`Message comparison: message.senderId=${message.senderId}, user.id=${user?.id}, isMyMessage=${isMyMessage}`);
+                    // Обрабатываем senderId - может быть строкой с объектом
+                    let actualSenderId = message.senderId;
+                    let senderInfo = null;
+                    
+                    // Проверяем, если senderId - это строка с объектом
+                    if (typeof actualSenderId === 'string' && actualSenderId.includes('ObjectId')) {
+                      try {
+                        // Извлекаем информацию из строки
+                        const idMatch = actualSenderId.match(/ObjectId\('([^']+)'\)/);
+                        const emailMatch = actualSenderId.match(/email: '([^']+)'/);
+                        const usernameMatch = actualSenderId.match(/username: '([^']+)'/);
+                        
+                        if (idMatch) {
+                          actualSenderId = idMatch[1];
+                          senderInfo = {
+                            email: emailMatch ? emailMatch[1] : null,
+                            username: usernameMatch ? usernameMatch[1] : null
+                          };
+                        }
+                      } catch (error) {
+                        console.warn('Error parsing senderId:', error);
+                      }
+                    }
+                    
+                    const isMyMessage = actualSenderId === user?.id;
+                    
+                    // Определяем роль отправителя
+                    let senderRole = 'visitor';
+                    let senderName = 'Неизвестный';
+                    
+                    // Сначала проверяем роль в самом сообщении (если есть)
+                    if ((message as any).senderRole) {
+                      senderRole = (message as any).senderRole;
+                      senderName = (message as any).senderName || senderName;
+                    } else {
+                      // Используем функцию для определения роли
+                      senderRole = getUserRole(actualSenderId);
+                      
+                      // Дополнительная проверка по email для определения роли оператора
+                      if (senderInfo && senderInfo.email && senderInfo.email.includes('operator')) {
+                        senderRole = 'operator';
+                      }
+                      
+                      // Определяем имя отправителя
+                      if (isMyMessage) {
+                        senderName = user?.profile?.fullName || user?.profile?.username || 'Я';
+                      } else {
+                        // Сначала проверяем информацию из самого сообщения
+                        if (senderInfo && senderInfo.username) {
+                          senderName = senderInfo.username;
+                        } else {
+                          // Проверяем среди участников беседы
+                          const conversation = conversations?.find(
+                            (conv) =>
+                              conv._id === selectedConversation ||
+                              (conv as any).id === selectedConversation
+                          );
+                          
+                          if (conversation && conversation.participants) {
+                            const sender = conversation.participants.find(
+                              (p: any) => p.id === actualSenderId
+                            );
+                            if (sender) {
+                              senderName = sender.profile?.fullName || sender.profile?.username || 'Неизвестный';
+                            }
+                          }
+                        }
+                      }
+                    }
+                    
+                    const isOperatorMessage = senderRole === 'operator' || senderRole === 'admin';
+                    
+                    console.log(`Message: originalSenderId=${message.senderId}, actualSenderId=${actualSenderId}, userId=${user?.id}, isMyMessage=${isMyMessage}, senderRole=${senderRole}, isOperatorMessage=${isOperatorMessage}, senderInfo=`, senderInfo);
                     
                     return (
                       <div
                         key={message._id}
                         className={`flex ${
-                          isMyMessage
+                          isOperatorMessage
                             ? "justify-end"
                             : "justify-start"
                         }`}
                       >
                         <div
                           className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                            isMyMessage
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-card border border-border"
+                            isOperatorMessage
+                              ? "bg-blue-600 text-white"
+                              : "bg-gray-100 border border-gray-200 text-gray-800"
                           }`}
                         >
                           <p className="text-sm">{message.content || message.text}</p>
                           <div className="flex items-center justify-between mt-1">
                             <p
                               className={`text-xs ${
-                                isMyMessage
-                                  ? "text-primary-foreground/70"
-                                  : "text-muted-foreground"
+                                isOperatorMessage
+                                  ? "text-blue-200"
+                                  : "text-gray-500"
                               }`}
                             >
                               {new Date(message.timestamp || message.createdAt).toLocaleTimeString()}
                             </p>
 
                             {/* Статус прочтения */}
-                            {isMyMessage && (
+                            {isOperatorMessage && (
                               <div className="flex items-center space-x-1">
-                                {message.readBy?.length > 1 && (
-                                  <Radix.Badge
-                                    size="1"
-                                    variant="soft"
-                                    color="blue"
-                                  >
-                                    ✓ {message.readBy.length - 1}
-                                  </Radix.Badge>
+                                {message.readBy && message.readBy.length > 1 ? (
+                                  <div className="flex items-center space-x-1">
+                                    <span className="text-blue-200">✓✓</span>
+                                    <span className="text-xs text-blue-200">({message.readBy.length - 1})</span>
+                                  </div>
+                                ) : message.readBy && message.readBy.length > 0 ? (
+                                  <span className="text-blue-300">✓</span>
+                                ) : (
+                                  <span className="text-blue-400">✓</span>
                                 )}
                               </div>
                             )}

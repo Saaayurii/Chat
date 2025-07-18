@@ -45,6 +45,11 @@ export class ChatService {
         return true;
       }
 
+      // Операторы могут присоединяться к любым беседам (особенно анонимным)
+      if (user?.role === 'operator') {
+        return true;
+      }
+
       // Проверяем, является ли пользователь участником беседы
       const isParticipant = conversation.participants.some(
         participantId => participantId.toString() === userId
@@ -98,19 +103,6 @@ export class ChatService {
 
     const savedMessage = await message.save();
     const populatedMessage = await savedMessage.populate('senderId', 'email profile.username profile.avatarUrl');
-
-    // Добавляем сообщение в кэш Redis для real-time доступа
-    await this.messageCacheService.addMessage(savedMessage);
-    
-    // Также сохраняем в Redis для немедленного доступа в реальном времени
-    await this.redisService.cacheConversationMessage(conversationId, {
-      id: (savedMessage._id as Types.ObjectId).toString(),
-      text: savedMessage.text,
-      senderId: savedMessage.senderId.toString(),
-      timestamp: savedMessage.createdAt,
-      type: savedMessage.type,
-      status: savedMessage.status
-    });
 
     // Получаем список получателей (все участники кроме отправителя)
     const recipientIds = conversation.participants
@@ -185,14 +177,16 @@ export class ChatService {
       skip,
       async (convId, lmt, skp) => {
         // Fallback функция для получения из БД
+        this.logger.debug(`Fallback to DB: conversationId=${convId}, limit=${lmt}, skip=${skp}`);
         const messages = await this.messageModel
-          .find({ conversationId: convId })
+          .find({ conversationId: new Types.ObjectId(convId) })
           .populate('senderId', 'email profile.username profile.avatarUrl')
           .sort({ createdAt: -1 })
           .limit(lmt)
           .skip(skp)
           .exec();
 
+        this.logger.debug(`Found ${messages.length} messages in DB for conversation ${convId}`);
         return messages.reverse(); // Возвращаем в хронологическом порядке
       }
     );
@@ -248,8 +242,8 @@ export class ChatService {
     
     let query = {};
     
-    if (user?.role === 'admin') {
-      // Админы видят все разговоры
+    if (user?.role === 'admin' || user?.role === 'operator') {
+      // Админы и операторы видят все разговоры
       query = { status: { $ne: 'DELETED' } };
     } else {
       // Обычные пользователи видят только свои разговоры
@@ -528,6 +522,20 @@ export class ChatService {
     isEnabled: boolean;
   }> {
     return this.messageCacheService.getCacheStats(conversationId);
+  }
+
+  /**
+   * Добавляет сообщение в кэш
+   */
+  async addMessageToCache(message: any): Promise<void> {
+    await this.messageCacheService.addMessage(message);
+  }
+
+  /**
+   * Очищает кэш сообщений для беседы
+   */
+  async clearMessageCache(conversationId: string): Promise<void> {
+    await this.messageCacheService.clearCache(conversationId);
   }
 
   /**

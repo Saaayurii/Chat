@@ -104,11 +104,11 @@ export const useSocketIO = (namespace: string, options: UseSocketIOOptions = {})
         transports: ['websocket', 'polling'],
         upgrade: true,
         rememberUpgrade: true,
-        forceNew: false,
+        forceNew: true, // Принудительно создаем новое соединение для отладки
         timeout: 20000,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 2000,
-        reconnectionDelayMax: 10000
+        reconnectionAttempts: 3, // Уменьшаем количество попыток для быстрой отладки
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000
       });
 
       socketRef.current.on('connect', () => {
@@ -128,12 +128,16 @@ export const useSocketIO = (namespace: string, options: UseSocketIOOptions = {})
         console.error(`[${timestamp}] SocketIO: Error type: ${(error as any).type}, message: ${error.message}`);
         console.error(`[${timestamp}] SocketIO: Error context:`, (error as any).context);
         console.error(`[${timestamp}] SocketIO: Error data:`, (error as any).data);
-        console.error(`[${timestamp}] SocketIO: Error stack:`, error.stack);
+        console.error(`[${timestamp}] SocketIO: Current token exists: ${!!tokenRef.current}`);
+        console.error(`[${timestamp}] SocketIO: User authenticated: ${isAuthenticatedRef.current}`);
         const errorMessage = error.message || 'Connection failed';
         
         // Проверяем код ошибки для детализации
         if (error.message?.includes('403') || (error as any).code === 403) {
+          console.error(`[${timestamp}] SocketIO: Authentication failed - token might be invalid`);
           setError('Unauthorized - please check your authentication');
+          // При ошибке аутентификации сбрасываем флаг чтобы остановить попытки подключения
+          serverDisconnectedRef.current = true;
         } else if (error.message?.includes('timeout')) {
           setError('Connection timeout - server may be unavailable');
         } else {

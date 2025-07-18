@@ -153,4 +153,21 @@ export class ChatController {
 
     return this.chatService.getCacheStats(conversationId);
   }
+
+  @Post('conversations/:conversationId/clear-cache')
+  @ApiOperation({ summary: 'Очистить кэш сообщений беседы' })
+  @ApiResponse({ status: 200, description: 'Кэш очищен' })
+  async clearCache(
+    @Param('conversationId', ParseObjectIdPipe) conversationId: string,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    // Проверяем доступ к беседе
+    const canAccess = await this.chatService.canUserJoinConversation(req.user._id, conversationId);
+    if (!canAccess) {
+      throw new Error('Нет доступа к этой беседе');
+    }
+
+    await this.chatService.clearMessageCache(conversationId);
+    return { message: 'Кэш сообщений очищен' };
+  }
 }

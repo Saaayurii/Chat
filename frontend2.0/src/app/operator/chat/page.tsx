@@ -1,21 +1,36 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Search, Send, Paperclip, MoreVertical, Wifi, WifiOff, User, Phone, Mail, Shield, Globe, UserX, ArrowRightLeft, Bell } from 'lucide-react';
-import { useAuthStore } from '@/store/authStore';
-import { chatAPI } from '@/core/api';
-import { useChat } from '@/hooks/useChat';
-import { User as UserType, UserRole } from '@/types';
-import TransferModal from '@/components/Chat/TransferModal';
-import BlockUserModal from '@/components/Chat/BlockUserModal';
-import TransferRequestModal from '@/components/Chat/TransferRequestModal';
-import ProtectedRoute from '@/components/ProtectedRoute';
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Search,
+  Send,
+  Paperclip,
+  MoreVertical,
+  Wifi,
+  WifiOff,
+  User,
+  Phone,
+  Mail,
+  Shield,
+  Globe,
+  UserX,
+  ArrowRightLeft,
+  Bell,
+} from "lucide-react";
+import { useAuthStore } from "@/store/authStore";
+import { chatAPI } from "@/core/api";
+import { useChat } from "@/hooks/useChat";
+import { User as UserType, UserRole } from "@/types";
+import TransferModal from "@/components/Chat/TransferModal";
+import BlockUserModal from "@/components/Chat/BlockUserModal";
+import TransferRequestModal from "@/components/Chat/TransferRequestModal";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 interface SenderType {
   id: string;
   name: string;
-  type: 'operator' | 'visitor';
+  type: "operator" | "visitor";
   avatar?: string;
   unreadCount: number;
   lastMessageTime: string;
@@ -27,28 +42,36 @@ interface SenderType {
   isAuthorized: boolean;
   source?: string;
 }
-import * as Radix from '@radix-ui/themes';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/UI/Avatar';
-import { Badge } from '@/components/UI';
-import Button from '@/components/UI/Button';
-import { PresenceIndicator, PresenceAvatar, OnlineUsersList, PresenceStatus, usePresence } from '@/components/Presence';
+import * as Radix from "@radix-ui/themes";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/UI/Avatar";
+import { Badge } from "@/components/UI";
+import Button from "@/components/UI/Button";
+import {
+  PresenceIndicator,
+  PresenceAvatar,
+  OnlineUsersList,
+  PresenceStatus,
+  usePresence,
+} from "@/components/Presence";
 
-
-function OperatorChatPageContent() {
+const OperatorChatPageContent = () => {
   const { user, token } = useAuthStore();
   const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
-  const [newMessage, setNewMessage] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+
+  const [selectedConversation, setSelectedConversation] = useState<
+    string | null
+  >(null);
+  const [newMessage, setNewMessage] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [selectedSender, setSelectedSender] = useState<SenderType | null>(null);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [transferRequest, setTransferRequest] = useState<any>(null);
-  const [showTransferRequestModal, setShowTransferRequestModal] = useState(false);
+  const [showTransferRequestModal, setShowTransferRequestModal] =
+    useState(false);
 
   // WebSocket chat hook
   const {
@@ -59,12 +82,18 @@ function OperatorChatPageContent() {
     setTyping,
     joinConversation,
     leaveConversation,
-    reconnect
+    reconnect,
   } = useChat();
-  
+
   // Логирование для отслеживания перерендеров
-  console.log(`[${new Date().toISOString()}] OperatorChatPageContent: Component rendered, user: ${user?.id || 'none'}, token: ${!!token}`);
-  console.log(`[${new Date().toISOString()}] OperatorChatPageContent: Selected conversation: ${selectedConversation}, isConnected: ${isConnected}`);
+  console.log(
+    `[${new Date().toISOString()}] OperatorChatPageContent: Component rendered, user: ${
+      user?.id || "none"
+    }, token: ${!!token}`
+  );
+  console.log(
+    `[${new Date().toISOString()}] OperatorChatPageContent: Selected conversation: ${selectedConversation}, isConnected: ${isConnected}`
+  );
 
   // Инвалидируем запросы при получении новых сообщений - убираем для стабилизации
   // useEffect(() => {
@@ -73,7 +102,7 @@ function OperatorChatPageContent() {
   //       // Обновляем список разговоров каждые 30 секунд для получения анонимных сообщений
   //       queryClient.invalidateQueries({ queryKey: ['conversations'] });
   //     }, 30000);
-      
+
   //     return () => clearInterval(interval);
   //   }
   // }, [isConnected, queryClient]);
@@ -82,7 +111,7 @@ function OperatorChatPageContent() {
   const presence = {
     onlineUsers: [],
     isConnected: false,
-    status: 'offline' as const
+    status: "offline" as const,
   };
   // const presence = usePresence({
   //   apiUrl: process.env.NEXT_PUBLIC_API_URL || '',
@@ -93,95 +122,84 @@ function OperatorChatPageContent() {
   // });
 
   const { data: conversations, isLoading: conversationsLoading } = useQuery({
-    queryKey: ['conversations'],
+    queryKey: ["conversations"],
     queryFn: async () => {
       const response = await chatAPI.getConversations();
-      console.log('Conversations response:', response.data);
+      console.log("Conversations response:", response.data);
       return response.data;
     },
     enabled: !!user && !!token,
     refetchInterval: 60000, // Обновляем каждую минуту вместо 10 секунд
     refetchOnWindowFocus: false, // Убираем автообновление при фокусе
-    staleTime: 30000 // Данные считаются свежими 30 секунд
+    staleTime: 30000, // Данные считаются свежими 30 секунд
   });
 
   const { data: messages, isLoading: messagesLoading } = useQuery({
-    queryKey: ['messages', selectedConversation],
+    queryKey: ["messages", selectedConversation],
     queryFn: async () => {
-      if (!selectedConversation || !selectedConversation.match(/^[0-9a-fA-F]{24}$/)) {
-        console.warn('Invalid conversation ID for messages:', selectedConversation);
+      if (
+        !selectedConversation ||
+        !selectedConversation.match(/^[0-9a-fA-F]{24}$/)
+      ) {
+        console.warn(
+          "Invalid conversation ID for messages:",
+          selectedConversation
+        );
         return null;
       }
-      
-      // Определяем тип беседы для выбора правильного API
-      const conversation = conversations?.find(conv => 
-        (conv._id === selectedConversation || (conv as any).id === selectedConversation)
+
+      console.log(
+        "Getting messages for conversation:",
+        selectedConversation
       );
-      
-      let response;
-      // Сначала пробуем обычный API для всех типов бесед
-      try {
-        console.log('Trying regular messages API for conversation:', selectedConversation);
-        response = await chatAPI.getMessages(selectedConversation);
-      } catch (error) {
-        console.log('Regular API failed, trying operator API:', error);
-        // Если не удалось, пробуем operator API с обходом проверки
-        try {
-          console.log('Using operator messages API for conversation:', selectedConversation);
-          response = await chatAPI.getOperatorConversationMessages(selectedConversation);
-        } catch (operatorError) {
-          console.log('Operator API failed, trying anonymous API:', operatorError);
-          // Если operator API не работает, пробуем anonymous API
-          if ((conversation as any)?.type === 'anonymous-support') {
-            console.log('Using anonymous messages API for conversation:', selectedConversation);
-            response = await chatAPI.getAnonymousMessages(selectedConversation);
-          } else {
-            throw error; // Пробрасываем оригинальную ошибку
-          }
-        }
-      }
-      
+      const response = await chatAPI.getMessages(selectedConversation);
+      console.log("Messages API response:", response.data);
       return response.data;
     },
-    enabled: !!selectedConversation && !!selectedConversation.match(/^[0-9a-fA-F]{24}$/) && !!conversations,
-    refetchInterval: 30000, // Обновляем сообщения каждые 30 секунд вместо 5
+    enabled:
+      !!selectedConversation &&
+      !!selectedConversation.match(/^[0-9a-fA-F]{24}$/) &&
+      !!conversations,
+    refetchInterval: 30000, // Обновляем сообщения каждые 30 секунд
     refetchOnWindowFocus: false, // Убираем автообновление при фокусе
-    staleTime: 15000 // Данные считаются свежими 15 секунд
+    staleTime: 15000, // Данные считаются свежими 15 секунд
   });
 
   // Получаем pending transfer requests
   const { data: transferRequests } = useQuery({
-    queryKey: ['transfer-requests', 'pending'],
+    queryKey: ["transfer-requests", "pending"],
     queryFn: async () => {
       const response = await chatAPI.getPendingTransferRequests();
       return response.data;
     },
     enabled: !!user && !!token,
-    refetchInterval: 5000 // Обновляем каждые 5 секунд
+    refetchInterval: 5000, // Обновляем каждые 5 секунд
   });
 
   const handleSendMessage = useCallback(() => {
     if (!newMessage.trim() || !selectedConversation) return;
-    
+
     // Находим беседу для определения типа
-    const conversation = conversations?.find(conv => 
-      (conv._id === selectedConversation || (conv as any).id === selectedConversation)
+    const conversation = conversations?.find(
+      (conv) =>
+        conv._id === selectedConversation ||
+        (conv as any).id === selectedConversation
     );
-    
+
     // Отправляем через Socket.IO
     const success = sendChatMessage(selectedConversation, newMessage);
-    
+
     if (success) {
-      setNewMessage('');
+      setNewMessage("");
       setIsTyping(false);
       setTyping(selectedConversation, false);
-      
+
       // Очищаем таймер печатания
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
         typingTimeoutRef.current = null;
       }
-      
+
       // Для анонимных бесед принудительно обновляем сообщения - убираем для стабилизации
       // if (conversation?.type === 'anonymous-support') {
       //   setTimeout(() => {
@@ -191,34 +209,37 @@ function OperatorChatPageContent() {
     }
   }, [newMessage, selectedConversation, sendChatMessage, setTyping]); // Убираем conversations и queryClient
 
-  const handleMessageChange = useCallback((value: string) => {
-    setNewMessage(value);
-    
-    if (!selectedConversation) return;
-    
-    // Управление статусом "печатает"
-    if (value.trim() && !isTyping) {
-      setIsTyping(true);
-      setTyping(selectedConversation, true);
-    } else if (!value.trim() && isTyping) {
-      setIsTyping(false);
-      setTyping(selectedConversation, false);
-    }
-    
-    // Сбрасываем таймер
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-      typingTimeoutRef.current = null;
-    }
-    
-    // Автоматически убираем статус "печатает" через 3 секунды
-    if (value.trim()) {
-      typingTimeoutRef.current = setTimeout(() => {
+  const handleMessageChange = useCallback(
+    (value: string) => {
+      setNewMessage(value);
+
+      if (!selectedConversation) return;
+
+      // Управление статусом "печатает"
+      if (value.trim() && !isTyping) {
+        setIsTyping(true);
+        setTyping(selectedConversation, true);
+      } else if (!value.trim() && isTyping) {
         setIsTyping(false);
         setTyping(selectedConversation, false);
-      }, 3000);
-    }
-  }, [selectedConversation, isTyping, setTyping]);
+      }
+
+      // Сбрасываем таймер
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+
+      // Автоматически убираем статус "печатает" через 3 секунды
+      if (value.trim()) {
+        typingTimeoutRef.current = setTimeout(() => {
+          setIsTyping(false);
+          setTyping(selectedConversation, false);
+        }, 3000);
+      }
+    },
+    [selectedConversation, isTyping, setTyping]
+  );
 
   const handleTransferChat = useCallback(() => {
     if (!selectedSender) return;
@@ -244,21 +265,38 @@ function OperatorChatPageContent() {
 
   // Присоединяемся к беседе при выборе - исправленная версия
   useEffect(() => {
-    if (selectedConversation && selectedConversation.match(/^[0-9a-fA-F]{24}$/)) {
-      joinConversation(selectedConversation);
-      
+    if (
+      selectedConversation &&
+      selectedConversation.match(/^[0-9a-fA-F]{24}$/)
+    ) {
+      if (isConnected) {
+        joinConversation(selectedConversation);
+      } else {
+        console.log(`Will join conversation ${selectedConversation} when socket connects`);
+      }
+
       return () => {
-        leaveConversation(selectedConversation);
+        if (isConnected) {
+          leaveConversation(selectedConversation);
+        }
       };
     }
-  }, [selectedConversation]);
+  }, [selectedConversation, isConnected, joinConversation, leaveConversation]);
+
+  // Автоматически присоединяемся к выбранной беседе когда сокет подключается
+  useEffect(() => {
+    if (isConnected && selectedConversation && selectedConversation.match(/^[0-9a-fA-F]{24}$/)) {
+      console.log(`Socket connected, joining conversation ${selectedConversation}`);
+      joinConversation(selectedConversation);
+    }
+  }, [isConnected, selectedConversation, joinConversation]);
 
   // Автоскролл к последнему сообщению - оптимизированная версия
-  const messagesLength = messages?.data?.length || 0;
+  const messagesLength = (messages?.messages || messages?.data || []).length;
   useEffect(() => {
     if (messagesLength > 0) {
       const timer = setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
       }, 100);
       return () => clearTimeout(timer);
     }
@@ -277,31 +315,41 @@ function OperatorChatPageContent() {
   // Мемоизируем фильтрацию отправителей для оптимизации - стабилизированная версия
   const filteredSenders = useMemo(() => {
     if (!conversations || !Array.isArray(conversations)) return [];
-    
+
     // Создаем список уникальных отправителей из бесед
     const sendersMap = new Map();
-    conversations.forEach(conv => {
+    conversations.forEach((conv) => {
       const conversationId = conv._id || (conv as any).id;
-      
+
       // Обработка анонимных бесед
-      if ((conv as any).type === 'anonymous-support' && (conv as any).anonymousUser) {
+      if (
+        (conv as any).type === "anonymous-support" &&
+        (conv as any).anonymousUser
+      ) {
         const anonymousUser = (conv as any).anonymousUser;
-        const senderId = anonymousUser._id || anonymousUser.id || `anonymous_${conversationId}`;
-        
+        const senderId =
+          anonymousUser._id ||
+          anonymousUser.id ||
+          `anonymous_${conversationId}`;
+
         sendersMap.set(senderId, {
           id: senderId,
-          name: anonymousUser.profile?.fullName || anonymousUser.profile?.username || 'Анонимный посетитель',
-          type: 'visitor',
+          name:
+            anonymousUser.profile?.fullName ||
+            anonymousUser.profile?.username ||
+            "Анонимный посетитель",
+          type: "visitor",
           avatar: anonymousUser.profile?.avatarUrl,
           unreadCount: conv.unreadMessagesCount || 0,
-          lastMessageTime: conv.lastMessage?.timestamp || new Date().toISOString(),
+          lastMessageTime:
+            conv.lastMessage?.timestamp || new Date().toISOString(),
           isOnline: false, // Анонимные пользователи не показывают статус онлайн
           conversationId: conversationId,
-          email: anonymousUser.email || 'Не указан',
-          phone: anonymousUser.profile?.phone || 'Не указан',
-          role: 'VISITOR',
+          email: anonymousUser.email || "Не указан",
+          phone: anonymousUser.profile?.phone || "Не указан",
+          role: "VISITOR",
           isAuthorized: false,
-          source: 'Виджет (анонимно)'
+          source: "Виджет (анонимно)",
         });
       }
       // Обработка обычных бесед
@@ -310,43 +358,59 @@ function OperatorChatPageContent() {
           if (participant && participant.id !== user?.id) {
             const senderId = participant.id;
             const existingSender = sendersMap.get(senderId);
-            
-            if (!existingSender || new Date(conv.lastMessage?.timestamp || 0) > new Date(existingSender.lastMessageTime || 0)) {
+
+            if (
+              !existingSender ||
+              new Date(conv.lastMessage?.timestamp || 0) >
+                new Date(existingSender.lastMessageTime || 0)
+            ) {
               sendersMap.set(senderId, {
                 id: senderId,
-                name: participant.profile?.fullName || participant.profile?.username || 'Неизвестный',
-                type: participant.role === UserRole.OPERATOR ? 'operator' : 'visitor',
+                name:
+                  participant.profile?.fullName ||
+                  participant.profile?.username ||
+                  "Неизвестный",
+                type:
+                  participant.role === UserRole.OPERATOR
+                    ? "operator"
+                    : "visitor",
                 avatar: participant.profile?.avatarUrl,
                 unreadCount: conv.unreadMessagesCount || 0,
-                lastMessageTime: conv.lastMessage?.timestamp || new Date().toISOString(),
+                lastMessageTime:
+                  conv.lastMessage?.timestamp || new Date().toISOString(),
                 isOnline: participant.profile?.isOnline || false,
                 conversationId: conversationId,
-                email: participant.email || '',
-                phone: participant.profile?.phone || '',
-                role: participant.role || 'VISITOR',
+                email: participant.email || "",
+                phone: participant.profile?.phone || "",
+                role: participant.role || "VISITOR",
                 isAuthorized: participant.isActivated || false,
-                source: 'Веб-сайт'
+                source: "Веб-сайт",
               });
             }
           }
         });
       }
     });
-    
+
     let senders = Array.from(sendersMap.values());
-    
+
     // Сортируем по времени последнего сообщения
-    senders.sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime());
-    
+    senders.sort(
+      (a, b) =>
+        new Date(b.lastMessageTime).getTime() -
+        new Date(a.lastMessageTime).getTime()
+    );
+
     // Фильтруем по поисковому запросу
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      senders = senders.filter(sender => 
-        sender.name.toLowerCase().includes(query) ||
-        sender.email.toLowerCase().includes(query)
+      senders = senders.filter(
+        (sender) =>
+          sender.name.toLowerCase().includes(query) ||
+          sender.email.toLowerCase().includes(query)
       );
     }
-    
+
     return senders;
   }, [conversations, searchQuery, user?.id]);
 
@@ -357,26 +421,42 @@ function OperatorChatPageContent() {
 
   // Подсчитываем общее количество непрочитанных сообщений
   const totalUnreadMessages = useMemo(() => {
-    return filteredSenders.reduce((total, sender) => total + (sender.unreadCount || 0), 0);
+    return filteredSenders.reduce(
+      (total, sender) => total + (sender.unreadCount || 0),
+      0
+    );
   }, [filteredSenders]);
 
   // Обработка выбора отправителя
   const handleSenderSelect = useCallback((sender: SenderType) => {
-    console.log('Selecting sender:', sender);
+    console.log("Selecting sender:", sender);
     setSelectedSender(sender);
     // Проверяем, что conversationId существует и является валидным MongoDB ID
-    if (sender.conversationId && sender.conversationId.length === 24 && /^[0-9a-fA-F]{24}$/.test(sender.conversationId)) {
-      console.log('Setting conversation ID:', sender.conversationId);
+    if (
+      sender.conversationId &&
+      sender.conversationId.length === 24 &&
+      /^[0-9a-fA-F]{24}$/.test(sender.conversationId)
+    ) {
+      console.log("Setting conversation ID:", sender.conversationId);
       setSelectedConversation(sender.conversationId);
     } else {
-      console.warn('Invalid conversationId:', sender.conversationId, 'Length:', sender.conversationId?.length);
+      console.warn(
+        "Invalid conversationId:",
+        sender.conversationId,
+        "Length:",
+        sender.conversationId?.length
+      );
       setSelectedConversation(null);
     }
   }, []);
 
   // Показываем уведомление о pending transfer request
   useEffect(() => {
-    if (transferRequests && transferRequests.length > 0 && !showTransferRequestModal) {
+    if (
+      transferRequests &&
+      transferRequests.length > 0 &&
+      !showTransferRequestModal
+    ) {
       const latestRequest = transferRequests[0];
       const currentRequestId = transferRequest?.id;
       if (latestRequest.id !== currentRequestId) {
@@ -393,9 +473,14 @@ function OperatorChatPageContent() {
         <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
-              <h2 className="text-lg font-semibold text-foreground">Сообщения</h2>
+              <h2 className="text-lg font-semibold text-foreground">
+                Сообщения
+              </h2>
               {totalUnreadMessages > 0 && (
-                <Badge variant="destructive" className="h-5 w-5 p-0 text-xs flex items-center justify-center">
+                <Badge
+                  variant="destructive"
+                  className="h-5 w-5 p-0 text-xs flex items-center justify-center"
+                >
                   {totalUnreadMessages}
                 </Badge>
               )}
@@ -417,15 +502,15 @@ function OperatorChatPageContent() {
                   >
                     <Bell className="w-4 h-4" />
                   </Button>
-                  <Badge 
-                    variant="destructive" 
+                  <Badge
+                    variant="destructive"
                     className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs flex items-center justify-center"
                   >
                     {transferRequests.length}
                   </Badge>
                 </div>
               )}
-              
+
               {/* WebSocket статус */}
               <div className="flex items-center space-x-2">
                 {isConnected ? (
@@ -433,7 +518,11 @@ function OperatorChatPageContent() {
                 ) : isConnecting ? (
                   <Radix.Spinner size="1" />
                 ) : (
-                  <div className="cursor-pointer" title="Не подключено. Нажмите для переподключения" onClick={reconnect}>
+                  <div
+                    className="cursor-pointer"
+                    title="Не подключено. Нажмите для переподключения"
+                    onClick={reconnect}
+                  >
                     <WifiOff className="w-4 h-4 text-red-500" />
                   </div>
                 )}
@@ -448,7 +537,7 @@ function OperatorChatPageContent() {
               </div>
             </div>
           </div>
-          
+
           <div className="relative">
             <input
               type="text"
@@ -469,7 +558,7 @@ function OperatorChatPageContent() {
                 users={presence.onlineUsers}
                 maxVisible={3}
                 onUserClick={(userId) => {
-                  console.log('Clicked online user:', userId);
+                  console.log("Clicked online user:", userId);
                   // Здесь можно добавить логику для открытия чата с пользователем
                 }}
                 className="text-sm"
@@ -496,8 +585,8 @@ function OperatorChatPageContent() {
                   onClick={() => handleSenderSelect(sender)}
                   className={`p-3 rounded-lg cursor-pointer transition-colors ${
                     selectedSender?.id === sender.id
-                      ? 'bg-accent border-l-4 border-primary'
-                      : 'hover:bg-accent'
+                      ? "bg-accent border-l-4 border-primary"
+                      : "hover:bg-accent"
                   }`}
                 >
                   <div className="flex items-center space-x-3">
@@ -505,10 +594,14 @@ function OperatorChatPageContent() {
                       userId={sender.id}
                       userName={sender.name}
                       avatar={sender.avatar}
-                      status={sender.isOnline ? PresenceStatus.ONLINE : PresenceStatus.OFFLINE}
+                      status={
+                        sender.isOnline
+                          ? PresenceStatus.ONLINE
+                          : PresenceStatus.OFFLINE
+                      }
                       size="sm"
                     />
-                    
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-medium text-foreground truncate">
@@ -516,18 +609,30 @@ function OperatorChatPageContent() {
                         </p>
                         <div className="flex items-center space-x-2">
                           <span className="text-xs text-muted-foreground">
-                            {new Date(sender.lastMessageTime).toLocaleTimeString()}
+                            {new Date(
+                              sender.lastMessageTime
+                            ).toLocaleTimeString()}
                           </span>
                           {sender.unreadCount > 0 && (
-                            <Badge variant="destructive" className="h-5 w-5 p-0 text-xs flex items-center justify-center">
+                            <Badge
+                              variant="destructive"
+                              className="h-5 w-5 p-0 text-xs flex items-center justify-center"
+                            >
                               {sender.unreadCount}
                             </Badge>
                           )}
                         </div>
                       </div>
                       <div className="flex items-center space-x-2 mt-1">
-                        <Badge variant={sender.type === 'operator' ? 'default' : 'secondary'} className="text-xs">
-                          {sender.type === 'operator' ? 'Оператор' : 'Посетитель'}
+                        <Badge
+                          variant={
+                            sender.type === "operator" ? "default" : "secondary"
+                          }
+                          className="text-xs"
+                        >
+                          {sender.type === "operator"
+                            ? "Оператор"
+                            : "Посетитель"}
                         </Badge>
                       </div>
                     </div>
@@ -553,16 +658,26 @@ function OperatorChatPageContent() {
                       <>
                         <PresenceAvatar
                           userId={selectedSender.id}
-                          userName={selectedSender.name || 'Неизвестный'}
+                          userName={selectedSender.name || "Неизвестный"}
                           avatar={selectedSender.avatar}
-                          status={selectedSender.isOnline ? PresenceStatus.ONLINE : PresenceStatus.OFFLINE}
+                          status={
+                            selectedSender.isOnline
+                              ? PresenceStatus.ONLINE
+                              : PresenceStatus.OFFLINE
+                          }
                           size="sm"
                         />
                         <div>
                           <div className="flex items-center gap-2">
-                            <h3 className="font-semibold">{selectedSender.name || 'Неизвестный'}</h3>
-                            <PresenceIndicator 
-                              status={selectedSender.isOnline ? PresenceStatus.ONLINE : PresenceStatus.OFFLINE}
+                            <h3 className="font-semibold">
+                              {selectedSender.name || "Неизвестный"}
+                            </h3>
+                            <PresenceIndicator
+                              status={
+                                selectedSender.isOnline
+                                  ? PresenceStatus.ONLINE
+                                  : PresenceStatus.OFFLINE
+                              }
                               size="sm"
                               showText={true}
                             />
@@ -582,11 +697,13 @@ function OperatorChatPageContent() {
                     <MoreVertical className="w-5 h-5" />
                   </button>
                 </div>
-                
+
                 {/* Показываем кто печатает */}
                 {currentTypingUsers.length > 0 && (
                   <div className="mt-2 text-sm text-muted-foreground italic">
-                    {currentTypingUsers.length === 1 ? 'Пользователь печатает...' : `${currentTypingUsers.length} пользователей печатают...`}
+                    {currentTypingUsers.length === 1
+                      ? "Пользователь печатает..."
+                      : `${currentTypingUsers.length} пользователей печатают...`}
                   </div>
                 )}
               </div>
@@ -597,38 +714,48 @@ function OperatorChatPageContent() {
                   <div className="flex justify-center">
                     <Radix.Spinner />
                   </div>
-                ) : messages?.data?.length === 0 ? (
+                ) : (messages?.messages || messages?.data || []).length === 0 ? (
                   <div className="text-center text-muted-foreground">
                     Начните общение, отправив первое сообщение
                   </div>
                 ) : (
-                  messages?.data?.map((message) => (
+                  (messages?.messages || messages?.data || [])?.map((message) => (
                     <div
                       key={message._id}
                       className={`flex ${
-                        message.senderId === user?.id ? 'justify-end' : 'justify-start'
+                        message.senderId === user?.id
+                          ? "justify-end"
+                          : "justify-start"
                       }`}
                     >
                       <div
                         className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                           message.senderId === user?.id
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-card border border-border'
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-card border border-border"
                         }`}
                       >
-                        <p className="text-sm">{message.text}</p>
+                        <p className="text-sm">{message.content || message.text}</p>
                         <div className="flex items-center justify-between mt-1">
-                          <p className={`text-xs ${
-                            message.senderId === user?.id ? 'text-primary-foreground/70' : 'text-muted-foreground'
-                          }`}>
-                            {new Date(message.createdAt).toLocaleTimeString()}
+                          <p
+                            className={`text-xs ${
+                              message.senderId === user?.id
+                                ? "text-primary-foreground/70"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            {new Date(message.timestamp || message.createdAt).toLocaleTimeString()}
                           </p>
-                          
+
                           {/* Статус прочтения */}
                           {message.senderId === user?.id && (
                             <div className="flex items-center space-x-1">
                               {message.readBy.length > 1 && (
-                                <Radix.Badge size="1" variant="soft" color="blue">
+                                <Radix.Badge
+                                  size="1"
+                                  variant="soft"
+                                  color="blue"
+                                >
                                   ✓ {message.readBy.length - 1}
                                 </Radix.Badge>
                               )}
@@ -639,7 +766,7 @@ function OperatorChatPageContent() {
                     </div>
                   ))
                 )}
-                
+
                 {/* Скролл к последнему сообщению */}
                 <div ref={messagesEndRef} />
               </div>
@@ -650,17 +777,17 @@ function OperatorChatPageContent() {
                   <button className="p-2 hover:bg-accent rounded-lg">
                     <Paperclip className="w-5 h-5 text-muted-foreground" />
                   </button>
-                  
+
                   <input
                     type="text"
                     placeholder="Введите сообщение..."
                     value={newMessage}
                     onChange={(e) => handleMessageChange(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                    onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
                     className="flex-1 px-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
                     disabled={!isConnected}
                   />
-                  
+
                   <button
                     onClick={handleSendMessage}
                     disabled={!newMessage.trim() || !isConnected}
@@ -680,7 +807,6 @@ function OperatorChatPageContent() {
                 <h3 className="text-lg font-medium text-foreground mb-2">
                   Выберите чат
                 </h3>
-                
               </div>
             </div>
           )}
@@ -690,83 +816,116 @@ function OperatorChatPageContent() {
         {selectedSender && (
           <div className="w-80 bg-card border-l border-border flex flex-col">
             <div className="p-4 border-b border-border">
-              <h3 className="font-semibold text-foreground">Информация о пользователе</h3>
+              <h3 className="font-semibold text-foreground">
+                Информация о пользователе
+              </h3>
             </div>
-            
+
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
               {/* Avatar and basic info */}
               <div className="text-center">
                 <div className="mb-3">
                   <PresenceAvatar
                     userId={selectedSender.id}
-                    userName={selectedSender.name || 'Неизвестный'}
+                    userName={selectedSender.name || "Неизвестный"}
                     avatar={selectedSender.avatar}
-                    status={selectedSender.isOnline ? PresenceStatus.ONLINE : PresenceStatus.OFFLINE}
+                    status={
+                      selectedSender.isOnline
+                        ? PresenceStatus.ONLINE
+                        : PresenceStatus.OFFLINE
+                    }
                     size="lg"
                     className="mx-auto"
                   />
                 </div>
                 <h4 className="font-semibold text-foreground">
-                  {selectedSender.name || 'Неизвестный'}
+                  {selectedSender.name || "Неизвестный"}
                 </h4>
                 <div className="flex justify-center mt-2">
-                  <PresenceIndicator 
-                    status={selectedSender.isOnline ? PresenceStatus.ONLINE : PresenceStatus.OFFLINE}
+                  <PresenceIndicator
+                    status={
+                      selectedSender.isOnline
+                        ? PresenceStatus.ONLINE
+                        : PresenceStatus.OFFLINE
+                    }
                     size="sm"
                     showText={true}
                   />
                 </div>
-                <Badge variant={selectedSender.type === 'operator' ? 'default' : 'secondary'} className="mt-2">
-                  {selectedSender.type === 'operator' ? 'Оператор' : 'Посетитель'}
+                <Badge
+                  variant={
+                    selectedSender.type === "operator" ? "default" : "secondary"
+                  }
+                  className="mt-2"
+                >
+                  {selectedSender.type === "operator"
+                    ? "Оператор"
+                    : "Посетитель"}
                 </Badge>
               </div>
 
               {/* User details */}
               <div className="space-y-4">
                 <div className="bg-muted/50 rounded-lg p-3">
-                  <h5 className="font-medium text-foreground mb-3">Контактная информация</h5>
+                  <h5 className="font-medium text-foreground mb-3">
+                    Контактная информация
+                  </h5>
                   <div className="space-y-3">
                     <div className="flex items-center space-x-3">
                       <User className="h-4 w-4 text-muted-foreground" />
                       <div>
                         <p className="text-sm text-muted-foreground">ID</p>
-                        <p className="text-sm text-foreground font-mono">{selectedSender.id}</p>
+                        <p className="text-sm text-foreground font-mono">
+                          {selectedSender.id}
+                        </p>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center space-x-3">
                       <Mail className="h-4 w-4 text-muted-foreground" />
                       <div>
                         <p className="text-sm text-muted-foreground">Email</p>
-                        <p className="text-sm text-foreground">{selectedSender.email || 'Не указан'}</p>
+                        <p className="text-sm text-foreground">
+                          {selectedSender.email || "Не указан"}
+                        </p>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center space-x-3">
                       <Phone className="h-4 w-4 text-muted-foreground" />
                       <div>
                         <p className="text-sm text-muted-foreground">Телефон</p>
-                        <p className="text-sm text-foreground">{selectedSender.phone || 'Не указан'}</p>
+                        <p className="text-sm text-foreground">
+                          {selectedSender.phone || "Не указан"}
+                        </p>
                       </div>
                     </div>
 
-                    {selectedSender.type === 'visitor' && (
+                    {selectedSender.type === "visitor" && (
                       <>
                         <div className="flex items-center space-x-3">
                           <Shield className="h-4 w-4 text-muted-foreground" />
                           <div>
-                            <p className="text-sm text-muted-foreground">Статус</p>
+                            <p className="text-sm text-muted-foreground">
+                              Статус
+                            </p>
                             <p className="text-sm text-foreground">
-                              {selectedSender.isAuthorized ? 'Авторизован' : 'Не авторизован'}
+                              {selectedSender.isAuthorized
+                                ? "Авторизован"
+                                : "Не авторизован"}
                             </p>
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center space-x-3">
                           <Globe className="h-4 w-4 text-muted-foreground" />
                           <div>
-                            <p className="text-sm text-muted-foreground">Источник</p>
-                            <p className="text-sm text-foreground">{selectedSender.source || 'Не указан'}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Источник
+                            </p>
+                            <p className="text-sm text-foreground">
+                              {selectedSender.source || "Не указан"}
+                            </p>
                           </div>
                         </div>
                       </>
@@ -778,27 +937,31 @@ function OperatorChatPageContent() {
                 <div className="bg-muted/50 rounded-lg p-3">
                   <h5 className="font-medium text-foreground mb-3">Статус</h5>
                   <div className="flex items-center space-x-2">
-                    <div className={`w-2 h-2 rounded-full ${selectedSender.isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                    <div
+                      className={`w-2 h-2 rounded-full ${
+                        selectedSender.isOnline ? "bg-green-500" : "bg-gray-400"
+                      }`}
+                    ></div>
                     <span className="text-sm text-foreground">
-                      {selectedSender.isOnline ? 'В сети' : 'Не в сети'}
+                      {selectedSender.isOnline ? "В сети" : "Не в сети"}
                     </span>
                   </div>
                 </div>
 
                 {/* Action buttons for visitors */}
-                {selectedSender.type === 'visitor' && (
+                {selectedSender.type === "visitor" && (
                   <div className="space-y-2">
-                    <Button 
+                    <Button
                       onClick={handleTransferChat}
-                      variant="outline" 
+                      variant="outline"
                       className="w-full"
                     >
                       <ArrowRightLeft className="h-4 w-4 mr-2" />
                       Перенаправить
                     </Button>
-                    <Button 
+                    <Button
                       onClick={handleBlockUser}
-                      variant="destructive" 
+                      variant="destructive"
                       className="w-full"
                     >
                       <UserX className="h-4 w-4 mr-2" />
@@ -820,10 +983,10 @@ function OperatorChatPageContent() {
             onClose={() => setShowTransferModal(false)}
             visitorId={selectedSender.id}
             visitorName={selectedSender.name}
-            conversationId={selectedConversation || ''}
+            conversationId={selectedConversation || ""}
             onTransferComplete={handleTransferComplete}
           />
-          
+
           <BlockUserModal
             isOpen={showBlockModal}
             onClose={() => setShowBlockModal(false)}
@@ -831,7 +994,7 @@ function OperatorChatPageContent() {
             userName={selectedSender.name}
             userEmail={selectedSender.email}
             userAvatar={selectedSender.avatar}
-            conversationId={selectedConversation || ''}
+            conversationId={selectedConversation || ""}
             onBlockComplete={handleBlockComplete}
           />
         </>
@@ -853,7 +1016,7 @@ function OperatorChatPageContent() {
       )}
     </div>
   );
-}
+};
 
 export default function OperatorChatPage() {
   return (

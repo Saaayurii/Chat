@@ -195,11 +195,14 @@ async afterInit(server: Server) {
 
       // Формируем данные сообщения для real-time отправки
       const messageData = {
+        _id: (message._id as any).toString(),
         id: (message._id as any).toString(),
         text: message.text,
+        content: message.text, // Добавляем поле content для совместимости
         senderId: message.senderId.toString(),
         conversationId: sendMessageDto.conversationId,
         timestamp: message.createdAt,
+        createdAt: message.createdAt,
         type: message.type,
         status: message.status,
         senderName: user.profile?.fullName || user.profile?.username || user.email
@@ -213,8 +216,8 @@ async afterInit(server: Server) {
           data: messageData
         });
 
-      // Также кэшируем в Redis для быстрого доступа
-      await this.redisService.cacheConversationMessage(sendMessageDto.conversationId, messageData);
+      // Добавляем сообщение в кэш через MessageCacheService
+      await this.chatService.addMessageToCache(messageData);
 
       // Подтверждаем отправителю успешную отправку
       client.emit('message-sent', {

@@ -93,7 +93,8 @@ export const useChat = () => {
     },
     onDisconnect: () => {
       console.log(`[${new Date().toISOString()}] Chat Socket.IO disconnected`);
-    }
+    },
+    autoConnect: true // Явно указываем autoConnect: true
   });
   
   // Логируем состояние socket соединения
@@ -285,37 +286,57 @@ export const useChat = () => {
 
   // Функции для отправки Socket.IO сообщений
   const sendChatMessage = useCallback((conversationId: string, text: string, type = 'text') => {
+    if (!isConnected) {
+      console.warn('Cannot send message - socket not connected');
+      return false;
+    }
     return emit('send-message', {
       conversationId,
       text,
       type
     });
-  }, [emit]);
+  }, [emit, isConnected]);
 
   const markAsRead = useCallback((conversationId: string, messageId: string) => {
+    if (!isConnected) {
+      console.warn('Cannot mark as read - socket not connected');
+      return false;
+    }
     return emit('mark-as-read', {
       conversationId,
       messageId
     });
-  }, [emit]);
+  }, [emit, isConnected]);
 
   const setTyping = useCallback((conversationId: string, isTyping: boolean) => {
+    if (!isConnected) {
+      console.warn('Cannot set typing status - socket not connected');
+      return false;
+    }
     return emit(isTyping ? 'typing-start' : 'typing-stop', {
       conversationId
     });
-  }, [emit]);
+  }, [emit, isConnected]);
 
   const joinConversation = useCallback((conversationId: string) => {
+    if (!isConnected) {
+      console.warn('Cannot join conversation - socket not connected, will retry when connected');
+      return false;
+    }
     return emit('join-room', {
       conversationId
     });
-  }, [emit]);
+  }, [emit, isConnected]);
 
   const leaveConversation = useCallback((conversationId: string) => {
+    if (!isConnected) {
+      console.warn('Cannot leave conversation - socket not connected');
+      return false;
+    }
     return emit('leave-room', {
       conversationId
     });
-  }, [emit]);
+  }, [emit, isConnected]);
 
   // Очистка таймеров набора текста - исправленная версия
   const typingTimersRef = useRef<{ [key: string]: NodeJS.Timeout }>({});

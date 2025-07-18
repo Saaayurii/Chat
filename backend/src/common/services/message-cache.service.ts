@@ -27,7 +27,7 @@ export class MessageCacheService {
   
   private readonly config: MessageCacheConfig = {
     maxMessagesPerChat: 100,
-    cacheEnabled: true,
+    cacheEnabled: false, // ВРЕМЕННО отключаем кеш
     preloadMessageCount: 50,
     cacheTtlDays: 7
   };
@@ -64,64 +64,77 @@ export class MessageCacheService {
       // Получаем информацию о кэше
       const cacheInfo = await this.redisService.getMessageCacheInfo(conversationId);
       
-      // Проверяем, достаточно ли сообщений в кэше
-      const availableInCache = Math.max(0, cacheInfo.messageCount - offset);
-      const canServeFromCache = availableInCache >= limit;
+      // ВРЕМЕННО: Принудительно пропускаем кеш и идем в БД
+      // TODO: Убрать после того как весь кеш будет обновлен
+      this.logger.debug(`Temporarily bypassing cache for conversation ${conversationId}`);
+      
+      // Проверяем, есть ли сообщения в кэше (для старой логики)
+      // const availableInCache = Math.max(0, cacheInfo.messageCount - offset);
 
-      if (canServeFromCache) {
-        // Получаем сообщения из кэша
-        const cachedMessages = await this.redisService.getCachedMessages(
-          conversationId, 
-          limit, 
-          offset
-        );
+      // if (availableInCache > 0) {
+      //   // Получаем сообщения из кэша (столько сколько есть или сколько нужно)
+      //   const cachedMessages = await this.redisService.getCachedMessages(
+      //     conversationId, 
+      //     Math.min(limit, availableInCache), 
+      //     offset
+      //   );
 
-        this.logger.debug(`Served ${cachedMessages.length} messages from cache for conversation ${conversationId}`);
-        
-        return {
-          messages: cachedMessages.map(this.transformToCache),
-          fromCache: true,
-          cacheInfo: {
-            totalCached: cacheInfo.messageCount,
-            lastCached: cacheInfo.lastCached
-          }
-        };
-      }
+      //   this.logger.debug(`Served ${cachedMessages.length} messages from cache for conversation ${conversationId}`);
+      //   this.logger.debug(`First cached message: ${JSON.stringify(cachedMessages[0])}`);
+      //   
+      //   // Обеспечиваем совместимость для старых кешированных сообщений
+      //   const processedMessages = cachedMessages.map(msg => ({
+      //     ...msg,
+      //     content: msg.content || msg.text, // Добавляем content если его нет
+      //     text: msg.text || msg.content     // Добавляем text если его нет
+      //   }));
+
+      //   return {
+      //     messages: processedMessages,
+      //     fromCache: true,
+      //     cacheInfo: {
+      //       totalCached: cacheInfo.messageCount,
+      //       lastCached: cacheInfo.lastCached
+      //     }
+      //   };
+      // }
 
       // Если в кэше недостаточно сообщений, обращаемся к БД
       if (fallbackFn) {
+        // ВРЕМЕННО: Принудительно очищаем кеш и загружаем из БД
+        this.logger.debug(`Clearing cache and forcing DB fallback for conversation ${conversationId}`);
+        await this.clearCache(conversationId);
+        
         const dbMessages = await fallbackFn(conversationId, limit, offset);
         
-        // Если это первый запрос (offset = 0), обновляем кэш
-        if (offset === 0 && dbMessages.length > 0) {
-          await this.preloadMessages(conversationId, dbMessages);
-        }
-
         this.logger.debug(`Served ${dbMessages.length} messages from DB for conversation ${conversationId}`);
+        this.logger.debug(`First DB message: ${JSON.stringify(dbMessages[0])}`);
+        
+        const transformedMessages = dbMessages.map(this.transformToCache);
+        this.logger.debug(`First transformed message: ${JSON.stringify(transformedMessages[0])}`);
+        
+        // Если это первый запрос (offset = 0), обновляем кэш с правильными данными
+        if (offset === 0 && transformedMessages.length > 0) {
+          await this.preloadMessages(conversationId, transformedMessages);
+        }
         
         return {
-          messages: dbMessages.map(this.transformToCache),
+          messages: transformedMessages,
           fromCache: false,
           cacheInfo: {
-            totalCached: cacheInfo.messageCount,
-            lastCached: cacheInfo.lastCached
+            totalCached: 0, // Кеш очищен
+            lastCached: null
           }
         };
       }
 
-      // Fallback не предоставлен, возвращаем что есть в кэше
-      const cachedMessages = await this.redisService.getCachedMessages(
-        conversationId,
-        Math.min(limit, availableInCache),
-        offset
-      );
-
+      // Fallback не предоставлен, возвращаем пустой массив
       return {
-        messages: cachedMessages.map(this.transformToCache),
-        fromCache: true,
+        messages: [],
+        fromCache: false,
         cacheInfo: {
-          totalCached: cacheInfo.messageCount,
-          lastCached: cacheInfo.lastCached
+          totalCached: 0,
+          lastCached: null
         }
       };
 
@@ -320,7 +333,7 @@ export class MessageCacheService {
   private transformToCache(message: any): CachedMessage {
     return {
       _id: message._id || message.id,
-      content: message.content,
+      content: message.content || message.text,
       senderId: message.senderId || message.sender?.id,
       conversationId: message.conversationId,
       timestamp: message.timestamp || message.createdAt,

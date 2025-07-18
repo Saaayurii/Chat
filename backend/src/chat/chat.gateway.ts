@@ -10,6 +10,7 @@ import {
 } from '@nestjs/websockets';
 import { UseGuards, ValidationPipe, UsePipes, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import { Server, Socket } from 'socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { createClient } from 'redis';
@@ -40,7 +41,41 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     private readonly redisService: RedisService,
     private readonly presenceService: PresenceService,
     private readonly configService: ConfigService,
+    private readonly jwtService: JwtService,
   ) {}
+
+  private extractTokenFromClient(client: Socket): string | null {
+    const timestamp = new Date().toISOString();
+    
+    // Попытка получить токен из разных источников
+    const authHeader = client.handshake.headers.authorization;
+    const tokenFromAuth = client.handshake.auth?.token;
+    const tokenFromQuery = client.handshake.query?.token;
+
+    console.log(`[${timestamp}] ChatGateway: Extracting token for client ${client.id}`, {
+      authHeader: !!authHeader,
+      tokenFromAuth: !!tokenFromAuth,
+      tokenFromQuery: !!tokenFromQuery
+    });
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      console.log(`[${timestamp}] ChatGateway: Found token in Authorization header for client ${client.id}`);
+      return authHeader.substring(7);
+    }
+    
+    if (tokenFromAuth) {
+      console.log(`[${timestamp}] ChatGateway: Found token in auth object for client ${client.id}`);
+      return tokenFromAuth;
+    }
+    
+    if (tokenFromQuery && typeof tokenFromQuery === 'string') {
+      console.log(`[${timestamp}] ChatGateway: Found token in query parameters for client ${client.id}`);
+      return tokenFromQuery;
+    }
+
+    console.log(`[${timestamp}] ChatGateway: No token found for client ${client.id}`);
+    return null;
+  }
 
   // В ChatGateway и TransferGateway
 async afterInit(server: Server) {
@@ -74,20 +109,65 @@ async afterInit(server: Server) {
 }
 
   async handleConnection(client: Socket) {
+    const timestamp = new Date().toISOString();
+    
     try {
-      const user = client.data.user;
+      console.log(`[${timestamp}] ChatGateway: handleConnection called for client ${client.id}`);
+      
+      // Выполняем аутентификацию вручную в handleConnection
+      let user = client.data.user;
       if (!user) {
+        console.log(`[${timestamp}] ChatGateway: No user data found, attempting manual authentication`);
+        
+        // Получаем токен из handshake
+        const token = this.extractTokenFromClient(client);
+        if (!token) {
+          console.log(`[${timestamp}] ChatGateway: No token found for client ${client.id}, disconnecting`);
+          client.disconnect();
+          return;
+        }
+        
+        console.log(`[${timestamp}] ChatGateway: Token found for client ${client.id}, verifying`);
+        
+        // Проверяем JWT токен
+        try {
+          const jwtSecret = this.configService.get<string>('JWT_SECRET');
+          const payload = this.jwtService.verify(token, { secret: jwtSecret });
+          
+          console.log(`[${timestamp}] ChatGateway: JWT verified for client ${client.id}, payload:`, { email: payload.email });
+          
+          // Сохраняем минимальные данные пользователя
+          client.data.user = {
+            id: payload.sub,
+            email: payload.email,
+            role: payload.role,
+          };
+          
+          user = client.data.user;
+          console.log(`[${timestamp}] ChatGateway: User data set for client ${client.id}:`, user);
+        } catch (error) {
+          console.error(`[${timestamp}] ChatGateway: JWT verification failed for client ${client.id}:`, error.message);
+          client.disconnect();
+          return;
+        }
+      }
+      
+      if (!user) {
+        console.log(`[${timestamp}] ChatGateway: Still no user data found for client ${client.id}, disconnecting`);
         client.disconnect();
         return;
       }
 
+      console.log(`[${timestamp}] ChatGateway: User data found for client ${client.id}:`, { id: user.id, email: user.email, role: user.role });
       this.logger.log(`Client connected: ${user.email} (${user.id})`);
       
       // Присоединяем пользователя к его персональной комнате
       await client.join(`user:${user.id}`);
+      console.log(`[${timestamp}] ChatGateway: Client ${client.id} joined room user:${user.id}`);
       
       // Сохраняем сессию в Redis
       await this.redisService.setSocketSession(client.id, user.id);
+      console.log(`[${timestamp}] ChatGateway: Socket session saved for client ${client.id}`);
       
       // Определяем тип устройства из User-Agent
       const userAgent = client.handshake.headers['user-agent'] || '';
@@ -104,6 +184,7 @@ async afterInit(server: Server) {
         deviceType,
         activity: 'Подключился к чату'
       });
+      console.log(`[${timestamp}] ChatGateway: Presence set for client ${client.id}`);
       
       // Уведомляем о подключении
       client.emit('connected', {
@@ -115,13 +196,16 @@ async afterInit(server: Server) {
         },
         presence
       });
+      console.log(`[${timestamp}] ChatGateway: Connected event sent to client ${client.id}`);
 
       // Уведомляем других пользователей о появлении онлайн
       client.broadcast.emit('presence:user_online', {
         userId: user.id,
         presence
       });
+      console.log(`[${timestamp}] ChatGateway: User online broadcast sent for client ${client.id}`);
     } catch (error) {
+      console.error(`[${timestamp}] ChatGateway: Connection error for client ${client.id}:`, error);
       this.logger.error('Connection error:', error);
       client.disconnect();
     }

@@ -77,6 +77,7 @@ const OperatorChatPageContent = () => {
   const {
     isConnected,
     isConnecting,
+    wsError,
     typingUsers,
     sendChatMessage,
     setTyping,
@@ -187,7 +188,9 @@ const OperatorChatPageContent = () => {
     );
 
     // Отправляем через Socket.IO
+    console.log('Sending message:', { selectedConversation, newMessage, isConnected });
     const success = sendChatMessage(selectedConversation, newMessage);
+    console.log('Message send result:', success);
 
     if (success) {
       setNewMessage("");
@@ -206,6 +209,8 @@ const OperatorChatPageContent = () => {
       //     queryClient.invalidateQueries({ queryKey: ['messages', selectedConversation] });
       //   }, 1000);
       // }
+    } else {
+      console.error('Failed to send message - Socket not connected or other error');
     }
   }, [newMessage, selectedConversation, sendChatMessage, setTyping]); // Убираем conversations и queryClient
 
@@ -719,52 +724,57 @@ const OperatorChatPageContent = () => {
                     Начните общение, отправив первое сообщение
                   </div>
                 ) : (
-                  (messages?.messages || messages?.data || [])?.map((message) => (
-                    <div
-                      key={message._id}
-                      className={`flex ${
-                        message.senderId === user?.id
-                          ? "justify-end"
-                          : "justify-start"
-                      }`}
-                    >
+                  (messages?.messages || messages?.data || [])?.map((message) => {
+                    const isMyMessage = message.senderId === user?.id;
+                    console.log(`Message comparison: message.senderId=${message.senderId}, user.id=${user?.id}, isMyMessage=${isMyMessage}`);
+                    
+                    return (
                       <div
-                        className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                          message.senderId === user?.id
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-card border border-border"
+                        key={message._id}
+                        className={`flex ${
+                          isMyMessage
+                            ? "justify-end"
+                            : "justify-start"
                         }`}
                       >
-                        <p className="text-sm">{message.content || message.text}</p>
-                        <div className="flex items-center justify-between mt-1">
-                          <p
-                            className={`text-xs ${
-                              message.senderId === user?.id
-                                ? "text-primary-foreground/70"
-                                : "text-muted-foreground"
-                            }`}
-                          >
-                            {new Date(message.timestamp || message.createdAt).toLocaleTimeString()}
-                          </p>
+                        <div
+                          className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                            isMyMessage
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-card border border-border"
+                          }`}
+                        >
+                          <p className="text-sm">{message.content || message.text}</p>
+                          <div className="flex items-center justify-between mt-1">
+                            <p
+                              className={`text-xs ${
+                                isMyMessage
+                                  ? "text-primary-foreground/70"
+                                  : "text-muted-foreground"
+                              }`}
+                            >
+                              {new Date(message.timestamp || message.createdAt).toLocaleTimeString()}
+                            </p>
 
-                          {/* Статус прочтения */}
-                          {message.senderId === user?.id && (
-                            <div className="flex items-center space-x-1">
-                              {message.readBy.length > 1 && (
-                                <Radix.Badge
-                                  size="1"
-                                  variant="soft"
-                                  color="blue"
-                                >
-                                  ✓ {message.readBy.length - 1}
-                                </Radix.Badge>
-                              )}
-                            </div>
-                          )}
+                            {/* Статус прочтения */}
+                            {isMyMessage && (
+                              <div className="flex items-center space-x-1">
+                                {message.readBy?.length > 1 && (
+                                  <Radix.Badge
+                                    size="1"
+                                    variant="soft"
+                                    color="blue"
+                                  >
+                                    ✓ {message.readBy.length - 1}
+                                  </Radix.Badge>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
 
                 {/* Скролл к последнему сообщению */}
@@ -773,6 +783,20 @@ const OperatorChatPageContent = () => {
 
               {/* Message input */}
               <div className="p-4 bg-card border-t border-border">
+                {/* Debug connection status */}
+                <div className="mb-2 text-xs text-muted-foreground flex items-center gap-2">
+                  <span>Socket: {isConnected ? 'Connected' : 'Disconnected'}</span>
+                  {isConnecting && <span>(Connecting...)</span>}
+                  {wsError && <span className="text-red-500">(Error: {wsError})</span>}
+                  {!isConnected && (
+                    <button 
+                      onClick={reconnect}
+                      className="px-2 py-1 text-xs bg-primary text-primary-foreground rounded hover:bg-primary/90"
+                    >
+                      Reconnect
+                    </button>
+                  )}
+                </div>
                 <div className="flex items-center space-x-2">
                   <button className="p-2 hover:bg-accent rounded-lg">
                     <Paperclip className="w-5 h-5 text-muted-foreground" />

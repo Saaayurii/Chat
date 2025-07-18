@@ -77,8 +77,10 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('user');
+        // Импортируем authStore для корректной очистки состояния
+        import('../store/authStore').then(({ useAuthStore }) => {
+          useAuthStore.getState().logout();
+        });
         window.location.href = '/login';
       }
     }

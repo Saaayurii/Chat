@@ -245,7 +245,10 @@ export const useSocketIO = (namespace: string, options: UseSocketIOOptions = {})
     console.log(`[${new Date().toISOString()}] SocketIO: Manual reconnect requested for ${namespace}`);
     serverDisconnectedRef.current = false; // Сбрасываем флаг при ручном переподключении
     disconnect();
-    setTimeout(connect, 100);
+    setTimeout(() => {
+      console.log(`[${new Date().toISOString()}] SocketIO: Attempting reconnect for ${namespace}`);
+      connect();
+    }, 100);
   }, [connect, disconnect, namespace]);
 
   // Duplicate ref definitions removed - already defined above

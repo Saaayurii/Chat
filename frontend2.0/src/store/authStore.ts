@@ -19,7 +19,7 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       user: null,
       isAuthenticated: false,
-      isLoading: false,
+      isLoading: true, // Изначально true, пока не проверим localStorage
       setAuth: (token: string, user: User) => {
         console.log(`[${new Date().toISOString()}] AuthStore: setAuth called with user: ${user?.id || 'none'}`);
         if (typeof window !== 'undefined') {
@@ -72,6 +72,7 @@ export const useAuthStore = create<AuthState>()(
             }
           } else {
             console.log(`[${new Date().toISOString()}] AuthStore: No auth data found`);
+            set({ isLoading: false }); // Устанавливаем isLoading: false даже если нет данных
           }
         }
       },

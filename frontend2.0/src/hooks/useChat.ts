@@ -117,7 +117,9 @@ export const useChat = () => {
       status: messageData.status || 'sent',
       senderName: messageData.senderName,
       senderRole: messageData.senderRole, // Добавляем роль отправителя
-      readBy: messageData.readBy || []
+      readBy: messageData.readBy || [],
+      isRead: messageData.isRead || false, // Добавляем статус прочтения
+      readTimestamps: messageData.readTimestamps || {}
     };
     
     const conversationId = message.conversationId;
@@ -189,6 +191,7 @@ export const useChat = () => {
             message._id === messageId ? {
               ...message,
               readBy: [...new Set([...message.readBy, userId])],
+              isRead: true, // Отмечаем как прочитанное
               readTimestamps: {
                 ...message.readTimestamps,
                 [userId]: new Date()

@@ -16,6 +16,7 @@ npm-debug.log*
 bun-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.claude
 
 # 👉 dotenv (секреты, токены, подключения)
 .env

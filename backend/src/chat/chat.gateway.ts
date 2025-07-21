@@ -14,7 +14,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Server, Socket } from 'socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { createClient } from 'redis';
-import { WsAuthGuard } from '../common/guards/ws-auth.guard';
+import { WsOptionalAuthGuard } from '../common/guards/ws-optional-auth.guard';
 import { ChatService } from './chat.service';
 import { SendMessageDto } from './dto/send-message.dto/send-message.dto';
 import { JoinRoomDto } from './dto/join-room.dto/join-room.dto';
@@ -29,7 +29,7 @@ import { PresenceStatus, DeviceType } from '../common/interfaces/presence.interf
   },
   namespace: '/chat',
 })
-@UseGuards(WsAuthGuard)
+@UseGuards(WsOptionalAuthGuard)
 export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
@@ -240,10 +240,23 @@ async afterInit(server: Server) {
       const user = client.data.user;
       const { conversationId } = joinRoomDto;
 
+      this.logger.log(`Join room attempt: user=${JSON.stringify({
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        isAnonymous: user.isAnonymous,
+        sessionId: user.sessionId
+      })}, conversationId=${conversationId}`);
+
       // Проверяем, что пользователь может присоединиться к этой беседе
-      const canJoin = await this.chatService.canUserJoinConversation(user.id, conversationId);
+      const canJoin = user.isAnonymous 
+        ? await this.chatService.canUserJoinConversation(null, conversationId, user.sessionId)
+        : await this.chatService.canUserJoinConversation(user.id, conversationId);
+      
+      this.logger.log(`Join room access check result: canJoin=${canJoin}`);
       
       if (!canJoin) {
+        this.logger.warn(`Access denied for user ${user.email || user.id} to conversation ${conversationId}`);
         client.emit('error', { message: 'Access denied to this conversation' });
         return;
       }
@@ -271,11 +284,43 @@ async afterInit(server: Server) {
     try {
       const user = client.data.user;
       
-      // Создаем сообщение через сервис
-      const message = await this.chatService.createMessage({
-        ...sendMessageDto,
-        senderId: user.id,
-      });
+      // Логируем входящие данные для отладки
+      this.logger.log(`Received send-message from ${user.email}:`, JSON.stringify(sendMessageDto));
+      
+      if (!user) {
+        this.logger.error('User not found in client data');
+        client.emit('error', { message: 'User not authenticated' });
+        return;
+      }
+      
+      // Проверяем обязательные поля
+      if (!sendMessageDto.conversationId || !sendMessageDto.text) {
+        this.logger.error('Missing required fields:', { 
+          conversationId: !!sendMessageDto.conversationId, 
+          text: !!sendMessageDto.text 
+        });
+        client.emit('error', { message: 'Missing required fields: conversationId or text' });
+        return;
+      }
+      
+      let message;
+      
+      if (user.isAnonymous) {
+        // Для анонимных пользователей используем createAnonymousMessage
+        message = await this.chatService.createAnonymousMessage({
+          conversationId: sendMessageDto.conversationId,
+          text: sendMessageDto.text,
+          sessionId: user.sessionId,
+          senderName: 'Посетитель', // Можно получить из handshake данных
+          type: sendMessageDto.type
+        });
+      } else {
+        // Для авторизованных пользователей используем обычный метод
+        message = await this.chatService.createMessage({
+          ...sendMessageDto,
+          senderId: user.id,
+        });
+      }
 
       // Формируем данные сообщения для real-time отправки
       const messageData = {
@@ -289,7 +334,7 @@ async afterInit(server: Server) {
         createdAt: message.createdAt,
         type: message.type,
         status: message.status,
-        senderName: user.profile?.fullName || user.profile?.username || user.email
+        senderName: user.isAnonymous ? 'Посетитель' : (user.profile?.fullName || user.profile?.username || user.email)
       };
 
       // Отправляем сообщение всем участникам беседы через Socket.IO
@@ -313,7 +358,17 @@ async afterInit(server: Server) {
       this.logger.log(`Message sent by ${user.email} in conversation ${sendMessageDto.conversationId}`);
     } catch (error) {
       this.logger.error('Send message error:', error);
-      client.emit('error', { message: 'Failed to send message' });
+      this.logger.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        data: sendMessageDto
+      });
+      client.emit('error', { 
+        message: 'Failed to send message',
+        error: error.message,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
     }
   }
 
@@ -363,6 +418,64 @@ async afterInit(server: Server) {
     }
   }
 
+  @SubscribeMessage('mark-as-read')
+  async handleMarkAsRead(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { conversationId: string; messageId?: string },
+  ) {
+    try {
+      const user = client.data.user;
+      const { conversationId, messageId } = data;
+
+      // Проверяем права доступа к беседе
+      const canAccess = user.isAnonymous 
+        ? await this.chatService.canUserJoinConversation(null, conversationId, user.sessionId)
+        : await this.chatService.canUserJoinConversation(user.id, conversationId);
+      if (!canAccess) {
+        client.emit('error', { message: 'Access denied to this conversation' });
+        return;
+      }
+
+      if (messageId) {
+        // Отмечаем отдельное сообщение как прочитанное
+        await this.chatService.markSingleMessageAsRead(conversationId, messageId, user.id);
+        
+        // Уведомляем участников беседы о прочтении сообщения
+        this.server.to(`conversation:${conversationId}`).emit('message-read', {
+          conversationId,
+          messageId,
+          readBy: user.id,
+          readAt: new Date().toISOString()
+        });
+        
+        this.logger.log(`Message ${messageId} marked as read by ${user.email} in conversation ${conversationId}`);
+      } else {
+        // Отмечаем все сообщения в беседе как прочитанные
+        await this.chatService.markMessagesAsRead(conversationId, user.id);
+        
+        // Уведомляем участников беседы о прочтении всех сообщений
+        this.server.to(`conversation:${conversationId}`).emit('conversation-read', {
+          conversationId,
+          readBy: user.id,
+          readAt: new Date().toISOString()
+        });
+        
+        this.logger.log(`All messages marked as read by ${user.email} in conversation ${conversationId}`);
+      }
+
+      // Подтверждаем клиенту успешную отметку
+      client.emit('mark-as-read-success', {
+        conversationId,
+        messageId: messageId || null,
+        readAt: new Date().toISOString()
+      });
+
+    } catch (error) {
+      this.logger.error('Mark as read error:', error);
+      client.emit('error', { message: 'Failed to mark as read' });
+    }
+  }
+
   @SubscribeMessage('get-cached-messages')
   async handleGetCachedMessages(
     @ConnectedSocket() client: Socket,
@@ -373,7 +486,9 @@ async afterInit(server: Server) {
       const { conversationId, limit = 50 } = data;
 
       // Проверяем права доступа к беседе
-      const canAccess = await this.chatService.canUserJoinConversation(user.id, conversationId);
+      const canAccess = user.isAnonymous 
+        ? await this.chatService.canUserJoinConversation(null, conversationId, user.sessionId)
+        : await this.chatService.canUserJoinConversation(user.id, conversationId);
       if (!canAccess) {
         client.emit('error', { message: 'Access denied to this conversation' });
         return;
@@ -427,7 +542,7 @@ async afterInit(server: Server) {
   // Новые методы для работы с присутствием
 
   @SubscribeMessage('presence:heartbeat')
-  @UseGuards(WsAuthGuard)
+  @UseGuards(WsOptionalAuthGuard)
   async handlePresenceHeartbeat(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { status?: PresenceStatus; activity?: string }
@@ -463,7 +578,7 @@ async afterInit(server: Server) {
   }
 
   @SubscribeMessage('presence:request')
-  @UseGuards(WsAuthGuard)
+  @UseGuards(WsOptionalAuthGuard)
   async handlePresenceRequest(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { userIds?: string[] }
@@ -497,7 +612,7 @@ async afterInit(server: Server) {
   }
 
   @SubscribeMessage('presence:set_status')
-  @UseGuards(WsAuthGuard)
+  @UseGuards(WsOptionalAuthGuard)
   async handleSetPresenceStatus(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { status: PresenceStatus; activity?: string }
@@ -548,7 +663,7 @@ async afterInit(server: Server) {
   }
 
   @SubscribeMessage('presence:get_history')
-  @UseGuards(WsAuthGuard)
+  @UseGuards(WsOptionalAuthGuard)
   async handleGetPresenceHistory(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { userId?: string; limit?: number }

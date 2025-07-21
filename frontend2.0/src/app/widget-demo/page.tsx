@@ -55,7 +55,6 @@ const WidgetDemo: React.FC = () => {
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
           <Loading className="mx-auto mb-4" />
-          <p className="text-gray-600">Загрузка...</p>
         </div>
       </div>
     );

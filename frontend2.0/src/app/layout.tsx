@@ -5,6 +5,7 @@ import { Providers } from "./providers";
 import { Theme } from "@radix-ui/themes";
 import AppLayout from "@/components/Layout/AppLayout";
 import AuthInitializer from "@/components/AuthInitializer";
+import { UnreadMessagesProvider } from "@/contexts/UnreadMessagesContext";
 import "@radix-ui/themes/styles.css";
 
 const geistSans = Geist({
@@ -44,10 +45,12 @@ export default function RootLayout({
       >
         <Theme>
           <Providers>
-            <AuthInitializer />
-            <AppLayout>
-              {children}
-            </AppLayout>
+            <UnreadMessagesProvider>
+              <AuthInitializer />
+              <AppLayout>
+                {children}
+              </AppLayout>
+            </UnreadMessagesProvider>
           </Providers>
         </Theme>
       </body>

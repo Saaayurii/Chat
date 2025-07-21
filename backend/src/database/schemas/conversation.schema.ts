@@ -97,6 +97,10 @@ export class Conversation {
   @Prop({ type: Types.ObjectId, ref: 'User' })
   closedBy?: Types.ObjectId;
 
+  // Назначенный оператор для беседы
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  assignedOperator?: Types.ObjectId;
+
   // Для анонимных бесед - данные временного пользователя
   @Prop({ type: Object })
   anonymousUser?: {
@@ -126,6 +130,7 @@ export const ConversationSchema = SchemaFactory.createForClass(Conversation);
 // Индексы
 ConversationSchema.index({ participants: 1, status: 1 });
 ConversationSchema.index({ type: 1, status: 1 });
+ConversationSchema.index({ assignedOperator: 1, status: 1 });
 ConversationSchema.index({ relatedQuestionId: 1 });
 ConversationSchema.index({ 'lastMessage.timestamp': -1 });
 ConversationSchema.index({ updatedAt: -1 });

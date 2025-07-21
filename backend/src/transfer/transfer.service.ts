@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Transfer } from './schemas/transfer.schema';
 import { Queue } from './schemas/queue.schema';
+import { Conversation } from '../database/schemas/conversation.schema';
 import { TransferStatus } from './enums/transfer-status.enum';
 import { AssignmentStatus } from './enums/assignment-status.enum';
 import { TransferChatDto } from './dto/transfer-chat.dto';
@@ -16,6 +17,7 @@ export class TransferService {
   constructor(
     @InjectModel(Transfer.name) private transferModel: Model<Transfer>,
     @InjectModel(Queue.name) private queueModel: Model<Queue>,
+    @InjectModel(Conversation.name) private conversationModel: Model<Conversation>,
     private transferGateway: TransferGateway,
   ) {}
 
@@ -93,6 +95,14 @@ export class TransferService {
     });
 
     if (accepted) {
+      // Обновляем назначенного оператора в беседе
+      await this.conversationModel.findByIdAndUpdate(transfer.chatId, {
+        assignedOperator: transfer.toOperatorId,
+        transferredFrom: transfer.fromOperatorId,
+        transferredTo: transfer.toOperatorId,
+        transferReason: transfer.reason
+      });
+
       this.transferGateway.notifyTransferCompleted({
         transferId: (transfer._id as Types.ObjectId).toString(),
         newOperator: transfer.toOperatorId.toString(),

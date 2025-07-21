@@ -54,7 +54,7 @@ export default function RegistrationPage() {
     },
     onSuccess: (result) => {
       alert('Регистрация успешна! Проверьте email для подтверждения аккаунта.');
-      router.push('/chat');
+      router.push('/widget-demo');
     },
     onError: (error: any) => {
       const errorMessage = Array.isArray(error.response?.data?.message) ? error.response.data.message.join('\n') : error.response?.data?.message ? error.response.data.message : `Ошибка ${error.response?.status}. Попробуйте еще раз.` || 'Не удалось подключиться к серверу. Проверьте ваше соединение.';

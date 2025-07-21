@@ -224,7 +224,7 @@ export const usePresence = ({
     });
 
     setSocket(newSocket);
-  }, [apiUrl, token, userId, heartbeatInterval, enableCrossTabSync, crossTabSync.isActiveTab]);
+  }, [apiUrl, token, userId, heartbeatInterval, enableCrossTabSync]);
 
   const disconnect = useCallback(() => {
     if (heartbeatIntervalRef.current) {

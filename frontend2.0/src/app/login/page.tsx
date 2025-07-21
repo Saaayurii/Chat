@@ -69,7 +69,7 @@ export default function LoginPage() {
           router.push('/admin/statistics');
         } else {
           // Обычные пользователи попадают на страницу с виджетом
-          router.push('/chat');
+          router.push('/widget-demo');
         }
       })() : setError('root', { message: 'Не удалось получить токен доступа.' });
     },

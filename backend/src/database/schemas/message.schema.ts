@@ -84,6 +84,12 @@ export class Message {
   @Prop({ type: Map, of: Date })
   readTimestamps: Map<string, Date>; // userId -> время прочтения
 
+  @Prop()
+  senderName?: string; // Имя отправителя
+
+  @Prop({ default: false })
+  isSystemMessage?: boolean; // Флаг системного сообщения
+
   // Для системных сообщений
   @Prop({
     type: {

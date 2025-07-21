@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsUUID, MaxLength, MinLength } from 'class-validator';
+import { IsString, IsOptional, IsUUID, MaxLength, MinLength, IsMongoId } from 'class-validator';
 
 export class CreateAnonymousConversationDto {
   @IsString()
@@ -24,4 +24,13 @@ export class CreateAnonymousConversationDto {
   @IsString()
   @IsUUID()
   sessionId: string; // Уникальный идентификатор сессии посетителя
+
+  // Для авторизованных пользователей
+  @IsOptional()
+  @IsMongoId()
+  userId?: string; // ID авторизованного пользователя
+
+  @IsOptional()
+  @IsString()
+  userRole?: string; // Роль пользователя
 }

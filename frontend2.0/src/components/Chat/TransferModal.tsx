@@ -153,7 +153,7 @@ export default function TransferModal({
               onClick={onClose}
               className="h-6 w-6"
             >
-              <X className="h-4 w-4" />
+              
             </Button>
           </div>
         </DialogHeader>

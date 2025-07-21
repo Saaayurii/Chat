@@ -14,6 +14,8 @@ interface UseSocketIOOptions {
   onDisconnect?: () => void;
   onError?: (error: Error) => void;
   autoConnect?: boolean;
+  sessionId?: string; // Для анонимных пользователей
+  isAnonymous?: boolean; // Флаг анонимного пользователя
 }
 
 export const useSocketIO = (namespace: string, options: UseSocketIOOptions = {}) => {
@@ -22,7 +24,9 @@ export const useSocketIO = (namespace: string, options: UseSocketIOOptions = {})
     onConnect,
     onDisconnect,
     onError,
-    autoConnect = true
+    autoConnect = true,
+    sessionId,
+    isAnonymous = false
   } = options;
 
   const { token, isAuthenticated, initializeAuth } = useAuthStore();
@@ -62,9 +66,14 @@ export const useSocketIO = (namespace: string, options: UseSocketIOOptions = {})
     console.log(`[${timestamp}] SocketIO: Auth state - authenticated: ${isAuthenticatedRef.current}, token: ${!!tokenRef.current}`);
     console.log(`[${timestamp}] SocketIO: Current state - isConnecting: ${isConnecting}, socketConnected: ${socketRef.current?.connected}, serverDisconnected: ${serverDisconnectedRef.current}`);
     
-    // Проверяем актуальное состояние аутентификации
-    if (!isAuthenticatedRef.current || !tokenRef.current) {
-      console.warn(`[${timestamp}] SocketIO: Not authenticated - skipping connection`);
+    // Проверяем актуальное состояние аутентификации или анонимное подключение
+    if (!isAnonymous && (!isAuthenticatedRef.current || !tokenRef.current)) {
+      console.warn(`[${timestamp}] SocketIO: Not authenticated and not anonymous - skipping connection`);
+      return;
+    }
+    
+    if (isAnonymous && !sessionId) {
+      console.warn(`[${timestamp}] SocketIO: Anonymous connection requires sessionId`);
       return;
     }
 
@@ -91,16 +100,23 @@ export const useSocketIO = (namespace: string, options: UseSocketIOOptions = {})
       const wsUrl = process.env.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3004';
       console.log(`[${timestamp}] SocketIO: Connecting to ${wsUrl}${namespace}`);
       
+      const connectionOptions: any = {
+        auth: isAnonymous 
+          ? { sessionId } 
+          : { token: tokenRef.current },
+        query: isAnonymous
+          ? { sessionId }
+          : { token: tokenRef.current },
+      };
+      
+      if (!isAnonymous) {
+        connectionOptions.extraHeaders = {
+          Authorization: `Bearer ${tokenRef.current}`
+        };
+      }
+      
       socketRef.current = io(`${wsUrl}${namespace}`, {
-        auth: {
-          token: tokenRef.current
-        },
-        query: {
-          token: tokenRef.current  // Дублируем токен в query для совместимости
-        },
-        extraHeaders: {
-          Authorization: `Bearer ${tokenRef.current}`  // Добавляем в заголовки
-        },
+        ...connectionOptions,
         transports: ['websocket', 'polling'],
         upgrade: true,
         rememberUpgrade: true,

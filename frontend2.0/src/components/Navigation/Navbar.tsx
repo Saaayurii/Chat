@@ -24,6 +24,7 @@ import {
   Sun
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import { useUnreadMessages } from '@/contexts/UnreadMessagesContext';
 import { UserRole } from '@/types';
 import { chatAPI } from '@/core/api';
 import * as Radix from '@radix-ui/themes';
@@ -158,74 +159,13 @@ export default function Navbar() {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const { user, logout } = useAuthStore();
+  const { totalUnreadCount } = useUnreadMessages();
   const queryClient = useQueryClient();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Получаем количество непрочитанных сообщений для админа и оператора
-  const { data: conversations } = useQuery({
-    queryKey: ['conversations'],
-    queryFn: async () => {
-      const response = await chatAPI.getConversations();
-      return response.data;
-    },
-    enabled: user?.role === UserRole.ADMIN || user?.role === UserRole.OPERATOR,
-    refetchInterval: 30000, // Обновляем каждые 30 секунд
-  });
-
-  // Функция для подсчета непрочитанных сообщений в конкретной беседе
-  const calculateUnreadCount = useMemo(() => {
-    return (conversationId: string) => {
-      const cachedMessages = queryClient.getQueryData(['messages', conversationId]);
-      if (!cachedMessages) return 0;
-      
-      let messageList = [];
-      if ((cachedMessages as any)?.data && Array.isArray((cachedMessages as any).data)) {
-        messageList = (cachedMessages as any).data;
-      } else if ((cachedMessages as any)?.messages && Array.isArray((cachedMessages as any).messages)) {
-        messageList = (cachedMessages as any).messages;
-      } else if (Array.isArray(cachedMessages)) {
-        messageList = cachedMessages;
-      }
-      
-      return messageList.filter((msg: any) => {
-        // Обрабатываем senderId
-        let actualSenderId = msg.senderId;
-        if (typeof actualSenderId === 'string' && actualSenderId.includes('ObjectId')) {
-          const idMatch = actualSenderId.match(/ObjectId\('([^']+)'\)/);
-          if (idMatch) {
-            actualSenderId = idMatch[1];
-          }
-        }
-        
-        const isNotMyMessage = actualSenderId !== user?.id;
-        const isUnread = !msg.isRead && (!msg.readBy || !msg.readBy.includes(user?.id));
-        
-        return isNotMyMessage && isUnread;
-      }).length;
-    };
-  }, [queryClient, user?.id]);
-
-  // Подсчитываем общее количество непрочитанных сообщений
-  const totalUnreadMessages = useMemo(() => {
-    if (!conversations || !Array.isArray(conversations)) return 0;
-    
-    // Подсчитываем с учетом новой логики прочитанных сообщений
-    return conversations.reduce((total, conv) => {
-      const conversationId = conv._id || conv.id;
-      if (conversationId) {
-        // Проверяем в кэше, если есть сообщения
-        const actualCount = calculateUnreadCount(conversationId);
-        if (actualCount > 0) {
-          return total + actualCount;
-        }
-      }
-      // Падаем на счетчик из самой беседы
-      const unreadFromConv = conv.unreadMessagesCount || 0;
-      return total + unreadFromConv;
-    }, 0);
-  }, [conversations, calculateUnreadCount]);
+  // Теперь используем глобальный контекст вместо локальной логики
   
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -358,7 +298,7 @@ export default function Navbar() {
               {mainItems.map((item) => {
                 const isActive = pathname === item.href;
                 const isChatItem = item.name === 'Сообщения';
-                const showBadge = isChatItem && (user?.role === UserRole.ADMIN || user?.role === UserRole.OPERATOR) && totalUnreadMessages > 0;
+                const showBadge = isChatItem && (user?.role === UserRole.ADMIN || user?.role === UserRole.OPERATOR) && totalUnreadCount > 0;
                 
                 return (
                   <Button
@@ -374,7 +314,7 @@ export default function Navbar() {
                         variant="destructive" 
                         className="h-5 w-5 p-0 text-xs flex items-center justify-center absolute -top-1 -right-1"
                       >
-                        {totalUnreadMessages}
+                        {totalUnreadCount}
                       </Badge>
                     )}
                   </Button>
@@ -544,7 +484,7 @@ export default function Navbar() {
             {mainItems.map((item) => {
               const isActive = pathname === item.href;
               const isChatItem = item.name === 'Сообщения';
-              const showBadge = isChatItem && user?.role === UserRole.ADMIN && totalUnreadMessages > 0;
+              const showBadge = isChatItem && (user?.role === UserRole.ADMIN || user?.role === UserRole.OPERATOR) && totalUnreadCount > 0;
               
               return (
                 <Button
@@ -563,7 +503,7 @@ export default function Navbar() {
                       variant="destructive" 
                       className="h-5 w-5 p-0 text-xs flex items-center justify-center ml-auto"
                     >
-                      {totalUnreadMessages}
+                      {totalUnreadCount}
                     </Badge>
                   )}
                 </Button>

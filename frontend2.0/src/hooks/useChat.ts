@@ -24,9 +24,14 @@ export const useChat = () => {
   const handlersRef = useRef({
     handleNewMessage: null as any,
     handleMessageRead: null as any,
+    handleConversationRead: null as any,
+    handleMarkAsReadSuccess: null as any,
     handleUserTyping: null as any,
     handleConversationUpdated: null as any,
-    handleUserOnline: null as any
+    handleUserOnline: null as any,
+    handleNewConversationAssigned: null as any,
+    handleMessagesRead: null as any,
+    handleSingleMessageRead: null as any
   });
 
   const handleSocketIOMessage = useCallback((message: any) => {
@@ -47,6 +52,12 @@ export const useChat = () => {
       case 'message-read':
         handlers.handleMessageRead?.(messageData);
         break;
+      case 'conversation-read':
+        handlers.handleConversationRead?.(messageData);
+        break;
+      case 'mark-as-read-success':
+        handlers.handleMarkAsReadSuccess?.(messageData);
+        break;
       case 'user-typing':
         handlers.handleUserTyping?.({...messageData, isTyping: true});
         break;
@@ -58,6 +69,15 @@ export const useChat = () => {
         break;
       case 'user-online':
         handlers.handleUserOnline?.(messageData);
+        break;
+      case 'new-conversation-assigned':
+        handlers.handleNewConversationAssigned?.(messageData);
+        break;
+      case 'messages-read':
+        handlers.handleMessagesRead?.(messageData);
+        break;
+      case 'message-read':
+        handlers.handleSingleMessageRead?.(messageData);
         break;
       case 'connected':
         console.log('Connected to chat:', messageData);
@@ -74,6 +94,7 @@ export const useChat = () => {
         break;
       case 'error':
         console.error('Chat error:', messageData);
+        console.error('Full error details:', JSON.stringify(messageData, null, 2));
         break;
       default:
         console.log('Unknown SocketIO event:', messageType, messageData);
@@ -219,6 +240,9 @@ export const useChat = () => {
         });
       }
     );
+    
+    // Убираем инвалидацию - только локальное обновление кэша
+    // чтобы избежать мерцания при загрузке данных с сервера
   }, [queryClient]);
 
   const handleUserTyping = useCallback((data: { conversationId: string; userId: string; username?: string; isTyping: boolean }) => {
@@ -296,6 +320,250 @@ export const useChat = () => {
     );
   }, [queryClient]);
 
+  const handleNewConversationAssigned = useCallback((data: any) => {
+    console.log('Новая беседа назначена оператору:', data);
+    
+    const { conversation, assignedOperatorId, userName, userEmail, userType } = data;
+    
+    // Проверяем, что беседа назначена текущему оператору
+    if (assignedOperatorId === user?.id) {
+      // Добавляем новую беседу в список бесед
+      queryClient.setQueryData(
+        ['conversations'],
+        (oldData: Conversation[]) => {
+          if (!oldData) return [conversation];
+          
+          // Проверяем, что беседа еще не существует
+          const exists = oldData.find(conv => 
+            conv._id === conversation._id || conv.id === conversation.id
+          );
+          
+          if (!exists) {
+            console.log(`Добавлена новая беседа от ${userName} (${userType})`);
+            return [conversation, ...oldData];
+          }
+          
+          return oldData;
+        }
+      );
+      
+      // Можно добавить показ уведомления о новой беседе
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        if (Notification.permission === 'granted') {
+          new Notification(`Новая беседа от ${userName}`, {
+            body: `Пользователь ${userName} ${userEmail ? `(${userEmail})` : ''} начал беседу`,
+            icon: '/chat-icon.png',
+            tag: `conversation-${conversation._id}`
+          });
+        }
+      }
+    }
+  }, [queryClient, user?.id]);
+
+  const handleMessagesRead = useCallback((data: { conversationId: string; readBy: string; readAt: string }) => {
+    console.log('Все сообщения беседы прочитаны:', data);
+    
+    const { conversationId, readBy, readAt } = data;
+    
+    // Обновляем все сообщения в беседе как прочитанные
+    queryClient.setQueryData(
+      ['messages', conversationId],
+      (oldData: any) => {
+        if (!oldData) return oldData;
+        
+        let messages = [];
+        if (oldData.data && Array.isArray(oldData.data)) {
+          messages = oldData.data;
+        } else if (oldData.messages && Array.isArray(oldData.messages)) {
+          messages = oldData.messages;
+        } else if (Array.isArray(oldData)) {
+          messages = oldData;
+        } else {
+          return oldData;
+        }
+        
+        const updatedMessages = messages.map((message: any) => {
+          // Только сообщения НЕ от пользователя, который прочитал
+          if (message.senderId !== readBy) {
+            return {
+              ...message,
+              readBy: [...new Set([...(message.readBy || []), readBy])],
+              isRead: true,
+              readTimestamps: {
+                ...message.readTimestamps,
+                [readBy]: readAt
+              }
+            };
+          }
+          return message;
+        });
+        
+        if (oldData.data) {
+          return { ...oldData, data: updatedMessages };
+        } else if (oldData.messages) {
+          return { ...oldData, messages: updatedMessages };
+        }
+        return updatedMessages;
+      }
+    );
+
+    // Обновляем счетчик непрочитанных в списке бесед
+    queryClient.setQueryData(
+      ['conversations'],
+      (oldData: any) => {
+        if (!Array.isArray(oldData)) return oldData;
+        return oldData.map((conv: any) => {
+          if (conv._id === conversationId || conv.id === conversationId) {
+            return {
+              ...conv,
+              unreadMessagesCount: readBy === user?.id ? 0 : conv.unreadMessagesCount
+            };
+          }
+          return conv;
+        });
+      }
+    );
+  }, [queryClient, user?.id]);
+
+  const handleSingleMessageRead = useCallback((data: { conversationId: string; messageId: string; readBy: string; readAt: string }) => {
+    console.log('Сообщение прочитано:', data);
+    
+    const { conversationId, messageId, readBy, readAt } = data;
+    
+    // Обновляем конкретное сообщение как прочитанное
+    queryClient.setQueryData(
+      ['messages', conversationId],
+      (oldData: any) => {
+        if (!oldData) return oldData;
+        
+        let messages = [];
+        if (oldData.data && Array.isArray(oldData.data)) {
+          messages = oldData.data;
+        } else if (oldData.messages && Array.isArray(oldData.messages)) {
+          messages = oldData.messages;
+        } else if (Array.isArray(oldData)) {
+          messages = oldData;
+        } else {
+          return oldData;
+        }
+        
+        const updatedMessages = messages.map((message: any) => {
+          if ((message._id === messageId || message.id === messageId) && message.senderId !== readBy) {
+            return {
+              ...message,
+              readBy: [...new Set([...(message.readBy || []), readBy])],
+              isRead: true,
+              readTimestamps: {
+                ...message.readTimestamps,
+                [readBy]: readAt
+              }
+            };
+          }
+          return message;
+        });
+        
+        if (oldData.data) {
+          return { ...oldData, data: updatedMessages };
+        } else if (oldData.messages) {
+          return { ...oldData, messages: updatedMessages };
+        }
+        return updatedMessages;
+      }
+    );
+  }, [queryClient, user?.id]);
+
+  const handleConversationRead = useCallback((data: { conversationId: string; readBy: string; readAt: string }) => {
+    const { conversationId, readBy } = data;
+    
+    // Обновляем все сообщения в беседе как прочитанные пользователем readBy
+    queryClient.setQueryData(
+      ['messages', conversationId],
+      (oldData: any) => {
+        if (!oldData) return oldData;
+        
+        // Проверяем различные форматы данных
+        let messages = [];
+        if (oldData.data && Array.isArray(oldData.data)) {
+          messages = oldData.data;
+        } else if (oldData.messages && Array.isArray(oldData.messages)) {
+          messages = oldData.messages;
+        } else if (Array.isArray(oldData)) {
+          messages = oldData;
+        } else {
+          console.warn('Unable to find messages array in data:', oldData);
+          return oldData;
+        }
+        
+        const updatedMessages = messages.map((message: any) => {
+          // Только сообщения от других пользователей отмечаем как прочитанные
+          if (message.senderId !== readBy) {
+            return {
+              ...message,
+              readBy: [...new Set([...(message.readBy || []), readBy])],
+              isRead: true,
+              readTimestamps: {
+                ...message.readTimestamps,
+                [readBy]: data.readAt
+              }
+            };
+          }
+          return message;
+        });
+        
+        // Возвращаем в том же формате
+        if (oldData.data) {
+          return { ...oldData, data: updatedMessages };
+        } else if (oldData.messages) {
+          return { ...oldData, messages: updatedMessages };
+        } else {
+          return updatedMessages;
+        }
+      }
+    );
+    
+    // Обновляем счетчик непрочитанных сообщений в списке бесед
+    queryClient.setQueryData(
+      ['conversations'],
+      (oldData: any) => {
+        if (!Array.isArray(oldData)) return oldData;
+        return oldData.map((conv: any) => {
+          if (conv._id === conversationId || conv.id === conversationId) {
+            return {
+              ...conv,
+              unreadMessagesCount: readBy === user?.id ? 0 : conv.unreadMessagesCount
+            };
+          }
+          return conv;
+        });
+      }
+    );
+    
+    // Убираем инвалидацию - только локальное обновление кэша
+    // чтобы избежать мерцания при загрузке данных с сервера
+  }, [queryClient, user?.id]);
+
+  const handleMarkAsReadSuccess = useCallback((data: { conversationId: string; messageId?: string; readAt: string }) => {
+    const { conversationId } = data;
+    
+    // Теперь обновляем кэш только после подтверждения сервера
+    queryClient.setQueryData(
+      ['conversations'],
+      (oldData: any) => {
+        if (!Array.isArray(oldData)) return oldData;
+        return oldData.map((conv: any) => {
+          if (conv._id === conversationId || conv.id === conversationId) {
+            return {
+              ...conv,
+              unreadMessagesCount: 0,
+              [`unreadByParticipant.${user?.id}`]: 0
+            };
+          }
+          return conv;
+        });
+      }
+    );
+  }, [queryClient, user?.id]);
+
   const handleUserOnline = useCallback((data: { userId: string; isOnline: boolean }) => {
     const { userId, isOnline } = data;
     
@@ -312,21 +580,37 @@ export const useChat = () => {
       console.warn('Cannot send message - socket not connected');
       return false;
     }
-    return emit('send-message', {
+    
+    const messageData = {
       conversationId,
       text,
       type
-    });
+    };
+    
+    console.log('Sending message via WebSocket:', messageData);
+    return emit('send-message', messageData);
   }, [emit, isConnected]);
 
-  const markAsRead = useCallback((conversationId: string, messageId: string) => {
+  const markAsRead = useCallback((conversationId: string, messageId?: string) => {
     if (!isConnected) {
       console.warn('Cannot mark as read - socket not connected');
       return false;
     }
+    const payload: { conversationId: string; messageId?: string } = { conversationId };
+    if (messageId) {
+      payload.messageId = messageId;
+    }
+    return emit('mark-as-read', payload);
+  }, [emit, isConnected]);
+
+  const markConversationAsRead = useCallback((conversationId: string) => {
+    if (!isConnected) {
+      console.warn('Cannot mark conversation as read - socket not connected');
+      return false;
+    }
     return emit('mark-as-read', {
-      conversationId,
-      messageId
+      conversationId
+      // без messageId - отметка всей беседы
     });
   }, [emit, isConnected]);
 
@@ -404,10 +688,15 @@ export const useChat = () => {
   useEffect(() => {
     handlersRef.current.handleNewMessage = handleNewMessage;
     handlersRef.current.handleMessageRead = handleMessageRead;
+    handlersRef.current.handleConversationRead = handleConversationRead;
+    handlersRef.current.handleMarkAsReadSuccess = handleMarkAsReadSuccess;
     handlersRef.current.handleUserTyping = handleUserTyping;
     handlersRef.current.handleConversationUpdated = handleConversationUpdated;
     handlersRef.current.handleUserOnline = handleUserOnline;
-  }, [handleNewMessage, handleMessageRead, handleUserTyping, handleConversationUpdated, handleUserOnline]);
+    handlersRef.current.handleNewConversationAssigned = handleNewConversationAssigned;
+    handlersRef.current.handleMessagesRead = handleMessagesRead;
+    handlersRef.current.handleSingleMessageRead = handleSingleMessageRead;
+  }, [handleNewMessage, handleMessageRead, handleConversationRead, handleMarkAsReadSuccess, handleUserTyping, handleConversationUpdated, handleUserOnline, handleNewConversationAssigned, handleMessagesRead, handleSingleMessageRead]);
 
   return {
     // WebSocket состояние
@@ -423,6 +712,7 @@ export const useChat = () => {
     // Chat функции
     sendChatMessage,
     markAsRead,
+    markConversationAsRead,
     setTyping,
     joinConversation,
     leaveConversation

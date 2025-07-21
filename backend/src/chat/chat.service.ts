@@ -29,24 +29,50 @@ export class ChatService {
     private readonly redisService: RedisService,
   ) {}
 
-  async canUserJoinConversation(userId: string, conversationId: string): Promise<boolean> {
+  async canUserJoinConversation(userId: string | null, conversationId: string, sessionId?: string): Promise<boolean> {
     try {
       const conversation = await this.conversationModel.findById(conversationId);
       
+      console.log(`canUserJoinConversation check: userId=${userId}, conversationId=${conversationId}, sessionId=${sessionId}`);
+      console.log(`Found conversation: ${conversation ? 'YES' : 'NO'}`);
+      
       if (!conversation) {
+        console.log('Conversation not found');
+        return false;
+      }
+
+      console.log(`Conversation details: type=${conversation.type}, createdBy=${conversation.createdBy}, participants=${conversation.participants.map(p => p.toString())}`);
+      if (conversation.anonymousUser) {
+        console.log(`Anonymous user: sessionId=${conversation.anonymousUser.sessionId}`);
+      }
+
+      // Если передан sessionId, проверяем анонимного пользователя
+      if (sessionId) {
+        console.log('Checking anonymous user access...');
+        const result = this.canAnonymousUserJoinConversation(conversation, sessionId);
+        console.log(`Anonymous access result: ${result}`);
+        return result;
+      }
+      
+      // Если userId null, но нет sessionId - отказываем в доступе
+      if (!userId) {
+        console.log('No userId and no sessionId - access denied');
         return false;
       }
 
       // Получаем роль пользователя
       const user = await this.userModel.findById(userId).select('role');
+      console.log(`User found: ${user ? 'YES' : 'NO'}, role=${user?.role}`);
       
       // Админы могут присоединиться к любому разговору
       if (user?.role === 'admin') {
+        console.log('Admin access granted');
         return true;
       }
 
       // Операторы могут присоединяться к любым беседам (особенно анонимным)
       if (user?.role === 'operator') {
+        console.log('Operator access granted');
         return true;
       }
 
@@ -55,10 +81,39 @@ export class ChatService {
         participantId => participantId.toString() === userId
       );
 
-      return isParticipant;
+      // Также проверяем, является ли пользователь создателем беседы (для анонимных бесед)
+      const isCreator = conversation.createdBy && conversation.createdBy.toString() === userId;
+
+      // Для анонимных бесед разрешаем доступ авторизованным пользователям 
+      // (так как ChatWidget создает анонимные беседы даже для авторизованных пользователей)
+      let canAccessAnonymousConversation = false;
+      if (conversation.type === 'anonymous-support' && user?.role === 'visitor') {
+        canAccessAnonymousConversation = true;
+        console.log('Visitor user granted access to anonymous conversation');
+      }
+
+      console.log(`Access check: isParticipant=${isParticipant}, isCreator=${isCreator}, canAccessAnonymousConversation=${canAccessAnonymousConversation}`);
+
+      return isParticipant || isCreator || canAccessAnonymousConversation;
     } catch (error) {
+      console.error('Error in canUserJoinConversation:', error);
       return false;
     }
+  }
+
+  private canAnonymousUserJoinConversation(conversation: any, sessionId: string): boolean {
+    console.log(`Anonymous access check: sessionId=${sessionId}, conversation.type=${conversation.type}`);
+    console.log(`Conversation anonymous sessionId: ${conversation.anonymousUser?.sessionId}`);
+    
+    // Анонимные пользователи могут подключиться только к своим беседам
+    if (conversation.type === 'anonymous-support' && 
+        conversation.anonymousUser?.sessionId === sessionId) {
+      console.log('Anonymous user access granted - sessionId matches');
+      return true;
+    }
+    
+    console.log('Anonymous user access denied - sessionId mismatch or not anonymous-support conversation');
+    return false;
   }
 
   async createMessage(createMessageData: SendMessageDto & { senderId: string }) {
@@ -76,18 +131,16 @@ export class ChatService {
       throw new NotFoundException('Беседа не найдена');
     }
 
-    // Проверяем, что пользователь участвует в беседе
-    const isParticipant = conversation.participants.some(
-      participantId => participantId.toString() === senderId
-    );
+    // Проверяем, что пользователь может отправлять сообщения в эту беседу
+    const canSendMessage = await this.canUserJoinConversation(senderId, conversationId);
 
-    console.log('Проверка участника беседы:');
+    console.log('Проверка права отправки сообщения:');
     console.log('senderId:', senderId);
     console.log('conversation.participants:', conversation.participants.map(p => p.toString()));
-    console.log('isParticipant:', isParticipant);
+    console.log('canSendMessage:', canSendMessage);
 
-    if (!isParticipant) {
-      throw new ForbiddenException('Вы не являетесь участником этой беседы');
+    if (!canSendMessage) {
+      throw new ForbiddenException('Вы не можете отправлять сообщения в эту беседу');
     }
 
     // Создаем сообщение
@@ -218,6 +271,82 @@ export class ChatService {
     await this.conversationModel.findByIdAndUpdate(conversationId, {
       $set: { [`unreadByParticipant.${userId}`]: 0 }
     });
+
+    // Отправляем real-time уведомление о том, что сообщения прочитаны
+    try {
+      await this.notificationService.publishSystemNotification(
+        'messages-read',
+        {
+          conversationId,
+          readBy: userId,
+          readAt: new Date().toISOString()
+        },
+        undefined, // Отправляем всем участникам беседы
+        'normal'
+      );
+    } catch (notificationError) {
+      console.error('Ошибка отправки уведомления о прочтении:', notificationError);
+    }
+  }
+
+  async markSingleMessageAsRead(conversationId: string, messageId: string, userId: string) {
+    const userObjectId = new Types.ObjectId(userId);
+    const messageObjectId = new Types.ObjectId(messageId);
+
+    // Проверяем, что сообщение существует и принадлежит к указанной беседе
+    const message = await this.messageModel.findOne({
+      _id: messageObjectId,
+      conversationId: new Types.ObjectId(conversationId)
+    });
+
+    if (!message) {
+      throw new NotFoundException('Message not found');
+    }
+
+    // Проверяем, что это не сообщение самого пользователя
+    if (message.senderId.toString() === userId) {
+      return; // Не нужно отмечать свои сообщения как прочитанные
+    }
+
+    // Отмечаем сообщение как прочитанное
+    await this.messageModel.findByIdAndUpdate(messageObjectId, {
+      $addToSet: { readBy: userObjectId },
+      $set: { 
+        [`readTimestamps.${userId}`]: new Date(),
+        isRead: true // Устанавливаем общий флаг прочтения
+      }
+    });
+
+    // Пересчитываем количество непрочитанных сообщений для пользователя в этой беседе
+    const unreadCount = await this.messageModel.countDocuments({
+      conversationId: new Types.ObjectId(conversationId),
+      senderId: { $ne: userObjectId },
+      readBy: { $ne: userObjectId }
+    });
+
+    // Обновляем счетчик непрочитанных в беседе
+    await this.conversationModel.findByIdAndUpdate(conversationId, {
+      $set: { [`unreadByParticipant.${userId}`]: unreadCount }
+    });
+
+    // Отправляем real-time уведомление о прочтении конкретного сообщения
+    try {
+      await this.notificationService.publishSystemNotification(
+        'message-read',
+        {
+          conversationId,
+          messageId,
+          readBy: userId,
+          readAt: new Date().toISOString()
+        },
+        undefined, // Отправляем всем участникам беседы
+        'normal'
+      );
+    } catch (notificationError) {
+      console.error('Ошибка отправки уведомления о прочтении сообщения:', notificationError);
+    }
+
+    this.logger.log(`Message ${messageId} marked as read by user ${userId} in conversation ${conversationId}`);
   }
 
   async createConversation(createData: CreateConversationDto) {
@@ -242,9 +371,23 @@ export class ChatService {
     
     let query = {};
     
-    if (user?.role === 'admin' || user?.role === 'operator') {
-      // Админы и операторы видят все разговоры
+    if (user?.role === 'admin') {
+      // Админы видят все разговоры
       query = { status: { $ne: 'DELETED' } };
+    } else if (user?.role === 'operator') {
+      // Операторы видят только назначенные им беседы + беседы где они участники + неназначенные беседы
+      query = {
+        $or: [
+          { assignedOperator: new Types.ObjectId(userId) }, // Назначенные им беседы
+          { participants: new Types.ObjectId(userId) }, // Беседы где они участники
+          { 
+            assignedOperator: { $exists: false }, 
+            type: { $in: ['anonymous-support', 'user-operator'] },
+            status: { $ne: 'DELETED' }
+          } // Неназначенные беседы поддержки
+        ],
+        status: { $ne: 'DELETED' }
+      };
     } else {
       // Обычные пользователи видят только свои разговоры
       query = { 
@@ -256,8 +399,10 @@ export class ChatService {
     return this.conversationModel
       .find(query)
       .populate('participants', 'email profile.username profile.avatarUrl role')
+      .populate('assignedOperator', 'email profile.username profile.fullName')
       .populate('lastMessage.senderId', 'profile.username')
       .sort({ updatedAt: -1 })
+      .limit(100) // Ограничиваем количество разговоров
       .exec();
   }
 
@@ -545,33 +690,123 @@ export class ChatService {
     try {
       console.log('Создание анонимной беседы:', createData);
       
-      // Находим любого оператора (не обязательно онлайн) - используем тот же фильтр что и в UsersService
-      const operators = await this.userModel.find({ 
-        role: 'operator',
-        isBlocked: false 
-      }).limit(1);
+      // Находим лучшего доступного оператора с учетом нагрузки
+      let operator: any = null;
+      
+      // Сначала пробуем найти онлайн операторов
+      const onlineOperators = await this.userModel.aggregate([
+        {
+          $match: {
+            role: 'operator',
+            isBlocked: false,
+            'profile.isOnline': true
+          }
+        },
+        {
+          $lookup: {
+            from: 'conversations',
+            let: { operatorId: '$_id' },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      { $eq: ['$assignedOperator', '$$operatorId'] },
+                      { $ne: ['$status', 'DELETED'] },
+                      { $ne: ['$status', 'closed'] }
+                    ]
+                  }
+                }
+              }
+            ],
+            as: 'assignedConversations'
+          }
+        },
+        {
+          $addFields: {
+            activeChatsCount: { $size: '$assignedConversations' }
+          }
+        },
+        {
+          $sort: { activeChatsCount: 1 } // Сортируем по количеству активных чатов (меньше = лучше)
+        },
+        {
+          $limit: 1
+        }
+      ]);
 
-      console.log('Найдено операторов:', operators.length);
+      if (onlineOperators.length > 0) {
+        operator = onlineOperators[0];
+      } else {
+        // Если нет онлайн операторов, выбираем любого с наименьшей нагрузкой
+        const allOperators = await this.userModel.aggregate([
+          {
+            $match: {
+              role: 'operator',
+              isBlocked: false
+            }
+          },
+          {
+            $lookup: {
+              from: 'conversations',
+              let: { operatorId: '$_id' },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $and: [
+                        { $eq: ['$assignedOperator', '$$operatorId'] },
+                        { $ne: ['$status', 'DELETED'] },
+                        { $ne: ['$status', 'closed'] }
+                      ]
+                    }
+                  }
+                }
+              ],
+              as: 'assignedConversations'
+            }
+          },
+          {
+            $addFields: {
+              activeChatsCount: { $size: '$assignedConversations' }
+            }
+          },
+          {
+            $sort: { activeChatsCount: 1 }
+          },
+          {
+            $limit: 1
+          }
+        ]);
 
-      if (operators.length === 0) {
+        if (allOperators.length > 0) {
+          operator = allOperators[0];
+        }
+      }
+
+      if (!operator) {
         throw new Error('В системе нет зарегистрированных операторов');
       }
 
-      const operator = operators[0];
-      console.log('Выбранный оператор:', operator._id);
+      console.log(`Выбранный оператор: ${operator._id} (активных чатов: ${operator.activeChatsCount || 0})`);
       
-      // Проверяем, есть ли онлайн операторы для определения статуса беседы
-      const onlineOperators = await this.userModel.find({ 
-        role: 'operator',
-        isBlocked: false,
-        'profile.isOnline': true
-      }).limit(1);
-      
-      const hasOnlineOperators = onlineOperators.length > 0;
-      console.log('Онлайн операторов:', onlineOperators.length);
+      // Определяем есть ли онлайн операторы
+      const hasOnlineOperators = operator.profile?.isOnline || false;
+      console.log('Есть онлайн операторы:', hasOnlineOperators);
 
-    // Создаем временного пользователя для анонимной сессии
-    const anonymousUser = {
+    // Определяем, авторизован ли пользователь
+    let actualUser: any = null;
+    let isAuthorizedUser = false;
+    
+    if (createData.userId) {
+      // Пользователь авторизован, получаем его данные из БД
+      actualUser = await this.userModel.findById(createData.userId).exec();
+      isAuthorizedUser = !!actualUser;
+      console.log('Найден авторизованный пользователь:', actualUser ? 'да' : 'нет');
+    }
+    
+    // Создаем данные пользователя (реального или анонимного)
+    const userData: any = isAuthorizedUser ? null : {
       _id: new Types.ObjectId(),
       email: createData.visitorEmail || `anonymous_${createData.sessionId}@widget.temp`,
       profile: {
@@ -591,17 +826,34 @@ export class ChatService {
 
       console.log('Создание модели беседы...');
       
+      // Определяем участников беседы
+      const participants = isAuthorizedUser 
+        ? [operator._id, actualUser._id] // Авторизованный пользователь + оператор
+        : [operator._id, userData._id]; // Анонимный пользователь + оператор
+      
+      // Определяем тип беседы
+      const conversationType = isAuthorizedUser ? 'user-operator' : 'anonymous-support';
+      
+      // Создаем мапу непрочитанных сообщений
+      const unreadByParticipant = isAuthorizedUser
+        ? new Map([
+            [actualUser._id.toString(), 0],
+            [operator._id.toString(), 0]
+          ])
+        : new Map([
+            [userData._id.toString(), 0],
+            [operator._id.toString(), 0]
+          ]);
+      
       const conversation = new this.conversationModel({
-        participants: [operator._id], // Только оператор как реальный участник
-        type: 'anonymous-support',
+        participants: participants,
+        type: conversationType,
         title: createData.title || `Обращение от ${createData.visitorName}`,
-        description: 'Анонимная беседа с оператором',
-        createdBy: operator._id, // Создана оператором (технически)
-        anonymousUser: anonymousUser, // Сохраняем данные анонимного пользователя
-        unreadByParticipant: new Map([
-          [anonymousUser._id.toString(), 0],
-          [operator._id.toString(), 0]
-        ]),
+        description: isAuthorizedUser ? 'Беседа с оператором' : 'Анонимная беседа с оператором',
+        createdBy: isAuthorizedUser ? actualUser._id : userData._id,
+        assignedOperator: operator._id, // Назначаем оператора
+        anonymousUser: userData, // Сохраняем данные анонимного пользователя (если анонимный)
+        unreadByParticipant: unreadByParticipant,
         status: 'active',
         waitingForAssignment: !hasOnlineOperators, // Ожидает назначения, если нет онлайн операторов
       });
@@ -627,8 +879,30 @@ export class ChatService {
         }
       }
 
-      // Если нет онлайн операторов, добавляем системное сообщение
-      if (!hasOnlineOperators) {
+      // Добавляем приветственное сообщение с именем оператора
+      if (hasOnlineOperators) {
+        console.log('Добавление приветственного сообщения от оператора...');
+        try {
+          const operatorName = operator.profile?.fullName || operator.profile?.username || 'Оператор';
+          const welcomeMessage = new this.messageModel({
+            conversationId: savedConversation._id,
+            senderId: operator._id,
+            text: `Добро пожаловать! Как могу помочь? Вас обслуживает ${operatorName}.`,
+            type: MessageType.TEXT,
+            status: MessageStatus.SENT,
+            senderName: operatorName,
+            isSystemMessage: true,
+            readBy: [operator._id],
+            readTimestamps: new Map([[operator._id.toString(), new Date()]]),
+          });
+          
+          await welcomeMessage.save();
+          console.log('Приветственное сообщение добавлено');
+        } catch (welcomeMessageError) {
+          console.error('Ошибка создания приветственного сообщения:', welcomeMessageError);
+        }
+      } else {
+        // Если нет онлайн операторов, добавляем системное сообщение
         console.log('Добавление системного сообщения об отсутствии онлайн операторов...');
         try {
           const systemMessage = new this.messageModel({
@@ -651,7 +925,38 @@ export class ChatService {
       }
 
       console.log('Беседа создана:', savedConversation._id);
-      return savedConversation;
+      
+      // Возвращаем беседу с заполненной информацией об операторе
+      const populatedConversation = await this.conversationModel
+        .findById(savedConversation._id)
+        .populate('assignedOperator', 'email profile.username profile.fullName profile.avatarUrl')
+        .populate('participants', 'email profile.username profile.fullName role')
+        .exec();
+      
+      // Уведомляем назначенного оператора о новой беседе
+      if (operator && populatedConversation) {
+        try {
+          await this.notificationService.publishSystemNotification(
+            'new-conversation-assigned',
+            {
+              conversationId: populatedConversation._id,
+              conversation: populatedConversation,
+              assignedOperatorId: operator._id,
+              userType: isAuthorizedUser ? 'authorized' : 'anonymous',
+              userName: createData.visitorName,
+              userEmail: createData.visitorEmail,
+              hasOnlineOperators
+            },
+            [operator._id.toString()], // Отправляем только назначенному оператору
+            'high'
+          );
+          console.log(`Оператор ${operator._id} уведомлен о новой беседе`);
+        } catch (notificationError) {
+          console.error('Ошибка отправки уведомления оператору:', notificationError);
+        }
+      }
+        
+      return populatedConversation;
       
     } catch (error) {
       console.error('Ошибка создания анонимной беседы:', error);
@@ -749,5 +1054,60 @@ export class ChatService {
       .populate('participants', 'email profile.username profile.avatarUrl role')
       .populate('lastMessage.senderId', 'profile.username')
       .exec();
+  }
+
+  /**
+   * Отмечает сообщения как прочитанные для анонимного пользователя по sessionId
+   */
+  async markAnonymousMessagesAsRead(conversationId: string, sessionId: string) {
+    // Получаем беседу
+    const conversation = await this.conversationModel.findById(conversationId);
+    if (!conversation) {
+      throw new NotFoundException('Беседа не найдена');
+    }
+
+    // Проверяем, что это анонимная беседа и sessionId совпадает
+    if (conversation.type !== 'anonymous-support' || !conversation.anonymousUser || 
+        conversation.anonymousUser.sessionId !== sessionId) {
+      throw new ForbiddenException('Неверный идентификатор сессии');
+    }
+
+    const anonymousUserId = conversation.anonymousUser._id;
+
+    // Помечаем сообщения как прочитанные
+    await this.messageModel.updateMany(
+      {
+        conversationId: new Types.ObjectId(conversationId),
+        senderId: { $ne: anonymousUserId }, // Не свои сообщения
+        readBy: { $ne: anonymousUserId }, // Еще не прочитанные
+      },
+      {
+        $addToSet: { readBy: anonymousUserId },
+        $set: { [`readTimestamps.${anonymousUserId}`]: new Date() },
+      }
+    );
+
+    // Обнуляем счетчик непрочитанных для анонимного пользователя
+    await this.conversationModel.findByIdAndUpdate(conversationId, {
+      $set: { [`unreadByParticipant.${anonymousUserId}`]: 0 }
+    });
+
+    // Отправляем real-time уведомление о том, что сообщения прочитаны
+    try {
+      await this.notificationService.publishSystemNotification(
+        'messages-read',
+        {
+          conversationId,
+          readBy: anonymousUserId.toString(),
+          readAt: new Date().toISOString()
+        },
+        undefined, // Отправляем всем участникам беседы
+        'normal'
+      );
+    } catch (notificationError) {
+      console.error('Ошибка отправки уведомления о прочтении анонимным пользователем:', notificationError);
+    }
+
+    return { message: 'Сообщения отмечены как прочитанные' };
   }
 }

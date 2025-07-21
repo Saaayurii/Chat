@@ -7,6 +7,7 @@ import {
   Get,
   Param,
   Query,
+  Put,
 } from '@nestjs/common';
 import { ParseObjectIdPipe } from '../common/pipes/parse-object-id.pipe';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
@@ -71,5 +72,17 @@ export class PublicChatController {
     @Param('conversationId', ParseObjectIdPipe) conversationId: string,
   ) {
     return this.chatService.getPublicConversation(conversationId);
+  }
+
+  @Put('conversations/:conversationId/read')
+  @ApiOperation({ summary: 'Отметить сообщения как прочитанные анонимным пользователем' })
+  @ApiResponse({ status: 200, description: 'Сообщения отмечены как прочитанные' })
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+  async markMessagesAsReadBySession(
+    @Param('conversationId', ParseObjectIdPipe) conversationId: string,
+    @Body() body: { sessionId: string },
+  ) {
+    // Для анонимных пользователей используем sessionId для идентификации
+    return this.chatService.markAnonymousMessagesAsRead(conversationId, body.sessionId);
   }
 }

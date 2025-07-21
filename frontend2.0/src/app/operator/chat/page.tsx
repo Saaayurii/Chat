@@ -21,6 +21,7 @@ import {
 import { useAuthStore } from "@/store/authStore";
 import { chatAPI } from "@/core/api";
 import { useChat } from "@/hooks/useChat";
+import { useUnreadMessages } from "@/contexts/UnreadMessagesContext";
 import { User as UserType, UserRole } from "@/types";
 import TransferModal from "@/components/Chat/TransferModal";
 import BlockUserModal from "@/components/Chat/BlockUserModal";
@@ -59,6 +60,10 @@ const OperatorChatPageContent = () => {
   const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const visibleMessagesRef = useRef<Set<string>>(new Set());
+  const updateConversationsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [selectedConversation, setSelectedConversation] = useState<
     string | null
@@ -72,6 +77,10 @@ const OperatorChatPageContent = () => {
   const [transferRequest, setTransferRequest] = useState<any>(null);
   const [showTransferRequestModal, setShowTransferRequestModal] =
     useState(false);
+  
+  // Состояние для пагинации диалогов
+  const [displayedDialogsCount, setDisplayedDialogsCount] = useState(10);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   // WebSocket chat hook
   const {
@@ -84,8 +93,12 @@ const OperatorChatPageContent = () => {
     joinConversation,
     leaveConversation,
     markAsRead,
+    markConversationAsRead,
     reconnect,
   } = useChat();
+
+  // Используем контекст для обновления глобального счетчика
+  const { updateUnreadCount } = useUnreadMessages();
 
   // Логирование для отслеживания перерендеров
   console.log(
@@ -127,10 +140,8 @@ const OperatorChatPageContent = () => {
     queryKey: ["conversations"],
     queryFn: async () => {
       const response = await chatAPI.getConversations();
-      console.log("Conversations response:", response.data);
       // Логируем каждую беседу с ее unreadMessagesCount
       response.data?.forEach((conv: any) => {
-        console.log(`Conversation ${conv._id || conv.id}: unreadMessagesCount=${conv.unreadMessagesCount}`);
       });
       return response.data;
     },
@@ -159,7 +170,6 @@ const OperatorChatPageContent = () => {
         selectedConversation
       );
       const response = await chatAPI.getMessages(selectedConversation);
-      console.log("Messages API response:", response.data);
       return response.data;
     },
     enabled:
@@ -300,6 +310,141 @@ const OperatorChatPageContent = () => {
     [selectedConversation, isTyping, setTyping]
   );
 
+  // Функция для загрузки дополнительных диалогов
+  const loadMoreDialogs = useCallback(() => {
+    if (isLoadingMore) return;
+    
+    setIsLoadingMore(true);
+    // Имитируем задержку загрузки
+    setTimeout(() => {
+      setDisplayedDialogsCount(prev => prev + 10);
+      setIsLoadingMore(false);
+    }, 300);
+  }, [isLoadingMore]);
+
+  // Обработчик скролла для infinite scroll
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    
+    // Если докрутили почти до конца (осталось меньше 100px)
+    if (scrollHeight - scrollTop - clientHeight < 100 && !isLoadingMore) {
+      loadMoreDialogs();
+    }
+  }, [loadMoreDialogs, isLoadingMore]);
+
+  // Дебаунсированное обновление списка диалогов
+  const updateConversationsList = useCallback((conversationId: string) => {
+    // Очищаем предыдущий таймер
+    if (updateConversationsTimeoutRef.current) {
+      clearTimeout(updateConversationsTimeoutRef.current);
+    }
+    
+    // Устанавливаем новый таймер для отложенного обновления
+    updateConversationsTimeoutRef.current = setTimeout(() => {
+      queryClient.setQueryData(
+        ['conversations'],
+        (oldData: any) => {
+          if (!Array.isArray(oldData)) return oldData;
+          return oldData.map((conv: any) => 
+            conv._id === conversationId || conv.id === conversationId ? {
+              ...conv,
+              unreadMessagesCount: 0
+            } : conv
+          );
+        }
+      );
+    }, 1000); // Обновляем список только через 1 секунду после последнего изменения
+  }, [queryClient]);
+
+  // Функция для создания Intersection Observer
+  const createMessageObserver = useCallback(() => {
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+    }
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        let shouldMarkAsRead = false;
+        
+        entries.forEach((entry) => {
+          const messageId = entry.target.getAttribute('data-message-id');
+          const senderId = entry.target.getAttribute('data-sender-id');
+          
+          if (messageId && senderId && selectedConversation) {
+            if (entry.isIntersecting) {
+              // Сообщение стало видимым
+              visibleMessagesRef.current.add(messageId);
+              
+              // Если это не мое сообщение, планируем отметить беседу как прочитанную
+              if (senderId !== user?.id) {
+                shouldMarkAsRead = true;
+              }
+            } else {
+              // Сообщение стало невидимым
+              visibleMessagesRef.current.delete(messageId);
+            }
+          }
+        });
+        
+        // Отмечаем всю беседу как прочитанную если есть видимые непрочитанные сообщения через WebSocket
+        if (shouldMarkAsRead && selectedConversation) {
+          // Используем WebSocket для отметки беседы как прочитанной
+          const success = markConversationAsRead(selectedConversation);
+          if (!success) {
+            console.warn('Failed to mark conversation as read via WebSocket');
+          }
+        }
+      },
+      {
+        root: messagesContainerRef.current,
+        rootMargin: '0px',
+        threshold: 0.5 // Сообщение считается видимым, если видно 50% его высоты
+      }
+    );
+  }, [selectedConversation, user?.id, markAsRead, markConversationAsRead]);
+
+  // Функция для отметки видимых сообщений как прочитанных
+  // Отслеживаем уже отправленные запросы отметки прочтения
+  const [markAsReadSent, setMarkAsReadSent] = useState<Set<string>>(new Set());
+  const markAsReadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const markVisibleMessagesAsRead = useCallback(async (messagesData?: any) => {
+    if (!selectedConversation || !user?.id || !messagesData) return;
+    
+    const messagesList = messagesData?.messages || messagesData?.data || [];
+    const unreadMessages = messagesList.filter((msg: any) => {
+      let actualSenderId = msg.senderId;
+      if (typeof actualSenderId === 'string' && actualSenderId.includes('ObjectId')) {
+        const idMatch = actualSenderId.match(/ObjectId\('([^']+)'\)/);
+        if (idMatch) {
+          actualSenderId = idMatch[1];
+        }
+      }
+      
+      const isNotMyMessage = actualSenderId !== user?.id;
+      const isUnread = !msg.isRead && (!msg.readBy || !msg.readBy.includes(user?.id));
+      
+      return isNotMyMessage && isUnread;
+    });
+
+    if (unreadMessages.length > 0 && !markAsReadSent.has(selectedConversation)) {
+      // Debounce: очищаем предыдущий таймер и создаем новый
+      if (markAsReadTimeoutRef.current) {
+        clearTimeout(markAsReadTimeoutRef.current);
+      }
+      
+      markAsReadTimeoutRef.current = setTimeout(() => {
+        // Отмечаем всю беседу как прочитанную через WebSocket
+        const success = markConversationAsRead(selectedConversation);
+        if (success) {
+          setMarkAsReadSent(prev => new Set(prev).add(selectedConversation));
+        } else {
+          console.warn('Failed to mark conversation as read via WebSocket');
+        }
+      }, 500); // 500ms debounce для более стабильной работы
+    }
+  }, [selectedConversation, user?.id, markConversationAsRead, markAsReadSent]);
+
   const handleTransferChat = useCallback(() => {
     if (!selectedSender) return;
     setShowTransferModal(true);
@@ -350,6 +495,29 @@ const OperatorChatPageContent = () => {
     }
   }, [isConnected, selectedConversation, joinConversation]);
 
+  // Инициализация observer при смене диалога
+  useEffect(() => {
+    if (selectedConversation && messagesContainerRef.current) {
+      createMessageObserver();
+      
+      // Очищаем список видимых сообщений
+      visibleMessagesRef.current.clear();
+      
+      // Отмечаем видимые сообщения как прочитанные через небольшую задержку
+      const timer = setTimeout(() => {
+        const messagesData = queryClient.getQueryData(['messages', selectedConversation]);
+        markVisibleMessagesAsRead(messagesData);
+      }, 500);
+      
+      return () => {
+        clearTimeout(timer);
+        if (observerRef.current) {
+          observerRef.current.disconnect();
+        }
+      };
+    }
+  }, [selectedConversation, createMessageObserver, markVisibleMessagesAsRead, queryClient]);
+
   // Автоскролл к последнему сообщению и отмечаем как прочитанное
   const messagesLength = (messages?.messages || messages?.data || []).length;
   useEffect(() => {
@@ -385,91 +553,42 @@ const OperatorChatPageContent = () => {
         });
         
         if (unreadMessages.length > 0 && selectedConversation) {
-          // Отмечаем сообщения как прочитанные через WebSocket
-          unreadMessages.forEach(msg => {
-            markAsRead(selectedConversation, msg._id || msg.id);
-          });
-          
-          // Отмечаем всю беседу как прочитанную через API
-          chatAPI.markAsRead(selectedConversation).catch(error => {
-            console.error('Error marking conversation as read:', error);
-          });
-          
-          // Обновляем локальный кэш сообщений
-          queryClient.setQueryData(
-            ['messages', selectedConversation],
-            (oldData: any) => {
-              if (!oldData) return oldData;
-              
-              let messages = [];
-              if (oldData.data && Array.isArray(oldData.data)) {
-                messages = oldData.data;
-              } else if (oldData.messages && Array.isArray(oldData.messages)) {
-                messages = oldData.messages;
-              } else if (Array.isArray(oldData)) {
-                messages = oldData;
-              }
-              
-              const updatedMessages = messages.map((msg: any) => {
-                // Проверяем, является ли сообщение непрочитанным
-                let actualSenderId = msg.senderId;
-                if (typeof actualSenderId === 'string' && actualSenderId.includes('ObjectId')) {
-                  const idMatch = actualSenderId.match(/ObjectId\('([^']+)'\)/);
-                  if (idMatch) {
-                    actualSenderId = idMatch[1];
-                  }
-                }
-                
-                if (actualSenderId !== user?.id) {
-                  return {
-                    ...msg,
-                    isRead: true,
-                    readBy: [...new Set([...(msg.readBy || []), user?.id])],
-                    readTimestamps: {
-                      ...msg.readTimestamps,
-                      [user?.id || '']: new Date().toISOString()
-                    }
-                  };
-                }
-                return msg;
-              });
-              
-              // Возвращаем в том же формате
-              if (oldData.data) {
-                return { ...oldData, data: updatedMessages };
-              } else if (oldData.messages) {
-                return { ...oldData, messages: updatedMessages };
-              } else {
-                return updatedMessages;
-              }
-            }
-          );
-          
-          // Обновляем счетчик непрочитанных сообщений в конверсациях
-          queryClient.setQueryData(
-            ['conversations'],
-            (oldData: any) => {
-              if (!Array.isArray(oldData)) return oldData;
-              return oldData.map((conv: any) => 
-                conv._id === selectedConversation || conv.id === selectedConversation ? {
-                  ...conv,
-                  unreadMessagesCount: 0
-                } : conv
-              );
-            }
-          );
+          // Отмечаем всю беседу как прочитанную через WebSocket
+          // НЕ обновляем UI сразу - ждем подтверждения от сервера
+          const success = markConversationAsRead(selectedConversation);
+          if (!success) {
+            console.warn('Failed to mark conversation as read via WebSocket');
+          }
         }
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [messagesLength, messages, user?.id, selectedConversation, markAsRead, queryClient, chatAPI]);
+  }, [messagesLength, messages, user?.id, selectedConversation, markConversationAsRead]);
 
-  // Очистка таймера при размонтировании
+  // Очищаем кэш отправленных запросов при смене беседы
+  useEffect(() => {
+    setMarkAsReadSent(new Set());
+    if (markAsReadTimeoutRef.current) {
+      clearTimeout(markAsReadTimeoutRef.current);
+      markAsReadTimeoutRef.current = null;
+    }
+  }, [selectedConversation]);
+
+  // Сброс счетчика диалогов при изменении поискового запроса
+  useEffect(() => {
+    setDisplayedDialogsCount(10);
+  }, [searchQuery]);
+
+  // Очистка таймеров при размонтировании
   useEffect(() => {
     return () => {
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
         typingTimeoutRef.current = null;
+      }
+      if (updateConversationsTimeoutRef.current) {
+        clearTimeout(updateConversationsTimeoutRef.current);
+        updateConversationsTimeoutRef.current = null;
       }
     };
   }, []);
@@ -477,39 +596,55 @@ const OperatorChatPageContent = () => {
   // Функция для подсчета непрочитанных сообщений в конкретной беседе
   const calculateUnreadCount = useCallback((conversationId: string) => {
     const cachedMessages = queryClient.getQueryData(['messages', conversationId]);
-    if (!cachedMessages) return 0;
     
-    let messageList = [];
-    if ((cachedMessages as any)?.data && Array.isArray((cachedMessages as any).data)) {
-      messageList = (cachedMessages as any).data;
-    } else if ((cachedMessages as any)?.messages && Array.isArray((cachedMessages as any).messages)) {
-      messageList = (cachedMessages as any).messages;
-    } else if (Array.isArray(cachedMessages)) {
-      messageList = cachedMessages;
-    }
-    
-    return messageList.filter((msg: any) => {
-      let actualSenderId = msg.senderId;
-      if (typeof actualSenderId === 'string' && actualSenderId.includes('ObjectId')) {
-        const idMatch = actualSenderId.match(/ObjectId\('([^']+)'\)/);
-        if (idMatch) {
-          actualSenderId = idMatch[1];
-        }
+    // Если есть кэшированные сообщения, используем их
+    if (cachedMessages) {
+      let messageList = [];
+      if ((cachedMessages as any)?.data && Array.isArray((cachedMessages as any).data)) {
+        messageList = (cachedMessages as any).data;
+      } else if ((cachedMessages as any)?.messages && Array.isArray((cachedMessages as any).messages)) {
+        messageList = (cachedMessages as any).messages;
+      } else if (Array.isArray(cachedMessages)) {
+        messageList = cachedMessages;
       }
       
-      const isNotMyMessage = actualSenderId !== user?.id;
-      const isUnread = !msg.isRead && (!msg.readBy || !msg.readBy.includes(user?.id));
-      
-      return isNotMyMessage && isUnread;
-    }).length;
-  }, [queryClient, user?.id]);
+      return messageList.filter((msg: any) => {
+        let actualSenderId = msg.senderId;
+        if (typeof actualSenderId === 'string' && actualSenderId.includes('ObjectId')) {
+          const idMatch = actualSenderId.match(/ObjectId\('([^']+)'\)/);
+          if (idMatch) {
+            actualSenderId = idMatch[1];
+          }
+        }
+        
+        const isNotMyMessage = actualSenderId !== user?.id;
+        const isUnread = !msg.isRead && (!msg.readBy || !msg.readBy.includes(user?.id));
+        
+        return isNotMyMessage && isUnread;
+      }).length;
+    }
+    
+    // Fallback: ищем беседу в списке conversations и используем unreadByParticipant
+    if (conversations && Array.isArray(conversations)) {
+      const conversation = conversations.find(conv => 
+        (conv._id === conversationId || (conv as any).id === conversationId)
+      );
+      if (conversation && conversation.unreadByParticipant && user?.id) {
+        return conversation.unreadByParticipant[user.id] || 0;
+      }
+    }
+    
+    return 0;
+  }, [queryClient, user?.id, conversations]);
 
   // Мемоизируем фильтрацию отправителей для оптимизации
   const filteredSenders = useMemo(() => {
     if (!conversations || conversations.length === 0) return [];
 
-    // Преобразуем беседы в отправителей
-    const senders = conversations.reduce((acc: SenderType[], conversation) => {
+    // Преобразуем беседы в отправителей с дедупликацией
+    const sendersMap = new Map<string, SenderType>();
+    
+    conversations.forEach((conversation) => {
       const conversationId = conversation._id || (conversation as any).id;
       const participants = conversation.participants || [];
       
@@ -519,6 +654,7 @@ const OperatorChatPageContent = () => {
       );
 
       otherParticipants.forEach((participant: any) => {
+        const participantKey = participant.id;
         const lastMessage = conversation.lastMessage;
         const lastMessageTime = lastMessage?.timestamp || conversation.createdAt;
         
@@ -527,27 +663,31 @@ const OperatorChatPageContent = () => {
         const originalUnreadCount = conversation.unreadMessagesCount || 0;
         const finalUnreadCount = Math.max(actualUnreadCount, originalUnreadCount);
         
-        console.log(`Sender ${participant.profile?.fullName || participant.profile?.username}: cached=${actualUnreadCount}, original=${originalUnreadCount}, final=${finalUnreadCount}`);
+        // Проверяем, есть ли уже этот участник
+        const existingSender = sendersMap.get(participantKey);
         
-        acc.push({
-          id: participant.id,
-          name: participant.profile?.fullName || participant.profile?.username || participant.email || 'Анонимный',
-          type: participant.role === 'operator' || participant.role === 'admin' ? 'operator' : 'visitor',
-          avatar: participant.profile?.avatarUrl,
-          unreadCount: finalUnreadCount,
-          lastMessageTime: lastMessageTime,
-          isOnline: participant.profile?.isOnline || false,
-          conversationId: conversationId,
-          email: participant.email || '',
-          phone: participant.profile?.phone || '',
-          role: participant.role || 'visitor',
-          isAuthorized: participant.isActivated || false,
-          source: participant.profile?.source || 'website'
-        });
+        if (!existingSender || new Date(lastMessageTime) > new Date(existingSender.lastMessageTime)) {
+          // Берем самую свежую беседу для этого участника
+          sendersMap.set(participantKey, {
+            id: participant.id,
+            name: participant.profile?.fullName || participant.profile?.username || participant.email || 'Анонимный',
+            type: participant.role === 'operator' || participant.role === 'admin' ? 'operator' : 'visitor',
+            avatar: participant.profile?.avatarUrl,
+            unreadCount: finalUnreadCount,
+            lastMessageTime: lastMessageTime,
+            isOnline: participant.profile?.isOnline || false,
+            conversationId: conversationId,
+            email: participant.email || '',
+            phone: participant.profile?.phone || '',
+            role: participant.role || 'visitor',
+            isAuthorized: participant.isActivated || false,
+            source: participant.profile?.source || 'website'
+          });
+        }
       });
+    });
 
-      return acc;
-    }, []);
+    const senders = Array.from(sendersMap.values());
 
     // Фильтруем по поиску
     const filtered = senders.filter((sender) =>
@@ -555,16 +695,37 @@ const OperatorChatPageContent = () => {
       sender.email.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    // Сортируем: сначала непрочитанные, затем по времени
+    // Сортируем: сначала непрочитанные, затем по времени последнего сообщения
     return filtered.sort((a, b) => {
-      // Сначала сортируем по наличию непрочитанных сообщений
-      if (a.unreadCount > 0 && b.unreadCount === 0) return -1;
-      if (a.unreadCount === 0 && b.unreadCount > 0) return 1;
+      // Получаем актуальные данные о непрочитанных сообщениях
+      const aUnreadCount = a.conversationId 
+        ? Math.max(calculateUnreadCount(a.conversationId), a.unreadCount || 0)
+        : (a.unreadCount || 0);
+      const bUnreadCount = b.conversationId 
+        ? Math.max(calculateUnreadCount(b.conversationId), b.unreadCount || 0)
+        : (b.unreadCount || 0);
       
-      // Если у обоих есть непрочитанные или у обоих нет, сортируем по времени
-      return new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime();
+      // Сначала сортируем по наличию непрочитанных сообщений
+      if (aUnreadCount > 0 && bUnreadCount === 0) return -1;
+      if (aUnreadCount === 0 && bUnreadCount > 0) return 1;
+      
+      // Если у обоих есть непрочитанные сообщения, сортируем по количеству (больше непрочитанных = выше)
+      if (aUnreadCount > 0 && bUnreadCount > 0) {
+        const unreadDiff = bUnreadCount - aUnreadCount;
+        if (unreadDiff !== 0) return unreadDiff;
+      }
+      
+      // Если количество непрочитанных одинаково (или у обоих 0), сортируем по времени последнего сообщения
+      const aTime = new Date(a.lastMessageTime).getTime();
+      const bTime = new Date(b.lastMessageTime).getTime();
+      return bTime - aTime;
     });
   }, [conversations, searchQuery, user?.id, calculateUnreadCount]);
+
+  // Мемоизируем отображаемых отправителей с учетом пагинации
+  const displayedSenders = useMemo(() => {
+    return filteredSenders.slice(0, displayedDialogsCount);
+  }, [filteredSenders, displayedDialogsCount]);
 
   // Мемоизируем текущих печатающих пользователей
   const currentTypingUsers = useMemo(() => {
@@ -614,18 +775,20 @@ const OperatorChatPageContent = () => {
       if (sender.conversationId) {
         const actualCount = calculateUnreadCount(sender.conversationId);
         const finalCount = Math.max(actualCount, sender.unreadCount || 0);
-        console.log(`Total calc for ${sender.name}: cached=${actualCount}, original=${sender.unreadCount}, final=${finalCount}`);
         return total + finalCount;
       }
       return total + (sender.unreadCount || 0);
     }, 0);
-    console.log(`Total unread messages: ${total}`);
     return total;
   }, [filteredSenders, calculateUnreadCount]);
 
+  // Обновляем глобальный счетчик при изменении локального
+  useEffect(() => {
+    updateUnreadCount(totalUnreadMessages);
+  }, [totalUnreadMessages, updateUnreadCount]);
+
   // Обработка выбора отправителя
   const handleSenderSelect = useCallback((sender: SenderType) => {
-    console.log("Selecting sender:", sender);
     setSelectedSender(sender);
     
     // Очищаем счетчик непрочитанных сообщений сразу
@@ -633,24 +796,11 @@ const OperatorChatPageContent = () => {
       const actualUnreadCount = calculateUnreadCount(sender.conversationId);
       
       if (actualUnreadCount > 0) {
-        // Отмечаем беседу как прочитанную через API
-        chatAPI.markAsRead(sender.conversationId).catch(error => {
-          console.error('Error marking conversation as read:', error);
-        });
-        
-        // Обновляем локальные данные
-        queryClient.setQueryData(
-          ['conversations'],
-          (oldData: any) => {
-            if (!Array.isArray(oldData)) return oldData;
-            return oldData.map((conv: any) => 
-              (conv._id === sender.conversationId || conv.id === sender.conversationId) ? {
-                ...conv,
-                unreadMessagesCount: 0
-              } : conv
-            );
-          }
-        );
+        // Отмечаем беседу как прочитанную через WebSocket
+        const success = markConversationAsRead(sender.conversationId);
+        if (!success) {
+          console.warn('Failed to mark conversation as read via WebSocket');
+        }
       }
     }
     
@@ -660,7 +810,6 @@ const OperatorChatPageContent = () => {
       sender.conversationId.length === 24 &&
       /^[0-9a-fA-F]{24}$/.test(sender.conversationId)
     ) {
-      console.log("Setting conversation ID:", sender.conversationId);
       setSelectedConversation(sender.conversationId);
     } else {
       console.warn(
@@ -671,7 +820,7 @@ const OperatorChatPageContent = () => {
       );
       setSelectedConversation(null);
     }
-  }, [queryClient, calculateUnreadCount, chatAPI]);
+  }, [calculateUnreadCount, markConversationAsRead]);
 
   // Показываем уведомление о pending transfer request
   useEffect(() => {
@@ -781,7 +930,6 @@ const OperatorChatPageContent = () => {
                 users={presence.onlineUsers}
                 maxVisible={3}
                 onUserClick={(userId) => {
-                  console.log("Clicked online user:", userId);
                   // Здесь можно добавить логику для открытия чата с пользователем
                 }}
                 className="text-sm"
@@ -790,7 +938,7 @@ const OperatorChatPageContent = () => {
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto" onScroll={handleScroll}>
           {conversationsLoading ? (
             <div className="p-4">
               <Radix.Spinner />
@@ -802,7 +950,7 @@ const OperatorChatPageContent = () => {
             </div>
           ) : (
             <div className="space-y-1 p-2">
-              {filteredSenders.map((sender) => {
+              {displayedSenders.map((sender, index) => {
                 // Получаем реальное количество непрочитанных сообщений
                 const actualUnreadCount = sender.conversationId 
                   ? Math.max(calculateUnreadCount(sender.conversationId), sender.unreadCount || 0)
@@ -811,10 +959,10 @@ const OperatorChatPageContent = () => {
                 
                 return (
                   <div
-                    key={sender.id}
+                    key={`${sender.id}-${sender.conversationId}-${index}`}
                     onClick={() => handleSenderSelect(sender)}
                     className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${
-                      selectedSender?.id === sender.id
+                      selectedSender?.id === sender.id && selectedSender?.conversationId === sender.conversationId
                         ? "bg-accent border-l-4 border-primary"
                         : hasUnread
                         ? "hover:bg-accent bg-blue-50 dark:bg-blue-950 border-l-2 border-blue-500 shadow-sm"
@@ -880,6 +1028,26 @@ const OperatorChatPageContent = () => {
                   </div>
                 );
               })}
+              
+              {/* Индикатор загрузки дополнительных диалогов */}
+              {isLoadingMore && (
+                <div className="p-4 flex justify-center">
+                  <Radix.Spinner size="1" />
+                  <span className="ml-2 text-sm text-muted-foreground">Загрузка...</span>
+                </div>
+              )}
+              
+              {/* Показываем если есть еще диалоги для загрузки */}
+              {!isLoadingMore && displayedDialogsCount < filteredSenders.length && (
+                <div className="p-4 flex justify-center">
+                  <button
+                    onClick={loadMoreDialogs}
+                    className="text-sm text-primary hover:text-primary/80 underline"
+                  >
+                    Загрузить еще ({filteredSenders.length - displayedDialogsCount} диалогов)
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -950,7 +1118,7 @@ const OperatorChatPageContent = () => {
               </div>
 
               {/* Messages area */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
                 {messagesLoading ? (
                   <div className="flex justify-center">
                     <Radix.Spinner />
@@ -1033,16 +1201,22 @@ const OperatorChatPageContent = () => {
                     
                     const isOperatorMessage = senderRole === 'operator' || senderRole === 'admin';
                     
-                    console.log(`Message: originalSenderId=${message.senderId}, actualSenderId=${actualSenderId}, userId=${user?.id}, isMyMessage=${isMyMessage}, senderRole=${senderRole}, isOperatorMessage=${isOperatorMessage}, senderInfo=`, senderInfo);
                     
                     return (
                       <div
                         key={message._id}
+                        data-message-id={message._id || message.id}
+                        data-sender-id={actualSenderId}
                         className={`flex ${
                           isOperatorMessage
                             ? "justify-end"
                             : "justify-start"
                         }`}
+                        ref={(el) => {
+                          if (el && observerRef.current) {
+                            observerRef.current.observe(el);
+                          }
+                        }}
                       >
                         <div
                           className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
@@ -1063,21 +1237,45 @@ const OperatorChatPageContent = () => {
                               {new Date(message.timestamp || message.createdAt).toLocaleTimeString()}
                             </p>
 
-                            {/* Статус прочтения */}
-                            {isOperatorMessage && (
-                              <div className="flex items-center space-x-1">
-                                {message.isRead || (message.readBy && message.readBy.length > 1) ? (
-                                  <div className="flex items-center space-x-1">
-                                    <span className="text-blue-200">✓✓</span>
-                                    <span className="text-xs text-blue-200">прочитано</span>
-                                  </div>
-                                ) : message.readBy && message.readBy.length > 0 ? (
-                                  <span className="text-blue-300">✓</span>
-                                ) : (
-                                  <span className="text-blue-400">✓</span>
-                                )}
-                              </div>
-                            )}
+                            {/* Статус прочтения для всех сообщений */}
+                            <div className="flex items-center space-x-1">
+                              {(() => {
+                                // Определяем статус прочтения
+                                const readByCount = message.readBy ? message.readBy.length : 0;
+                                const isReadByRecipient = message.readBy && message.readBy.some((id: string) => id !== actualSenderId);
+                                const isFullyRead = message.isRead || isReadByRecipient;
+                                
+                                if (isOperatorMessage) {
+                                  // Сообщения от оператора
+                                  if (isFullyRead) {
+                                    return (
+                                      <div className="flex items-center space-x-1">
+                                        <span className="text-blue-200">✓✓</span>
+                                        <span className="text-xs text-blue-200">прочитано</span>
+                                      </div>
+                                    );
+                                  } else if (readByCount > 0) {
+                                    return <span className="text-blue-300">✓</span>;
+                                  } else {
+                                    return <span className="text-blue-400">✓</span>;
+                                  }
+                                } else {
+                                  // Сообщения от пользователя
+                                  if (isFullyRead) {
+                                    return (
+                                      <div className="flex items-center space-x-1">
+                                        <span className="text-green-600">✓✓</span>
+                                        <span className="text-xs text-green-600">прочитано</span>
+                                      </div>
+                                    );
+                                  } else if (readByCount > 0) {
+                                    return <span className="text-green-500">✓</span>;
+                                  } else {
+                                    return <span className="text-gray-400">✓</span>;
+                                  }
+                                }
+                              })()}
+                            </div>
                           </div>
                         </div>
                       </div>

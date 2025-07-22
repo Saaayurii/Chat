@@ -31,5 +31,10 @@
       "Bash(ss:*)"
     ],
     "deny": []
-  }
+  },
+  "enabledMcpjsonServers": [
+    "filesystem",
+    "brave-search",
+    "github"
+  ]
 }

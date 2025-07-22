@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Простой тест виджета</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            background: #e7f5e7;
+            border: 1px solid #28a745;
+            color: #28a745;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #dc3545;
+            color: #dc3545;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Простой тест чат-виджета</h1>
+        <p>Проверяем загрузку и инициализацию виджета.</p>
+        
+        <div id="status"></div>
+        <div id="globals"></div>
+        
+        <h3>Лог выполнения:</h3>
+        <pre id="log"></pre>
+    </div>
+
+    <!-- Подключение виджета -->
+    <link rel="stylesheet" href="./dist/chat-widget.css">
+    
+    <script>
+        const statusDiv = document.getElementById('status');
+        const globalsDiv = document.getElementById('globals');
+        const logDiv = document.getElementById('log');
+        
+        function addLog(message) {
+            logDiv.textContent += new Date().toISOString() + ': ' + message + '\n';
+            console.log(message);
+        }
+        
+        function showStatus(message, isError = false) {
+            statusDiv.innerHTML = `<div class="${isError ? 'error' : 'status'}">${message}</div>`;
+        }
+        
+        function showGlobals() {
+            const globals = [];
+            for (let key in window) {
+                if (key.toLowerCase().includes('chat') || key === 'initChatWidget') {
+                    globals.push(`window.${key} = ${typeof window[key]}`);
+                }
+            }
+            globalsDiv.innerHTML = `<h3>Доступные глобальные переменные:</h3><pre>${globals.join('\n')}</pre>`;
+        }
+
+        addLog('Начинаем загрузку виджета...');
+        showStatus('Загружаем виджет...', false);
+        
+        // Загружаем IIFE файл виджета
+        const script = document.createElement('script');
+        script.src = './dist/chat-widget.iife.js';
+        
+        script.onload = function() {
+            addLog('IIFE скрипт загружен успешно');
+            showGlobals();
+            
+            // Проверяем что доступно
+            if (window.initChatWidget) {
+                addLog('✅ window.initChatWidget найден');
+                showStatus('✅ Виджет загружен! Пробуем инициализировать...', false);
+                
+                try {
+                    window.initChatWidget({
+                        apiUrl: 'http://localhost:3004',
+                        theme: 'light',
+                        position: 'bottom-right',
+                        primaryColor: '#3b82f6',
+                        allowFileUpload: true,
+                        allowComplaint: true,
+                        allowRating: true,
+                        welcomeMessage: 'Добро пожаловать! Как могу помочь?',
+                        operatorName: 'Тестовый оператор',
+                        autoLoad: true
+                    });
+                    addLog('✅ Виджет инициализирован успешно');
+                    showStatus('✅ Виджет работает! Смотрите в правый нижний угол.', false);
+                } catch (error) {
+                    addLog('❌ Ошибка при инициализации: ' + error.message);
+                    showStatus('❌ Ошибка инициализации: ' + error.message, true);
+                }
+            } else if (window.ChatWidget) {
+                addLog('⚠️ window.initChatWidget не найден, но есть window.ChatWidget');
+                addLog('window.ChatWidget тип: ' + typeof window.ChatWidget);
+                
+                if (window.ChatWidget.initChatWidget) {
+                    addLog('✅ Найден ChatWidget.initChatWidget');
+                    try {
+                        window.ChatWidget.initChatWidget({
+                            apiUrl: 'http://localhost:3004',
+                            theme: 'light',
+                            position: 'bottom-right',
+                            primaryColor: '#3b82f6',
+                            welcomeMessage: 'Добро пожаловать!'
+                        });
+                        addLog('✅ Виджет инициализирован через ChatWidget.initChatWidget');
+                        showStatus('✅ Виджет работает!', false);
+                    } catch (error) {
+                        addLog('❌ Ошибка: ' + error.message);
+                        showStatus('❌ Ошибка: ' + error.message, true);
+                    }
+                } else {
+                    showStatus('❌ Не найдены функции инициализации', true);
+                }
+            } else {
+                addLog('❌ Ни window.initChatWidget, ни window.ChatWidget не найдены');
+                showStatus('❌ Виджет не загрузился корректно', true);
+            }
+        };
+        
+        script.onerror = function() {
+            addLog('❌ Ошибка загрузки IIFE скрипта');
+            showStatus('❌ Ошибка загрузки скрипта', true);
+        };
+        
+        document.body.appendChild(script);
+    </script>
+</body>
+</html>

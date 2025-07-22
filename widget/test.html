@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест Chat Widget</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .status {
+            background: #e7f5e7;
+            border: 1px solid #28a745;
+            color: #28a745;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Тест Chat Widget</h1>
+        <p>Этот файл тестирует работу чат-виджета.</p>
+        
+        <div class="status">
+            ✅ Виджет должен появиться в правом нижнем углу экрана
+        </div>
+        
+        <h2>Инструкция для тестирования:</h2>
+        <ol style="text-align: left; display: inline-block;">
+            <li>Убедитесь, что backend API запущен на <code>http://localhost:3004</code></li>
+            <li>Найдите синюю кнопку чата в правом нижнем углу</li>
+            <li>Нажмите на кнопку для открытия виджета</li>
+            <li>Попробуйте отправить сообщение</li>
+            <li>Проверьте работу всех функций (файлы, рейтинги, жалобы)</li>
+        </ol>
+        
+        <h2>Конфигурация:</h2>
+        <ul style="text-align: left; display: inline-block;">
+            <li><strong>API URL:</strong> http://localhost:3004</li>
+            <li><strong>Тема:</strong> светлая</li>
+            <li><strong>Позиция:</strong> правый нижний угол</li>
+            <li><strong>Цвет:</strong> #3b82f6</li>
+        </ul>
+    </div>
+
+    <!-- Подключение виджета -->
+    <link rel="stylesheet" href="./dist/chat-widget.css">
+    <script src="./dist/chat-widget.iife.js"></script>
+    
+    <script>
+        // Инициализируем виджет после загрузки
+        window.addEventListener('load', function() {
+            console.log('Page loaded, looking for ChatWidget...');
+            
+            if (window.ChatWidget && window.ChatWidget.initChatWidget) {
+                console.log('ChatWidget found, initializing...');
+                window.ChatWidget.initChatWidget({
+                    apiUrl: 'http://localhost:3004',
+                    theme: 'light',
+                    position: 'bottom-right',
+                    primaryColor: '#3b82f6',
+                    allowFileUpload: true,
+                    allowComplaint: true,
+                    allowRating: true,
+                    welcomeMessage: 'Добро пожаловать! Как могу помочь?',
+                    operatorName: 'Тестовый оператор',
+                    autoLoad: true
+                });
+                console.log('Widget initialized successfully');
+            } else if (window.initChatWidget) {
+                console.log('Global initChatWidget found, using it...');
+                window.initChatWidget({
+                    apiUrl: 'http://localhost:3004',
+                    theme: 'light',
+                    position: 'bottom-right',
+                    primaryColor: '#3b82f6',
+                    allowFileUpload: true,
+                    allowComplaint: true,
+                    allowRating: true,
+                    welcomeMessage: 'Добро пожаловать! Как mogу помочь?',
+                    operatorName: 'Тестовый оператор',
+                    autoLoad: true
+                });
+                console.log('Widget initialized via global function');
+            } else {
+                console.error('ChatWidget not found. Available globals:', Object.keys(window).filter(key => key.includes('Chat')));
+            }
+        });
+    </script>
+</body>
+</html>

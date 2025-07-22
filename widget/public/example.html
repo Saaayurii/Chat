@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Пример встраивания Chat Widget</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 2rem;
+            background-color: #f5f5f5;
+        }
+        
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+        
+        .code-block code {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+        }
+        
+        .config-demo {
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            background: #f8f9ff;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            margin: 0.25rem;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Chat Widget - Пример встраивания</h1>
+            <p>Демонстрация работы виджета чата на сайте</p>
+        </div>
+
+        <section>
+            <h2>📋 Инструкция по встраиванию</h2>
+            <p>Для встраивания виджета на ваш сайт выполните следующие шаги:</p>
+            
+            <h3>1. Базовое встраивание</h3>
+            <p>Добавьте этот код перед закрывающим тегом <code>&lt;/body&gt;</code>:</p>
+            
+            <div class="code-block">
+<code>&lt;script&gt;
+(function() {
+    // Конфигурация виджета
+    window.chatWidgetConfig = {
+        apiUrl: 'https://your-api-domain.com',
+        theme: 'light',
+        position: 'bottom-right',
+        primaryColor: '#3b82f6',
+        allowFileUpload: true,
+        allowComplaint: true,
+        allowRating: true,
+        welcomeMessage: 'Добро пожаловать! Как могу помочь?',
+        operatorName: 'Служба поддержки'
+    };
+    
+    // Загрузка стилей
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://your-api-domain.com/chat-widget.css';
+    document.head.appendChild(link);
+    
+    // Загрузка скрипта
+    var script = document.createElement('script');
+    script.src = 'https://your-api-domain.com/chat-widget.js';
+    script.async = true;
+    document.body.appendChild(script);
+})();
+&lt;/script&gt;</code>
+            </div>
+
+            <h3>2. Программная инициализация</h3>
+            <p>Если вы хотите инициализировать виджет программно:</p>
+            
+            <div class="code-block">
+<code>&lt;script src="https://your-api-domain.com/chat-widget.js"&gt;&lt;/script&gt;
+&lt;link rel="stylesheet" href="https://your-api-domain.com/chat-widget.css"&gt;
+
+&lt;script&gt;
+// Инициализация после загрузки
+window.addEventListener('load', function() {
+    if (window.initChatWidget) {
+        window.initChatWidget({
+            apiUrl: 'https://your-api-domain.com',
+            theme: 'light',
+            position: 'bottom-right',
+            primaryColor: '#007bff',
+            welcomeMessage: 'Здравствуйте! Чем могу помочь?'
+        });
+    }
+});
+&lt;/script&gt;</code>
+            </div>
+        </section>
+
+        <section>
+            <h2>⚙️ Параметры конфигурации</h2>
+            <table style="width: 100%; border-collapse: collapse; margin: 1rem 0;">
+                <thead>
+                    <tr style="background: #f8f9fa;">
+                        <th style="border: 1px solid #dee2e6; padding: 0.5rem; text-align: left;">Параметр</th>
+                        <th style="border: 1px solid #dee2e6; padding: 0.5rem; text-align: left;">Тип</th>
+                        <th style="border: 1px solid #dee2e6; padding: 0.5rem; text-align: left;">Описание</th>
+                        <th style="border: 1px solid #dee2e6; padding: 0.5rem; text-align: left;">По умолчанию</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;"><code>apiUrl</code></td>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;">string</td>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;">URL API сервера</td>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;">http://localhost:3004</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;"><code>theme</code></td>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;">'light' | 'dark'</td>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;">Тема виджета</td>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;">'light'</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;"><code>position</code></td>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;">'bottom-right' | 'bottom-left'</td>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;">Позиция виджета</td>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;">'bottom-right'</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;"><code>primaryColor</code></td>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;">string</td>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;">Основной цвет виджета</td>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;">'#3b82f6'</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;"><code>allowFileUpload</code></td>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;">boolean</td>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;">Разрешить загрузку файлов</td>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;">true</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;"><code>allowComplaint</code></td>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;">boolean</td>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;">Разрешить отправку жалоб</td>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;">true</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;"><code>allowRating</code></td>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;">boolean</td>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;">Разрешить оценку операторов</td>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;">true</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;"><code>welcomeMessage</code></td>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;">string</td>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;">Приветственное сообщение</td>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;">'Добро пожаловать!'</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;"><code>operatorName</code></td>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;">string</td>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;">Имя оператора по умолчанию</td>
+                        <td style="border: 1px solid #dee2e6; padding: 0.5rem;">'Оператор'</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <div class="config-demo">
+                <h2>🎮 Демонстрация</h2>
+                <p>На этой странице уже загружен виджет чата. Нажмите на иконку чата в правом нижнем углу, чтобы протестировать его работу!</p>
+                
+                <div style="margin: 1rem 0;">
+                    <button class="btn" onclick="testWidget()">Открыть чат</button>
+                    <button class="btn btn-secondary" onclick="changeTheme()">Сменить тему</button>
+                    <button class="btn btn-secondary" onclick="changePosition()">Сменить позицию</button>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>🔧 Требования</h2>
+            <ul>
+                <li><strong>Backend API:</strong> Убедитесь, что ваш backend API запущен и доступен</li>
+                <li><strong>CORS:</strong> Настройте CORS для домена, где будет размещен виджет</li>
+                <li><strong>HTTPS:</strong> Для продакшена рекомендуется использовать HTTPS</li>
+                <li><strong>WebSocket:</strong> Убедитесь, что WebSocket подключения разрешены</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>📚 Дополнительная информация</h2>
+            <ul>
+                <li>Виджет автоматически определяет авторизованных пользователей</li>
+                <li>Анонимные пользователи получают временную сессию</li>
+                <li>История сообщений сохраняется между сеансами</li>
+                <li>Поддерживается загрузка файлов (до 10MB по умолчанию)</li>
+                <li>Встроенная система рейтингов и жалоб</li>
+            </ul>
+        </section>
+    </div>
+
+    <!-- Встроенный виджет для демонстрации -->
+    <script>
+        // Конфигурация для демо
+        window.currentTheme = 'light';
+        window.currentPosition = 'bottom-right';
+        
+        function testWidget() {
+            // Здесь можно добавить логику для программного открытия виджета
+            alert('Виджет уже загружен! Посмотрите в правый нижний угол экрана.');
+        }
+        
+        function changeTheme() {
+            window.currentTheme = window.currentTheme === 'light' ? 'dark' : 'light';
+            alert('Смена темы: ' + window.currentTheme + '. Обновите страницу для применения.');
+        }
+        
+        function changePosition() {
+            window.currentPosition = window.currentPosition === 'bottom-right' ? 'bottom-left' : 'bottom-right';
+            alert('Смена позиции: ' + window.currentPosition + '. Обновите страницу для применения.');
+        }
+
+        // Пример встраивания (закомментирован для демо)
+        /*
+        (function() {
+            window.chatWidgetConfig = {
+                apiUrl: 'http://localhost:3004',
+                theme: window.currentTheme || 'light',
+                position: window.currentPosition || 'bottom-right',
+                primaryColor: '#3b82f6',
+                allowFileUpload: true,
+                allowComplaint: true,
+                allowRating: true,
+                welcomeMessage: 'Добро пожаловать! Как могу помочь?',
+                operatorName: 'Служба поддержки'
+            };
+            
+            var link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = '/chat-widget.css';
+            document.head.appendChild(link);
+            
+            var script = document.createElement('script');
+            script.src = '/chat-widget.js';
+            script.async = true;
+            document.body.appendChild(script);
+        })();
+        */
+    </script>
+</body>
+</html>

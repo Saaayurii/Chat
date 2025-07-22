@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Пример встраивания Chat Widget</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .example-site {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .widget-config {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="example-site">
+        <h1>🎯 Пример встраивания Chat Widget</h1>
+        
+        <p>Этот виджет создан с помощью <strong>Vite + React + TypeScript + Tailwind + Zustand</strong> и готов для встраивания на любой сайт.</p>
+
+        <h2>📋 Особенности виджета:</h2>
+        <ul>
+            <li>✅ JWT аутентификация + анонимные сессии</li>
+            <li>✅ Real-time WebSocket подключение</li>
+            <li>✅ Загрузка истории сообщений</li>
+            <li>✅ Система рейтингов и жалоб</li>
+            <li>✅ Загрузка файлов</li>
+            <li>✅ Адаптивный дизайн</li>
+            <li>✅ Настраиваемые темы и цвета</li>
+        </ul>
+
+        <h2>🚀 Конфигурация виджета:</h2>
+        <div class="widget-config">
+            <h3>Текущие настройки:</h3>
+            <pre>API URL: http://localhost:3004
+Тема: Светлая
+Позиция: Правый нижний угол
+Основной цвет: #3b82f6
+Загрузка файлов: Разрешена
+Жалобы: Разрешены
+Рейтинги: Разрешены</pre>
+        </div>
+
+        <h2>📝 Как встроить на сайт:</h2>
+        <div class="code-block">
+            <h3>1. Подключите CSS и JS файлы:</h3>
+            <pre>&lt;!-- CSS виджета --&gt;
+&lt;link rel="stylesheet" href="./dist/ChatWidget-BkN3Fr8E.css"&gt;
+
+&lt;!-- Основной JS файл --&gt;
+&lt;script src="./dist/ChatWidget-DjGfgXU6.js"&gt;&lt;/script&gt;
+
+&lt;!-- Инициализатор виджета --&gt;
+&lt;script src="./dist/chat-widget.js"&gt;&lt;/script&gt;</pre>
+        </div>
+
+        <div class="code-block">
+            <h3>2. Инициализируйте виджет:</h3>
+            <pre>&lt;script&gt;
+window.initChatWidget({
+    apiUrl: 'http://localhost:3004',
+    theme: 'light',
+    position: 'bottom-right',
+    primaryColor: '#3b82f6',
+    allowFileUpload: true,
+    allowComplaint: true,
+    allowRating: true,
+    placeholder: 'Введите сообщение...',
+    welcomeMessage: 'Добро пожаловать! Как могу помочь?',
+    operatorName: 'Оператор поддержки'
+});
+&lt;/script&gt;</pre>
+        </div>
+
+        <h2>⚙️ Доступные опции конфигурации:</h2>
+        <div class="code-block">
+            <pre>interface ChatWidgetConfig {
+  apiUrl?: string;              // URL API сервера (default: http://localhost:3004)
+  theme?: 'light' | 'dark';     // Тема виджета (default: light)  
+  position?: 'bottom-right' | 'bottom-left'; // Позиция (default: bottom-right)
+  primaryColor?: string;        // Основной цвет (default: #3b82f6)
+  allowFileUpload?: boolean;    // Разрешить загрузку файлов (default: true)
+  allowComplaint?: boolean;     // Разрешить жалобы (default: true)
+  allowRating?: boolean;        // Разрешить рейтинги (default: true)
+  maxFileSize?: number;         // Макс размер файла в байтах (default: 10MB)
+  placeholder?: string;         // Placeholder для поля ввода
+  welcomeMessage?: string;      // Приветственное сообщение
+  operatorName?: string;        // Имя оператора по умолчанию
+  operatorAvatar?: string;      // Аватар оператора по умолчанию
+  autoLoad?: boolean;           // Автозагрузка при инициализации (default: true)
+  minimizeOnStart?: boolean;    // Свернуть при старте (default: false)
+}</pre>
+        </div>
+
+        <p><strong>Виджет должен появиться в правом нижнем углу экрана. Нажмите на него, чтобы начать чат!</strong></p>
+    </div>
+
+    <!-- Подключение виджета -->
+    <link rel="stylesheet" href="./dist/chat-widget.css">
+    <script src="./dist/chat-widget.iife.js"></script>
+    
+    <script>
+        // Конфигурация и инициализация виджета
+        window.addEventListener('load', function() {
+            if (window.ChatWidget && window.ChatWidget.initChatWidget) {
+                window.ChatWidget.initChatWidget({
+                    apiUrl: 'http://localhost:3004',
+                    theme: 'light',
+                    position: 'bottom-right',
+                    primaryColor: '#3b82f6',
+                    allowFileUpload: true,
+                    allowComplaint: true,  
+                    allowRating: true,
+                    placeholder: 'Введите сообщение...',
+                    welcomeMessage: 'Добро пожаловать! Как могу помочь?',
+                    operatorName: 'Оператор поддержки',
+                    autoLoad: true
+                });
+            } else if (window.initChatWidget) {
+                window.initChatWidget({
+                    apiUrl: 'http://localhost:3004',
+                    theme: 'light',
+                    position: 'bottom-right',
+                    primaryColor: '#3b82f6',
+                    allowFileUpload: true,
+                    allowComplaint: true,  
+                    allowRating: true,
+                    placeholder: 'Введите сообщение...',
+                    welcomeMessage: 'Добро пожаловать! Как могу помочь?',
+                    operatorName: 'Оператор поддержки',
+                    autoLoad: true
+                });
+            }
+        });
+    </script>
+</body>
+</html>

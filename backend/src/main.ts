@@ -82,7 +82,11 @@ async function bootstrap() {
 
   // 🔐 CORS настройки для безопасности
   app.enableCors({
-    origin: process.env.CLIENT_URL, // Конкретный домен
+    origin: [
+      process.env.CLIENT_URL,
+      process.env.WIDGET_URL,
+      'http://localhost:5500'
+    ], // Разрешённые домены
     credentials: true, // Разрешить cookies
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [

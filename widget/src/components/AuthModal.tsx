@@ -176,9 +176,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
 
   const renderLoginForm = () => (
     <div className="space-y-4">
-      <div className="text-center mb-6">
-        <p className="text-gray-600">Введите ваши данные для входа</p>
-      </div>
+      
 
       <form onSubmit={handleLogin} className="space-y-4">
         <div>
@@ -248,9 +246,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
 
   const renderRegistrationForm = () => (
     <div className="space-y-4">
-      <div className="text-center mb-6">
-        <p className="text-gray-600">Создайте аккаунт для доступа к системе</p>
-      </div>
+      
 
       <form onSubmit={handleRegister} className="space-y-4">
         <div>
@@ -384,10 +380,6 @@ const AuthModal: React.FC<AuthModalProps> = ({
 
     return (
       <div className="space-y-4">
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Сброс пароля</h2>
-          <p className="text-gray-600 mt-2">Введите email для получения ссылки</p>
-        </div>
 
         <form onSubmit={handlePasswordReset} className="space-y-4">
           <div>

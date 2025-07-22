@@ -219,7 +219,10 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       setOperatorInfo(operator);
       
       const isAnonymous = token === 'anonymous' || !user?.id;
-      const currentSessionId = sessionId || user?.sessionId || crypto.randomUUID();
+      const currentSessionId = sessionId || user?.sessionId;
+      if (!currentSessionId) {
+        throw new Error('SessionId не найден - необходим для создания разговора');
+      }
       const userName = user?.profile?.fullName || user?.profile?.username || user?.firstName || 'Посетитель';
       const userEmail = user?.email;
       

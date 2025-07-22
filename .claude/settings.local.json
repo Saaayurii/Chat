@@ -28,7 +28,8 @@
       "Bash(node:*)",
       "Bash(chmod:*)",
       "Bash(curl:*)",
-      "Bash(ss:*)"
+      "Bash(ss:*)",
+      "mcp__filesystem__list_directory"
     ],
     "deny": []
   },

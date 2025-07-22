@@ -1,19 +1,15 @@
 // Entry point для встраиваемого виджета
 import { createRoot } from 'react-dom/client';
+import type { Root } from 'react-dom/client';
 import ChatWidget from './components/ChatWidget';
 import type { ChatWidgetConfig } from './types';
 import './index.css';
 
-// Глобальная функция инициализации виджета
-declare global {
-  interface Window {
-    initChatWidget: (config: ChatWidgetConfig) => void;
-    ChatWidget: typeof ChatWidget;
-  }
-}
+// Глобальные переменные
+let widgetRoot: Root | null = null;
 
 // Функция инициализации виджета
-window.initChatWidget = (config: ChatWidgetConfig) => {
+function initChatWidget(config: ChatWidgetConfig): void {
   console.log('Initializing Chat Widget with config:', config);
   
   // Создаем контейнер для виджета
@@ -34,8 +30,12 @@ window.initChatWidget = (config: ChatWidgetConfig) => {
   }
 
   // Создаем React app в контейнере
-  const root = createRoot(widgetContainer);
-  root.render(
+  if (widgetRoot) {
+    widgetRoot.unmount();
+  }
+  
+  widgetRoot = createRoot(widgetContainer);
+  widgetRoot.render(
     <div style={{ pointerEvents: 'auto' }}>
       <ChatWidget
         {...config}
@@ -43,14 +43,16 @@ window.initChatWidget = (config: ChatWidgetConfig) => {
       />
     </div>
   );
-};
+}
 
-// Экспортируем компонент для использования в других React приложениях
-window.ChatWidget = ChatWidget;
+// Экспорт для IIFE сборки
+(window as any).initChatWidget = initChatWidget;
+(window as any).ChatWidget = ChatWidget;
 
 // Автоматическая инициализация, если в window есть chatWidgetConfig
 if (typeof window !== 'undefined' && (window as any).chatWidgetConfig) {
-  window.initChatWidget((window as any).chatWidgetConfig);
+  initChatWidget((window as any).chatWidgetConfig);
 }
 
-export default ChatWidget;
+export { initChatWidget, ChatWidget };
+export default initChatWidget;

@@ -164,8 +164,16 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
         console.log('🏠 Successfully joined room:', message.data.conversationId);
       } else if (message.type === 'conversation-read') {
         console.log('📖 Message marked as read:', message.data);
-        // Обновляем статус прочтения для сообщений
-        // TODO: реализовать обновление статуса прочтения в интерфейсе
+        // Обновляем статус прочтения для сообщений пользователя
+        const { readBy } = message.data;
+        const updatedMessages = messages.map((msg: Message): Message => 
+          msg.sender === 'user' ? {
+            ...msg,
+            isRead: true,
+            readBy: [...(msg.readBy || []), readBy].filter((id: string, index: number, arr: string[]) => arr.indexOf(id) === index)
+          } : msg
+        );
+        setMessages(updatedMessages);
       } else if (message.type === 'typing') {
         setIsTyping(message.data.isTyping);
       } else if (message.type === 'operator_status') {
@@ -318,16 +326,8 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
           isOnline: assignedOperator ? true : operator.isOnline
         });
         
-        const welcomeMsg: Message = {
-          id: 'welcome',
-          content: `${welcomeMessage} Вас обслуживает ${finalOperatorName}.`,
-          timestamp: new Date(),
-          sender: 'operator',
-          senderName: finalOperatorName,
-          type: 'system'
-        };
-        
-        setMessages([welcomeMsg]);
+        // Не создаем приветственное сообщение - оно приходит с backend
+        setMessages([]);
         setIsConnected(true);
       }
     } catch (error) {
@@ -345,11 +345,13 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   // Restore conversation on mount
   useEffect(() => {
     const restoreConversation = async () => {
+      console.log('Restore check:', { conversationId, token, messagesLength: messages.length });
       if (conversationId && token && !messages.length) {
         try {
           console.log('Restoring conversation:', conversationId);
           
           const conversationMessages = await chatCore.getConversationMessages(conversationId, 50);
+          console.log('Got conversation messages:', conversationMessages);
           
           if (Array.isArray(conversationMessages) && conversationMessages.length > 0) {
             const formattedMessages = conversationMessages.map((msg: any) => {

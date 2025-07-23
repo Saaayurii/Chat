@@ -385,7 +385,7 @@ async afterInit(server: Server) {
         createdAt: message.createdAt,
         type: message.type,
         status: message.status,
-        senderName: user.isAnonymous ? 'Посетитель' : (user.profile?.fullName || user.profile?.username || user.email)
+        senderName: user.isAnonymous ? 'Посетитель' : (user.profile?.fullName || user.profile?.username || user.fullName || user.firstName + (user.lastName ? ' ' + user.lastName : '') || user.email)
       };
 
       // Отправляем сообщение всем участникам беседы через Socket.IO

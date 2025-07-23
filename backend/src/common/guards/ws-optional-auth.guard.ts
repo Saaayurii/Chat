@@ -51,22 +51,36 @@ export class WsOptionalAuthGuard implements CanActivate {
       }
       
       // Если нет валидного токена, проверяем анонимного пользователя
+      console.log(`[${timestamp}] WsOptionalAuthGuard: No valid JWT token, attempting anonymous authentication`);
+      
       const sessionId = this.extractSessionIdFromClient(client);
       
       if (sessionId) {
         console.log(`[${timestamp}] WsOptionalAuthGuard: SessionId found for anonymous user:`, sessionId);
         
+        // Создаем уникальный ID для анонимного пользователя
+        const anonymousUserId = new Types.ObjectId().toString();
+        
         // Создаем анонимного пользователя
         client.data.user = {
-          id: new Types.ObjectId().toString(),
+          id: anonymousUserId,
           sessionId,
           role: 'VISITOR',
           isAuthenticated: false,
           isAnonymous: true
         };
         
-        console.log(`[${timestamp}] WsOptionalAuthGuard: Anonymous user connected with sessionId:`, sessionId);
+        console.log(`[${timestamp}] WsOptionalAuthGuard: Anonymous user created:`, {
+          id: anonymousUserId,
+          sessionId,
+          role: 'VISITOR',
+          isAuthenticated: false,
+          isAnonymous: true
+        });
+        
         return true;
+      } else {
+        console.log(`[${timestamp}] WsOptionalAuthGuard: No sessionId found for anonymous authentication`);
       }
       
       console.log(`[${timestamp}] WsOptionalAuthGuard: No valid authentication method found, denying connection`);
@@ -84,31 +98,53 @@ export class WsOptionalAuthGuard implements CanActivate {
   }
 
   private extractTokenFromClient(client: Socket): string | null {
+    const timestamp = new Date().toISOString();
+    
+    console.log(`[${timestamp}] WsOptionalAuthGuard: Extracting token from client ${client.id}`);
+    
     const authHeader = client.handshake.auth?.token || client.handshake.headers?.authorization;
+    console.log(`[${timestamp}] WsOptionalAuthGuard: Auth header:`, authHeader);
     
     if (authHeader) {
       if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
-        return authHeader.substring(7);
+        const token = authHeader.substring(7);
+        console.log(`[${timestamp}] WsOptionalAuthGuard: Bearer token found`);
+        return token;
       }
+      console.log(`[${timestamp}] WsOptionalAuthGuard: Direct token found`);
       return authHeader as string;
     }
     
     // Также проверяем query параметры
     const token = client.handshake.query?.token;
+    console.log(`[${timestamp}] WsOptionalAuthGuard: Query token:`, token);
+    
     if (token && typeof token === 'string') {
+      console.log(`[${timestamp}] WsOptionalAuthGuard: Token found in query parameters`);
       return token;
     }
     
+    console.log(`[${timestamp}] WsOptionalAuthGuard: No token found`);
     return null;
   }
 
   private extractSessionIdFromClient(client: Socket): string | null {
+    const timestamp = new Date().toISOString();
+    
+    console.log(`[${timestamp}] WsOptionalAuthGuard: Extracting sessionId from client ${client.id}`);
+    console.log(`[${timestamp}] WsOptionalAuthGuard: handshake.auth:`, client.handshake.auth);
+    console.log(`[${timestamp}] WsOptionalAuthGuard: handshake.query:`, client.handshake.query);
+    
     const sessionId = client.handshake.auth?.sessionId || client.handshake.query?.sessionId;
     
+    console.log(`[${timestamp}] WsOptionalAuthGuard: Extracted sessionId:`, sessionId);
+    
     if (sessionId && typeof sessionId === 'string') {
+      console.log(`[${timestamp}] WsOptionalAuthGuard: Valid sessionId found:`, sessionId);
       return sessionId;
     }
     
+    console.log(`[${timestamp}] WsOptionalAuthGuard: No valid sessionId found`);
     return null;
   }
 }

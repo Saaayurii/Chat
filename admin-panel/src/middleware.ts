@@ -15,8 +15,7 @@ export function middleware(request: NextRequest) {
       // Получаем токен из cookies
       const cookieToken = request.cookies?.get('access_token')?.value;
       
-      // Если нет токена в cookies, возможно это первый запрос после логина
-      // В этом случае позволяем пройти и позволяем клиенту обработать аутентификацию
+      // Если нет токена в cookies, перенаправляем на страницу входа
       if (!cookieToken) {
         // Проверяем, это не запрос на статические ресурсы
         if (pathname.includes('/_next/') || pathname.includes('/api/')) {
@@ -27,22 +26,21 @@ export function middleware(request: NextRequest) {
         console.log('No token found for protected route:', pathname);
         
         // Если нет токена и это не специальные пути, перенаправляем на страницу входа
-        // Но даем возможность клиенту обработать аутентификацию
-        return NextResponse.next();
+        try {
+          return NextResponse.redirect(new URL('/login', request.url));
+        } catch (error) {
+          // Fallback если URL невалидный
+          return NextResponse.next();
+        }
       }
       
       console.log('Token found for protected route:', pathname);
     }
 
-    // Блокируем доступ обычных пользователей к /profile и /chat
-    if (pathname === '/profile' || pathname === '/chat') {
-      return NextResponse.redirect(new URL('/widget-demo', request.url));
-    }
-    
-    // Если это корневая страница, перенаправляем на /widget-demo для обычных пользователей
+    // Если это корневая страница, перенаправляем на страницу входа
     if (pathname === '/') {
       try {
-        return NextResponse.redirect(new URL('/widget-demo', request.url));
+        return NextResponse.redirect(new URL('/login', request.url));
       } catch (error) {
         // Fallback если URL невалидный
         return NextResponse.next();

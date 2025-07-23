@@ -68,8 +68,8 @@ export default function LoginPage() {
         if (userData.role === UserRole.ADMIN || userData.role === UserRole.OPERATOR) {
           router.push('/admin/statistics');
         } else {
-          // Обычные пользователи попадают на страницу с виджетом
-          router.push('/widget-demo');
+          // Обычные пользователи не должны заходить в админ панель
+          setError('root', { message: 'У вас нет прав для доступа к админ панели.' });
         }
       })() : setError('root', { message: 'Не удалось получить токен доступа.' });
     },

@@ -6,6 +6,8 @@ export interface Message {
   senderName?: string;
   attachments?: string[];
   type?: 'text' | 'file' | 'system';
+  isRead?: boolean;
+  readBy?: string[];
 }
 
 export interface ChatWidgetConfig {

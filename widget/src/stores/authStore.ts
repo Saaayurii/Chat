@@ -62,12 +62,19 @@ export const useAuthStore = create<AuthStore>()(
           document.cookie = `chat_widget_token=${token}; path=/; max-age=86400; ${isSecure ? 'secure;' : ''} samesite=lax`;
         }
         
-        set({ 
+        const newState = { 
           token, 
           user, 
           isAuthenticated: user.role !== 'VISITOR' && !user.isAnonymous,
           sessionId: user.sessionId || null
-        });
+        };
+        
+        set(newState);
+        
+        // Сохраняем состояние для доступа из core.ts
+        if (typeof window !== 'undefined') {
+          (window as any).__authStore = newState;
+        }
       },
 
       setAnonymous: (sessionId: string, user?: User) => {
@@ -75,12 +82,19 @@ export const useAuthStore = create<AuthStore>()(
         
         const anonymousUser = user || createAnonymousUser(sessionId);
         
-        set({
+        const newState = {
           token: 'anonymous',
           user: anonymousUser,
           isAuthenticated: false,
           sessionId
-        });
+        };
+        
+        set(newState);
+        
+        // Сохраняем состояние для доступа из core.ts
+        if (typeof window !== 'undefined') {
+          (window as any).__authStore = newState;
+        }
       },
 
       logout: () => {
@@ -93,6 +107,7 @@ export const useAuthStore = create<AuthStore>()(
           localStorage.removeItem('access_token');
           localStorage.removeItem('user_data');
           localStorage.removeItem('chat_widget_conversation_id');
+          localStorage.removeItem('chat_widget_session_id');
           
           // Очищаем cookies
           document.cookie = 'chat_widget_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
@@ -163,17 +178,31 @@ export const useAuthStore = create<AuthStore>()(
               console.log('AuthStore: Token validation failed, creating anonymous session');
             }
 
-            // Если валидация не прошла, создаем анонимную сессию
-            const sessionId = generateSessionId();
-            get().setAnonymous(sessionId);
+            // Если валидация не прошла, создаем или используем существующую анонимную сессию
+            const existingSessionId = localStorage.getItem('chat_widget_session_id');
+            if (existingSessionId) {
+              get().setAnonymous(existingSessionId);
+            } else {
+              const sessionId = generateSessionId();
+              localStorage.setItem('chat_widget_session_id', sessionId);
+              get().setAnonymous(sessionId);
+            }
           };
 
           validateToken();
         } else {
-          // Создаем анонимную сессию
-          console.log('AuthStore: No valid auth data, creating anonymous session');
-          const sessionId = generateSessionId();
-          get().setAnonymous(sessionId);
+          // Проверяем существующий sessionId в localStorage
+          const existingSessionId = localStorage.getItem('chat_widget_session_id');
+          if (existingSessionId) {
+            console.log('AuthStore: Using existing sessionId:', existingSessionId);
+            get().setAnonymous(existingSessionId);
+          } else {
+            // Создаем анонимную сессию только если нет существующей
+            console.log('AuthStore: No valid auth data, creating anonymous session');
+            const sessionId = generateSessionId();
+            localStorage.setItem('chat_widget_session_id', sessionId);
+            get().setAnonymous(sessionId);
+          }
         }
       },
     }),

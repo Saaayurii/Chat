@@ -54,7 +54,7 @@ export const useSocketIO = (namespace: string = '/chat', options: UseSocketIOOpt
     return chatCore.emitWebSocket(event, data);
   }, []);
 
-  // Auto-connect effect
+  // Auto-connect effect - убираем зависимости от connect/disconnect чтобы избежать циклов
   useEffect(() => {
     if (autoConnect) {
       connect();
@@ -63,7 +63,7 @@ export const useSocketIO = (namespace: string = '/chat', options: UseSocketIOOpt
     return () => {
       disconnect();
     };
-  }, [autoConnect, connect, disconnect]);
+  }, [autoConnect]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Check connection status periodically
   useEffect(() => {

@@ -56,6 +56,18 @@ class ChatWidgetCore {
 
   private getStoredSessionId(): string | null {
     if (typeof window === 'undefined') return null;
+    
+    // Сначала пробуем получить из authStore через window object
+    try {
+      const authStore = (window as any).__authStore;
+      if (authStore && authStore.sessionId) {
+        return authStore.sessionId;
+      }
+    } catch (e) {
+      // Если не получается, продолжаем искать в localStorage
+    }
+    
+    // Fallback на localStorage
     const userData = localStorage.getItem('chat_widget_user') || 
                     localStorage.getItem('user_data');
     if (userData) {
@@ -298,6 +310,7 @@ class ChatWidgetCore {
     const sessionId = this.getStoredSessionId();
     
     console.log(`ChatWidget: Connecting WebSocket to ${this.wsUrl}${namespace}`);
+    console.log('ChatWidget: WebSocket auth data:', { hasToken: !!token, tokenValue: token, hasSessionId: !!sessionId, sessionIdValue: sessionId });
 
     const connectionOptions: any = {
       transports: ['websocket', 'polling'],
@@ -341,6 +354,7 @@ class ChatWidgetCore {
 
     // Обработчик для всех входящих сообщений
     this.socket.onAny((eventName, ...args) => {
+      console.log(`🎯 Widget received event: ${eventName}`, args[0]);
       const message = {
         type: eventName,
         data: args[0],

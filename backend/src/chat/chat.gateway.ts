@@ -77,6 +77,26 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     return null;
   }
 
+  private extractSessionIdFromClient(client: Socket): string | null {
+    const timestamp = new Date().toISOString();
+    
+    console.log(`[${timestamp}] ChatGateway: Extracting sessionId from client ${client.id}`);
+    console.log(`[${timestamp}] ChatGateway: handshake.auth:`, client.handshake.auth);
+    console.log(`[${timestamp}] ChatGateway: handshake.query:`, client.handshake.query);
+    
+    const sessionId = client.handshake.auth?.sessionId || client.handshake.query?.sessionId;
+    
+    console.log(`[${timestamp}] ChatGateway: Extracted sessionId:`, sessionId);
+    
+    if (sessionId && typeof sessionId === 'string') {
+      console.log(`[${timestamp}] ChatGateway: Valid sessionId found:`, sessionId);
+      return sessionId;
+    }
+    
+    console.log(`[${timestamp}] ChatGateway: No valid sessionId found`);
+    return null;
+  }
+
   // В ChatGateway и TransferGateway
 async afterInit(server: Server) {
   try {
@@ -121,15 +141,44 @@ async afterInit(server: Server) {
         
         // Получаем токен из handshake
         const token = this.extractTokenFromClient(client);
-        if (!token) {
-          console.log(`[${timestamp}] ChatGateway: No token found for client ${client.id}, disconnecting`);
+        
+        // Также проверяем sessionId для анонимных пользователей
+        const sessionId = this.extractSessionIdFromClient(client);
+        
+        if (!token && !sessionId) {
+          console.log(`[${timestamp}] ChatGateway: No token or sessionId found for client ${client.id}, disconnecting`);
           client.disconnect();
           return;
         }
         
-        console.log(`[${timestamp}] ChatGateway: Token found for client ${client.id}, verifying`);
+        // Если есть sessionId но нет токена - создаем анонимного пользователя
+        if (!token && sessionId) {
+          console.log(`[${timestamp}] ChatGateway: Creating anonymous user for client ${client.id} with sessionId ${sessionId}`);
+          user = {
+            id: `anonymous_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            email: `anonymous_${sessionId}@widget.temp`,
+            firstName: 'Посетитель',
+            lastName: 'Сайта',
+            role: 'VISITOR',
+            isAnonymous: true,
+            sessionId: sessionId,
+            isActivated: true,
+            isBlocked: false
+          };
+          client.data.user = user;
+          console.log(`[${timestamp}] ChatGateway: Anonymous user created for client ${client.id}:`, { 
+            id: user.id, 
+            sessionId: user.sessionId,
+            role: user.role,
+            isAnonymous: user.isAnonymous 
+          });
+        }
         
-        // Проверяем JWT токен
+        // Если есть токен - проверяем JWT
+        if (token) {
+          console.log(`[${timestamp}] ChatGateway: Token found for client ${client.id}, verifying`);
+          
+          // Проверяем JWT токен
         try {
           const jwtSecret = this.configService.get<string>('JWT_SECRET');
           const payload = this.jwtService.verify(token, { secret: jwtSecret });
@@ -145,10 +194,11 @@ async afterInit(server: Server) {
           
           user = client.data.user;
           console.log(`[${timestamp}] ChatGateway: User data set for client ${client.id}:`, user);
-        } catch (error) {
-          console.error(`[${timestamp}] ChatGateway: JWT verification failed for client ${client.id}:`, error.message);
-          client.disconnect();
-          return;
+          } catch (error) {
+            console.error(`[${timestamp}] ChatGateway: JWT verification failed for client ${client.id}:`, error.message);
+            client.disconnect();
+            return;
+          }
         }
       }
       
@@ -263,12 +313,13 @@ async afterInit(server: Server) {
 
       // Присоединяем к комнате беседы
       await client.join(`conversation:${conversationId}`);
+      this.logger.log(`User ${user.email || user.id} successfully joined room: conversation:${conversationId}`);
       
       // Добавляем пользователя в активный чат в Redis
       await this.redisService.addUserToChat(conversationId, user.id);
       
       client.emit('room-joined', { conversationId });
-      this.logger.log(`User ${user.email} joined conversation ${conversationId}`);
+      this.logger.log(`User ${user.email} joined conversation ${conversationId} - room-joined event sent`);
     } catch (error) {
       this.logger.error('Join room error:', error);
       client.emit('error', { message: 'Failed to join room' });
@@ -328,7 +379,7 @@ async afterInit(server: Server) {
         id: (message._id as any).toString(),
         text: message.text,
         content: message.text, // Добавляем поле content для совместимости
-        senderId: message.senderId.toString(),
+        senderId: message.senderId?._id?.toString() || message.senderId?.toString() || message.senderId,
         conversationId: sendMessageDto.conversationId,
         timestamp: message.createdAt,
         createdAt: message.createdAt,
@@ -338,12 +389,14 @@ async afterInit(server: Server) {
       };
 
       // Отправляем сообщение всем участникам беседы через Socket.IO
+      this.logger.log(`Broadcasting message to room: conversation:${sendMessageDto.conversationId}, senderId: ${messageData.senderId}, content: ${messageData.text}`);
       this.server
         .to(`conversation:${sendMessageDto.conversationId}`)
         .emit('new-message', {
           type: 'new_message',
           data: messageData
         });
+      this.logger.log(`Message broadcasted successfully to conversation:${sendMessageDto.conversationId}`);
 
       // Добавляем сообщение в кэш через MessageCacheService
       await this.chatService.addMessageToCache(messageData);

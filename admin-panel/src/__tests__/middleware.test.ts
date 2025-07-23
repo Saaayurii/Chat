@@ -34,12 +34,12 @@ describe('Middleware', () => {
   });
 
   describe('Root Path Redirect', () => {
-    test('redirects root path to /chat', () => {
+    test('redirects root path to /login', () => {
       mockRequest.nextUrl!.pathname = '/';
       
       const result = middleware(mockRequest as NextRequest);
       
-      expect(mockRedirect).toHaveBeenCalledWith(new URL('/chat', mockRequest.url));
+      expect(mockRedirect).toHaveBeenCalledWith(new URL('/login', mockRequest.url));
       expect(result).toBe('redirected');
     });
 
@@ -130,8 +130,7 @@ describe('Middleware', () => {
       '/registration',
       '/reset',
       '/reset-password',
-      '/chat',
-      '/widget-demo'
+      '/chat'
     ];
 
     publicRoutes.forEach(route => {
@@ -212,7 +211,7 @@ describe('Middleware', () => {
       
       const result = middleware(mockRequest as NextRequest);
       
-      expect(mockRedirect).toHaveBeenCalledWith(new URL('/chat', 'https://example.com/some/path'));
+      expect(mockRedirect).toHaveBeenCalledWith(new URL('/login', 'https://example.com/some/path'));
       expect(result).toBe('redirected');
     });
 

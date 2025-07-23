@@ -100,27 +100,72 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   }, [autoLoad, minimizeOnStart, apiUrl, initializeAuth, restoreConversationId]);
 
   // WebSocket connection
-  const { emit: emitSocketEvent } = useSocketIO('/chat', {
-    autoConnect: !!(conversationId && (isAuthenticated || sessionId)),
-    onMessage: (message) => {
-      console.log('Received WebSocket message:', message);
+  // Мемоизируем колбеки чтобы избежать постоянных переподключений
+  const handleMessage = useCallback((message: any) => {
+      console.log('🔥 Widget received WebSocket message:', message);
       
-      if (message.type === 'new_message') {
-        const isOperatorMessage = message.data.senderId === operatorInfo?.id || 
-                               message.data.isSystemMessage ||
-                               message.data.senderName?.includes('Оператор') ||
-                               message.data.senderName === 'Система';
+      if (message.type === 'new-message') {
+        console.log('📨 Processing new_message event:', message.data);
+        console.log('📨 Full message structure:', JSON.stringify(message, null, 2));
+        // Получаем правильные данные сообщения
+        const msgData = message.data.data || message.data;
+        
+        // Улучшенная проверка для определения сообщений от оператора
+        let actualSenderId = msgData.senderId;
+        
+        // Обрабатываем случай, когда senderId приходит как строка с объектом
+        if (typeof actualSenderId === 'string' && actualSenderId.includes('ObjectId')) {
+          const idMatch = actualSenderId.match(/ObjectId\('([^']+)'\)/);
+          if (idMatch) {
+            actualSenderId = idMatch[1];
+          }
+        }
+        
+        const isOperatorMessage = actualSenderId === operatorInfo?.id || 
+                               msgData.isSystemMessage ||
+                               msgData.senderName?.includes('Оператор') ||
+                               msgData.senderName === 'Система' ||
+                               actualSenderId !== (user?._id || user?.id); // Если не от текущего пользователя, то от оператора
+        
+        console.log('🔍 Message analysis:', {
+          actualSenderId,
+          operatorId: operatorInfo?.id,
+          userId: user?._id || user?.id,
+          isOperatorMessage,
+          senderName: msgData.senderName,
+          content: msgData.text || msgData.content,
+          timestamp: msgData.timestamp
+        });
         
         const newMessage: Message = {
-          id: message.data.id || Date.now().toString(),
-          content: message.data.text || message.data.content,
-          timestamp: new Date(message.data.timestamp),
+          id: msgData.id || msgData._id || Date.now().toString(),
+          content: msgData.text || msgData.content,
+          timestamp: new Date(msgData.timestamp || msgData.createdAt),
           sender: isOperatorMessage ? 'operator' : 'user',
-          senderName: message.data.senderName || operatorName,
-          type: message.data.isSystemMessage ? 'system' : (message.data.type || 'text')
+          senderName: msgData.senderName || operatorName,
+          type: msgData.isSystemMessage ? 'system' : (msgData.type || 'text'),
+          isRead: msgData.isRead || false,
+          readBy: msgData.readBy || []
         };
         
+        console.log('✅ Adding message to widget:', newMessage);
         addMessage(newMessage);
+        
+        // Обновляем информацию об операторе, если сообщение от оператора
+        if (isOperatorMessage && actualSenderId && msgData.senderName) {
+          setOperatorInfo({
+            id: actualSenderId,
+            name: msgData.senderName,
+            avatar: operatorInfo?.avatar,
+            isOnline: true
+          });
+        }
+      } else if (message.type === 'room-joined') {
+        console.log('🏠 Successfully joined room:', message.data.conversationId);
+      } else if (message.type === 'conversation-read') {
+        console.log('📖 Message marked as read:', message.data);
+        // Обновляем статус прочтения для сообщений
+        // TODO: реализовать обновление статуса прочтения в интерфейсе
       } else if (message.type === 'typing') {
         setIsTyping(message.data.isTyping);
       } else if (message.type === 'operator_status') {
@@ -135,25 +180,37 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
           timestamp: new Date(msg.timestamp),
           sender: msg.senderId === (user?._id || user?.id) ? 'user' : 'operator',
           senderName: msg.senderName || operatorName,
-          type: msg.type || 'text'
+          type: msg.type || 'text',
+          isRead: msg.isRead || false,
+          readBy: msg.readBy || []
         }));
         
         setMessages([...cachedMessages, ...messages]);
         console.log('Loaded cached messages:', cachedMessages.length);
       }
-    },
-    onConnect: () => {
-      console.log('WebSocket connected');
-      setIsConnected(true);
-    },
-    onDisconnect: () => {
-      console.log('WebSocket disconnected');
-      setIsConnected(false);
-    },
-    onError: (error) => {
-      console.error('WebSocket error:', error);
-      setIsConnected(false);
-    }
+  }, [operatorInfo?.id, operatorName, addMessage, setIsTyping, updateOperatorInfo, user?._id, user?.id, setMessages, messages]);
+
+  const handleConnect = useCallback(() => {
+    console.log('🚀 Widget WebSocket connected');
+    setIsConnected(true);
+  }, []);
+
+  const handleDisconnect = useCallback(() => {
+    console.log('WebSocket disconnected');
+    setIsConnected(false);
+  }, []);
+
+  const handleError = useCallback((error: any) => {
+    console.error('WebSocket error:', error);
+    setIsConnected(false);
+  }, []);
+
+  const { emit: emitSocketEvent } = useSocketIO('/chat', {
+    autoConnect: !!(conversationId && (isAuthenticated || sessionId)),
+    onMessage: handleMessage,
+    onConnect: handleConnect,
+    onDisconnect: handleDisconnect,
+    onError: handleError
   });
 
   // Get available operator
@@ -233,7 +290,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
         visitorEmail: userEmail,
         title: 'Обращение с сайта',
         sessionId: currentSessionId,
-        initialMessage: 'Здравствуйте! У меня есть вопрос.',
+        initialMessage: '',
         ...((!isAnonymous && (user?.id || user?._id)) && {
           userId: user?.id || user?._id,
           userRole: user?.role
@@ -296,10 +353,22 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
           
           if (Array.isArray(conversationMessages) && conversationMessages.length > 0) {
             const formattedMessages = conversationMessages.map((msg: any) => {
-              const isOperatorMessage = msg.senderId === operatorInfo?.id || 
+              // Улучшенная проверка для определения сообщений от оператора при восстановлении
+              let actualSenderId = msg.senderId;
+              
+              // Обрабатываем случай, когда senderId приходит как строка с объектом
+              if (typeof actualSenderId === 'string' && actualSenderId.includes('ObjectId')) {
+                const idMatch = actualSenderId.match(/ObjectId\('([^']+)'\)/);
+                if (idMatch) {
+                  actualSenderId = idMatch[1];
+                }
+              }
+              
+              const isOperatorMessage = actualSenderId === operatorInfo?.id || 
                                       msg.isSystemMessage ||
                                       msg.senderName?.includes('Оператор') ||
-                                      msg.senderName === 'Система';
+                                      msg.senderName === 'Система' ||
+                                      actualSenderId !== (user?._id || user?.id); // Если не от текущего пользователя, то от оператора
               
               return {
                 id: msg._id || msg.id,
@@ -307,7 +376,9 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
                 timestamp: new Date(msg.createdAt || msg.timestamp),
                 sender: isOperatorMessage ? 'operator' : 'user',
                 senderName: msg.senderName || 'Неизвестный',
-                type: msg.isSystemMessage ? 'system' : 'text'
+                type: msg.isSystemMessage ? 'system' : 'text',
+                isRead: msg.isRead || false,
+                readBy: msg.readBy || []
               } as Message;
             });
             
@@ -355,9 +426,12 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   // WebSocket room joining
   useEffect(() => {
     if (conversationId && token && isConnected) {
-      console.log('Joining WebSocket room:', conversationId);
-      emitSocketEvent('join-room', { conversationId });
-      emitSocketEvent('get-cached-messages', { conversationId, limit: 50 });
+      console.log('🏠 Widget joining WebSocket room:', conversationId);
+      // Небольшая задержка чтобы убедиться что соединение стабильно
+      setTimeout(() => {
+        emitSocketEvent('join-room', { conversationId });
+        emitSocketEvent('get-cached-messages', { conversationId, limit: 50 });
+      }, 100);
     }
   }, [conversationId, token, isConnected, emitSocketEvent]);
 
@@ -396,7 +470,9 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       content: messageText,
       timestamp: new Date(),
       sender: 'user',
-      type: 'text'
+      type: 'text',
+      isRead: false,
+      readBy: []
     };
     
     addMessage(newMessage);
@@ -636,8 +712,17 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
                         ))}
                       </div>
                     )}
-                    <div className="text-xs opacity-70 mt-1">
-                      {message.timestamp.toLocaleTimeString()}
+                    <div className="text-xs opacity-70 mt-1 flex items-center justify-between">
+                      <span>{message.timestamp.toLocaleTimeString()}</span>
+                      {message.sender === 'user' && (
+                        <span className="ml-2">
+                          {message.isRead ? (
+                            <span className="text-blue-300" title="Прочитано">✓✓</span>
+                          ) : (
+                            <span className="text-gray-400" title="Доставлено">✓</span>
+                          )}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

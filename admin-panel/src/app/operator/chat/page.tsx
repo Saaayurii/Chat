@@ -110,17 +110,21 @@ const OperatorChatPageContent = () => {
     `[${new Date().toISOString()}] OperatorChatPageContent: Selected conversation: ${selectedConversation}, isConnected: ${isConnected}`
   );
 
-  // Инвалидируем запросы при получении новых сообщений - убираем для стабилизации
-  // useEffect(() => {
-  //   if (isConnected) {
-  //     const interval = setInterval(() => {
-  //       // Обновляем список разговоров каждые 30 секунд для получения анонимных сообщений
-  //       queryClient.invalidateQueries({ queryKey: ['conversations'] });
-  //     }, 30000);
+  // Принудительно обновляем список разговоров при подключении WebSocket
+  useEffect(() => {
+    if (isConnected) {
+      console.log('WebSocket connected, invalidating conversations');
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      
+      // Также обновляем каждые 10 секунд для получения новых диалогов
+      const interval = setInterval(() => {
+        console.log('Periodic conversation refresh');
+        queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      }, 10000);
 
-  //     return () => clearInterval(interval);
-  //   }
-  // }, [isConnected, queryClient]);
+      return () => clearInterval(interval);
+    }
+  }, [isConnected, queryClient]);
 
   // Presence system for operator - временно отключаем для отладки
   const presence = {
@@ -146,9 +150,9 @@ const OperatorChatPageContent = () => {
       return response.data;
     },
     enabled: !!user && !!token,
-    refetchInterval: 60000, // Обновляем каждую минуту вместо 10 секунд
-    refetchOnWindowFocus: false, // Убираем автообновление при фокусе
-    staleTime: 30000, // Данные считаются свежими 30 секунд
+    refetchInterval: 5000, // Обновляем каждые 5 секунд для быстрого отображения новых диалогов
+    refetchOnWindowFocus: true, // Включаем автообновление при фокусе
+    staleTime: 1000, // Данные считаются свежими 1 секунду для быстрого обновления
   });
 
   const { data: messages, isLoading: messagesLoading } = useQuery({
@@ -639,7 +643,11 @@ const OperatorChatPageContent = () => {
 
   // Мемоизируем фильтрацию отправителей для оптимизации
   const filteredSenders = useMemo(() => {
-    if (!conversations || conversations.length === 0) return [];
+    console.log('filteredSenders: Processing conversations:', conversations?.length || 0);
+    if (!conversations || conversations.length === 0) {
+      console.log('filteredSenders: No conversations available');
+      return [];
+    }
 
     // Преобразуем беседы в отправителей с дедупликацией
     const sendersMap = new Map<string, SenderType>();
@@ -648,12 +656,20 @@ const OperatorChatPageContent = () => {
       const conversationId = conversation._id || (conversation as any).id;
       const participants = conversation.participants || [];
       
-      // Находим участников, которые не являются текущим пользователем
-      const otherParticipants = participants.filter(
-        (participant: any) => participant.id !== user?.id
-      );
+      // Для анонимных диалогов используем anonymousUser, для обычных - других участников
+      let displayParticipants = [];
+      
+      if (conversation.type === 'anonymous-support' && (conversation as any).anonymousUser) {
+        // Для анонимных диалогов показываем анонимного пользователя
+        displayParticipants = [(conversation as any).anonymousUser];
+      } else {
+        // Для обычных диалогов находим участников, которые не являются текущим пользователем
+        displayParticipants = participants.filter(
+          (participant: any) => participant.id !== user?.id
+        );
+      }
 
-      otherParticipants.forEach((participant: any) => {
+      displayParticipants.forEach((participant: any) => {
         const participantKey = participant.id;
         const lastMessage = conversation.lastMessage;
         const lastMessageTime = lastMessage?.timestamp || conversation.createdAt;
@@ -688,12 +704,15 @@ const OperatorChatPageContent = () => {
     });
 
     const senders = Array.from(sendersMap.values());
+    console.log('filteredSenders: Created senders:', senders.length);
 
     // Фильтруем по поиску
     const filtered = senders.filter((sender) =>
       sender.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       sender.email.toLowerCase().includes(searchQuery.toLowerCase())
     );
+    
+    console.log('filteredSenders: After search filter:', filtered.length, 'searchQuery:', searchQuery);
 
     // Сортируем: сначала непрочитанные, затем по времени последнего сообщения
     return filtered.sort((a, b) => {
@@ -1155,28 +1174,35 @@ const OperatorChatPageContent = () => {
                     
                     const isMyMessage = actualSenderId === user?.id;
                     
-                    // Определяем роль отправителя
+                    // Определяем роль отправителя - упрощенная логика
                     let senderRole = 'visitor';
                     let senderName = 'Неизвестный';
                     
-                    // Сначала проверяем роль в самом сообщении (если есть)
-                    if ((message as any).senderRole) {
-                      senderRole = (message as any).senderRole;
-                      senderName = (message as any).senderName || senderName;
+                    // Проверяем, это мое сообщение или нет
+                    if (isMyMessage) {
+                      // Это сообщение текущего пользователя (оператора)
+                      senderRole = user?.role || 'operator';
+                      senderName = user?.profile?.fullName || user?.profile?.username || 'Я';
                     } else {
-                      // Используем функцию для определения роли
-                      senderRole = getUserRole(actualSenderId);
-                      
-                      // Дополнительная проверка по email для определения роли оператора
-                      if (senderInfo && senderInfo.email && senderInfo.email.includes('operator')) {
+                      // Проверяем системное сообщение (приветственные сообщения от операторов)
+                      if ((message as any).isSystemMessage && (message as any).senderName) {
                         senderRole = 'operator';
+                        senderName = (message as any).senderName;
                       }
-                      
-                      // Определяем имя отправителя
-                      if (isMyMessage) {
-                        senderName = user?.profile?.fullName || user?.profile?.username || 'Я';
+                      // Сначала проверяем роль в самом сообщении (если есть)
+                      else if ((message as any).senderRole) {
+                        senderRole = (message as any).senderRole;
+                        senderName = (message as any).senderName || senderName;
                       } else {
-                        // Сначала проверяем информацию из самого сообщения
+                        // Используем функцию для определения роли
+                        senderRole = getUserRole(actualSenderId);
+                        
+                        // Дополнительная проверка по email для определения роли оператора
+                        if (senderInfo && senderInfo.email && senderInfo.email.includes('operator')) {
+                          senderRole = 'operator';
+                        }
+                        
+                        // Определяем имя отправителя
                         if (senderInfo && senderInfo.username) {
                           senderName = senderInfo.username;
                         } else {
@@ -1192,6 +1218,7 @@ const OperatorChatPageContent = () => {
                               (p: any) => p.id === actualSenderId
                             );
                             if (sender) {
+                              senderRole = sender.role || 'visitor';
                               senderName = sender.profile?.fullName || sender.profile?.username || 'Неизвестный';
                             }
                           }
@@ -1199,7 +1226,7 @@ const OperatorChatPageContent = () => {
                       }
                     }
                     
-                    const isOperatorMessage = senderRole === 'operator' || senderRole === 'admin';
+                    const isOperatorMessage = isMyMessage || senderRole === 'operator' || senderRole === 'admin';
                     
                     
                     return (

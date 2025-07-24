@@ -30,6 +30,11 @@ export class TransferPermissionGuard implements CanActivate {
     }
 
     if (userRole === UserRoles.OPERATOR) {
+      // Автоматически устанавливаем fromOperatorId для операторов
+      if (!transferData.fromOperatorId) {
+        transferData.fromOperatorId = userId;
+      }
+      
       if (transferData.fromOperatorId && transferData.fromOperatorId !== userId) {
         throw new ForbiddenException('Оператор может передавать только свои чаты');
       }

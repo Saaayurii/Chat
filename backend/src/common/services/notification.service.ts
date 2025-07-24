@@ -220,6 +220,24 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Публикует уведомление в конкретную беседу через WebSocket
+   */
+  async publishToConversation(
+    conversationId: string,
+    eventType: string,
+    payload: any
+  ): Promise<void> {
+    const notification: NotificationData = {
+      type: eventType,
+      payload: payload,
+      timestamp: Date.now()
+    };
+
+    // Отправляем уведомление в конкретную беседу
+    await this.publish(`chat.conversation.${conversationId}`, notification);
+  }
+
+  /**
    * Публикует уведомление о передаче чата
    */
   async publishTransferNotification(

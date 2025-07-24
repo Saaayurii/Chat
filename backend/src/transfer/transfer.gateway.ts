@@ -151,6 +151,28 @@ async afterInit(server: Server) {
     this.logger.log(`Transfer request sent to operator ${data.toOperator}`);
   }
 
+  notifyConversationTransferred(data: { 
+    conversationId: string; 
+    fromOperatorId: string; 
+    toOperatorId: string;
+  }) {
+    // Уведомляем старого оператора об удалении беседы
+    this.server.to(`operator:${data.fromOperatorId}`).emit('conversation:removed', {
+      conversationId: data.conversationId,
+      reason: 'transferred',
+      timestamp: new Date().toISOString(),
+    });
+
+    // Уведомляем нового оператора о новой беседе
+    this.server.to(`operator:${data.toOperatorId}`).emit('conversation:assigned', {
+      conversationId: data.conversationId,
+      reason: 'transferred',
+      timestamp: new Date().toISOString(),
+    });
+
+    this.logger.log(`Conversation ${data.conversationId} transferred from ${data.fromOperatorId} to ${data.toOperatorId}`);
+  }
+
   notifyTransferResponse(data: TransferResponseData) {
     this.server.to(`operator:${data.fromOperator}`).emit('transfer:response', {
       transferId: data.transferId,

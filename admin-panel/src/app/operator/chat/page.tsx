@@ -116,13 +116,9 @@ const OperatorChatPageContent = () => {
       console.log('WebSocket connected, invalidating conversations');
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       
-      // Также обновляем каждые 10 секунд для получения новых диалогов
-      const interval = setInterval(() => {
-        console.log('Periodic conversation refresh');
-        queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      }, 10000);
-
-      return () => clearInterval(interval);
+      // Убираем периодическое обновление - полагаемся на WebSocket события для получения обновлений
+      // Это предотвратит сброс статусов прочтения
+      console.log('Using WebSocket events for real-time updates, no periodic refresh needed');
     }
   }, [isConnected, queryClient]);
 
@@ -1278,7 +1274,6 @@ const OperatorChatPageContent = () => {
                                     return (
                                       <div className="flex items-center space-x-1">
                                         <span className="text-blue-200">✓✓</span>
-                                        <span className="text-xs text-blue-200">прочитано</span>
                                       </div>
                                     );
                                   } else if (readByCount > 0) {
@@ -1292,7 +1287,6 @@ const OperatorChatPageContent = () => {
                                     return (
                                       <div className="flex items-center space-x-1">
                                         <span className="text-green-600">✓✓</span>
-                                        <span className="text-xs text-green-600">прочитано</span>
                                       </div>
                                     );
                                   } else if (readByCount > 0) {

@@ -388,18 +388,19 @@ async afterInit(server: Server) {
         senderName: user.isAnonymous ? 'Посетитель' : (user.profile?.fullName || user.profile?.username || user.fullName || (user.firstName ? user.firstName + (user.lastName ? ' ' + user.lastName : '') : null) || user.email || 'Оператор')
       };
 
-      // Отправляем сообщение всем участникам беседы через Socket.IO
-      this.logger.log(`Broadcasting message to room: conversation:${sendMessageDto.conversationId}, senderId: ${messageData.senderId}, content: ${messageData.text}`);
-      this.server
-        .to(`conversation:${sendMessageDto.conversationId}`)
-        .emit('new-message', {
-          type: 'new_message',
-          data: messageData
-        });
-      this.logger.log(`Message broadcasted successfully to conversation:${sendMessageDto.conversationId}`);
+      // ОПТИМИЗАЦИЯ: Отправляем сообщение максимально быстро
+      const messagePayload = {
+        type: 'new_message',
+        data: messageData
+      };
+      
+      // Отправка только в комнату беседы (убираем дублирование)
+      this.server.to(`conversation:${sendMessageDto.conversationId}`).emit('new-message', messagePayload);
 
-      // Добавляем сообщение в кэш через MessageCacheService
-      await this.chatService.addMessageToCache(messageData);
+      // ОПТИМИЗАЦИЯ: Добавляем в кэш асинхронно без блокировки отправки
+      this.chatService.addMessageToCache(messageData).catch(err => 
+        this.logger.error('Failed to cache message:', err)
+      );
 
       // Подтверждаем отправителю успешную отправку
       client.emit('message-sent', {
@@ -474,15 +475,15 @@ async afterInit(server: Server) {
   @SubscribeMessage('mark-as-read')
   async handleMarkAsRead(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { conversationId: string; messageId?: string },
+    @MessageBody() data: { conversationId: string; messageId?: string; sessionId?: string },
   ) {
     try {
       const user = client.data.user;
-      const { conversationId, messageId } = data;
+      const { conversationId, messageId, sessionId } = data;
 
       // Проверяем права доступа к беседе
       const canAccess = user.isAnonymous 
-        ? await this.chatService.canUserJoinConversation(null, conversationId, user.sessionId)
+        ? await this.chatService.canUserJoinConversation(null, conversationId, user.sessionId || sessionId)
         : await this.chatService.canUserJoinConversation(user.id, conversationId);
       if (!canAccess) {
         client.emit('error', { message: 'Access denied to this conversation' });
@@ -491,6 +492,12 @@ async afterInit(server: Server) {
 
       if (messageId) {
         // Отмечаем отдельное сообщение как прочитанное
+        if (user.isAnonymous) {
+          // Для анонимных пользователей не реализовано отмечание отдельных сообщений
+          client.emit('error', { message: 'Single message read not supported for anonymous users' });
+          return;
+        }
+        
         await this.chatService.markSingleMessageAsRead(conversationId, messageId, user.id);
         
         // Уведомляем участников беседы о прочтении сообщения
@@ -501,19 +508,26 @@ async afterInit(server: Server) {
           readAt: new Date().toISOString()
         });
         
-        this.logger.log(`Message ${messageId} marked as read by ${user.email} in conversation ${conversationId}`);
+        this.logger.log(`Message ${messageId} marked as read by ${user.email || user.id} in conversation ${conversationId}`);
       } else {
         // Отмечаем все сообщения в беседе как прочитанные
-        await this.chatService.markMessagesAsRead(conversationId, user.id);
+        if (user.isAnonymous) {
+          // Для анонимных пользователей используем специальный метод
+          await this.chatService.markAnonymousMessagesAsRead(conversationId, user.sessionId || sessionId);
+        } else {
+          // Для авторизованных пользователей
+          await this.chatService.markMessagesAsRead(conversationId, user.id);
+        }
         
         // Уведомляем участников беседы о прочтении всех сообщений
-        this.server.to(`conversation:${conversationId}`).emit('conversation-read', {
+        this.server.to(`conversation:${conversationId}`).emit('messages-read', {
           conversationId,
-          readBy: user.id,
-          readAt: new Date().toISOString()
+          readBy: user.isAnonymous ? (user.sessionId || sessionId) : user.id,
+          readAt: new Date().toISOString(),
+          isAnonymous: user.isAnonymous
         });
         
-        this.logger.log(`All messages marked as read by ${user.email} in conversation ${conversationId}`);
+        this.logger.log(`All messages marked as read by ${user.email || user.id} in conversation ${conversationId}`);
       }
 
       // Подтверждаем клиенту успешную отметку

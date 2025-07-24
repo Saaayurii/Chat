@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Transfer } from './schemas/transfer.schema';
@@ -22,9 +22,25 @@ export class TransferService {
   ) {}
 
   async requestTransfer(transferData: TransferChatDto): Promise<Transfer> {
-    const { fromOperatorId, toOperatorId, chatId, visitorId } = transferData;
+    const { chatId, toOperatorId, fromOperatorId } = transferData;
 
-    if (fromOperatorId === toOperatorId) {
+    // Находим беседу и получаем текущего оператора
+    const conversation = await this.conversationModel.findById(chatId);
+    if (!conversation) {
+      throw new NotFoundException('Беседа не найдена');
+    }
+
+    const currentOperatorId = fromOperatorId || conversation.assignedOperator;
+    if (!currentOperatorId) {
+      throw new BadRequestException('У беседы нет назначенного оператора');
+    }
+
+    // Проверяем, что оператор может передавать только свои беседы
+    if (fromOperatorId && conversation.assignedOperator?.toString() !== fromOperatorId) {
+      throw new ForbiddenException('Вы можете передавать только назначенные вам беседы');
+    }
+
+    if (currentOperatorId.toString() === toOperatorId) {
       throw new BadRequestException('Нельзя передать чат самому себе');
     }
 
@@ -37,11 +53,21 @@ export class TransferService {
       throw new ConflictException('Для этого чата уже существует активная передача');
     }
 
+    // Получаем visitorId из беседы
+    let visitorId = conversation.createdBy;
+    if (transferData.visitorId) {
+      visitorId = new Types.ObjectId(transferData.visitorId);
+    }
+    // Если это анонимная беседа без createdBy, создаем временный ID
+    if (!visitorId) {
+      visitorId = new Types.ObjectId(); // Временный ID для анонимных пользователей
+    }
+
     const transfer = new this.transferModel({
-      fromOperatorId: new Types.ObjectId(fromOperatorId),
+      fromOperatorId: new Types.ObjectId(currentOperatorId),
       toOperatorId: new Types.ObjectId(toOperatorId),
       chatId: new Types.ObjectId(chatId),
-      visitorId: new Types.ObjectId(visitorId),
+      visitorId: visitorId,
       status: TransferStatus.PENDING,
       reason: transferData.reason,
       note: transferData.note,
@@ -50,14 +76,33 @@ export class TransferService {
 
     const savedTransfer = await transfer.save();
 
+    // Немедленно переносим беседу к новому оператору
+    await this.conversationModel.findByIdAndUpdate(chatId, {
+      assignedOperator: new Types.ObjectId(toOperatorId)
+    });
+
+    // Уведомляем операторов о переносе беседы
+    this.transferGateway.notifyConversationTransferred({
+      conversationId: chatId,
+      fromOperatorId: (fromOperatorId || currentOperatorId).toString(),
+      toOperatorId: toOperatorId
+    });
+
+    // Уведомляем операторов о запросе переноса
     this.transferGateway.notifyTransferRequest({
       transferId: (savedTransfer._id as Types.ObjectId).toString(),
-      fromOperator: fromOperatorId,
+      fromOperator: fromOperatorId || currentOperatorId.toString(),
       toOperator: toOperatorId,
-      visitor: visitorId,
+      visitor: visitorId.toString(),
       chatId,
       reason: transferData.reason,
     });
+
+    // Автоматически принимаем перенос (т.к. он сразу активируется)
+    savedTransfer.status = TransferStatus.ACCEPTED;
+    savedTransfer.respondedAt = new Date();
+    savedTransfer.completedAt = new Date();
+    await savedTransfer.save();
 
     return savedTransfer;
   }

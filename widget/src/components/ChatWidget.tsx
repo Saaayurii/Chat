@@ -156,8 +156,17 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
           displayName = operatorInfo?.name || operatorName;
         }
         
+        const messageId = msgData.id || msgData._id || Date.now().toString();
+        
+        // Проверяем, не существует ли уже такое сообщение
+        const existingMessage = messages.find(msg => msg.id === messageId);
+        if (existingMessage) {
+          console.log('🚫 Message already exists, skipping:', messageId);
+          return;
+        }
+        
         const newMessage: Message = {
-          id: msgData.id || msgData._id || Date.now().toString(),
+          id: messageId,
           content: msgData.text || msgData.content,
           timestamp: new Date(msgData.timestamp || msgData.createdAt),
           sender: finalSender,
@@ -198,18 +207,39 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
           } : msg
         );
         setMessages(updatedMessages);
-      } else if (message.type === 'conversation-read') {
+      } else if (message.type === 'messages-read') {
         console.log('📖 All messages marked as read:', message.data);
         // Обновляем статус прочтения для всех сообщений пользователя
         const { readBy } = message.data;
-        const updatedMessages = messages.map((msg: Message): Message => 
-          msg.sender === 'user' ? {
-            ...msg,
-            isRead: true,
-            readBy: [...(msg.readBy || []), readBy].filter((id: string, index: number, arr: string[]) => arr.indexOf(id) === index)
-          } : msg
-        );
-        setMessages(updatedMessages);
+        if (messages.length > 0) {
+          const updatedMessages = messages.map((msg: Message): Message => {
+            if (msg.sender === 'user') {
+              console.log(`🔄 Updating user message read status: ${msg.id} -> isRead: true`);
+              return {
+                ...msg,
+                isRead: true,
+                readBy: [...(msg.readBy || []), readBy].filter((id: string, index: number, arr: string[]) => arr.indexOf(id) === index)
+              };
+            }
+            return msg;
+          });
+          console.log('📝 Updated messages:', updatedMessages.map(m => ({ id: m.id, sender: m.sender, isRead: m.isRead })));
+          setMessages(updatedMessages);
+        }
+      } else if (message.type === 'conversation-read') {
+        console.log('📖 Conversation marked as read (legacy):', message.data);
+        // Для обратной совместимости
+        const { readBy } = message.data;
+        if (messages.length > 0) {
+          const updatedMessages = messages.map((msg: Message): Message => 
+            msg.sender === 'user' ? {
+              ...msg,
+              isRead: true,
+              readBy: [...(msg.readBy || []), readBy].filter((id: string, index: number, arr: string[]) => arr.indexOf(id) === index)
+            } : msg
+          );
+          setMessages(updatedMessages);
+        }
       } else if (message.type === 'typing') {
         setIsTyping(message.data.isTyping);
       } else if (message.type === 'operator_status') {
@@ -443,7 +473,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   // Restore conversation function
   const restoreConversation = useCallback(async () => {
     console.log('Restore check:', { conversationId, token, messagesLength: messages.length });
-    if (conversationId && token && !messages.length) {
+    if (conversationId && token && messages.length === 0) {
       try {
         console.log('Restoring conversation:', conversationId);
         
@@ -545,7 +575,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
         clearConversationId();
       }
     }
-  }, [conversationId, token, messages.length, operatorInfo?.id, chatCore]);
+  }, [conversationId, token, operatorInfo?.id, chatCore]);
 
   // Restore conversation on mount
   useEffect(() => {
@@ -600,8 +630,20 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
         const markAsRead = async () => {
           try {
             lastReadTimestamp.current = now;
-            await chatCore.markMessagesAsRead(conversationId, sessionId || undefined);
-            console.log(`Messages marked as read (${unreadOperatorMessages.length} unread messages)`);
+            
+            // Отправляем через WebSocket для быстрой обработки
+            if (emitSocketEvent) {
+              emitSocketEvent('mark-as-read', { 
+                conversationId,
+                sessionId: sessionId || undefined 
+              });
+              console.log(`WebSocket: Messages marked as read (${unreadOperatorMessages.length} unread messages)`);
+            } else {
+              // Fallback на HTTP если WebSocket недоступен
+              await chatCore.markMessagesAsRead(conversationId, sessionId || undefined);
+              console.log(`HTTP: Messages marked as read (${unreadOperatorMessages.length} unread messages)`);
+            }
+            
             hasUnreadMessages.current = false;
           } catch (error) {
             console.warn('Failed to mark messages as read:', error);
@@ -897,7 +939,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
                       {message.sender === 'user' && (
                         <span className="ml-2">
                           {message.isRead ? (
-                            <span className="text-blue-300" title="Прочитано">✓✓</span>
+                            <span className="text-green-300" title="Прочитано">✓✓</span>
                           ) : (
                             <span className="text-gray-400" title="Доставлено">✓</span>
                           )}
@@ -1060,8 +1102,10 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
                   });
                 }
                 
-                // Перезагружаем сообщения для обновления отображения
-                await restoreConversation();
+                // Перезагружаем сообщения для обновления отображения только если нет сообщений
+                if (messages.length === 0) {
+                  await restoreConversation();
+                }
               } else {
                 console.error('❌ Failed to link conversation:', linkResult.error);
               }

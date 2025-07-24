@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Conversation, ConversationDocument } from '../database/schemas/conversation.schema';
 import { Message, MessageDocument, MessageType, MessageStatus } from '../database/schemas/message.schema';
-import { User, UserDocument } from '../database/schemas/user.schema';
+import { User, UserDocument, UserRole } from '../database/schemas/user.schema';
 import { SendMessageDto } from './dto/send-message.dto/send-message.dto';
 import { CreateConversationDto } from './dto/create-conversation.dto/create-conversation.dto';
 import { CreateAnonymousConversationDto } from './dto/create-anonymous-conversation.dto';
@@ -61,20 +61,10 @@ export class ChatService {
       }
 
       // Получаем роль пользователя
-      const user = await this.userModel.findById(userId).select('role');
+      const user = await this.userModel.findById(userId).select('role').lean();
       console.log(`User found: ${user ? 'YES' : 'NO'}, role=${user?.role}`);
       
-      // Админы могут присоединиться к любому разговору
-      if (user?.role === 'admin') {
-        console.log('Admin access granted');
-        return true;
-      }
-
-      // Операторы могут присоединяться к любым беседам (особенно анонимным)
-      if (user?.role === 'operator') {
-        console.log('Operator access granted');
-        return true;
-      }
+      // Удаляем старые проверки - они заменены более точными ниже
 
       // Проверяем, является ли пользователь участником беседы
       const isParticipant = conversation.participants.some(
@@ -84,17 +74,33 @@ export class ChatService {
       // Также проверяем, является ли пользователь создателем беседы (для анонимных бесед)
       const isCreator = conversation.createdBy && conversation.createdBy.toString() === userId;
 
-      // Для анонимных бесед разрешаем доступ авторизованным пользователям 
-      // (так как ChatWidget создает анонимные беседы даже для авторизованных пользователей)
-      let canAccessAnonymousConversation = false;
-      if (conversation.type === 'anonymous-support' && user?.role === 'visitor') {
-        canAccessAnonymousConversation = true;
-        console.log('Visitor user granted access to anonymous conversation');
+      // Проверяем, является ли пользователь назначенным оператором
+      const isAssignedOperator = conversation.assignedOperator && conversation.assignedOperator.toString() === userId;
+      
+      console.log(`Access check details: userId=${userId}, userRole=${user?.role}, assignedOperator=${conversation.assignedOperator?.toString()}, isAssignedOperator=${isAssignedOperator}`);
+
+      // Проверяем роль пользователя
+      if (user?.role === UserRole.ADMIN) {
+        console.log('Admin access granted');
+        return true;
+      } else if (user?.role === UserRole.OPERATOR) {
+        console.log(`Operator access check: isAssignedOperator=${isAssignedOperator}, isParticipant=${isParticipant}`);
+        // Операторы имеют доступ к назначенным беседам или беседам где они участники
+        return isAssignedOperator || isParticipant;
+      } else if (user?.role === UserRole.VISITOR) {
+        // Посетители имеют доступ к беседам где они участники или создатели
+        // Для анонимных бесед разрешаем доступ авторизованным пользователям 
+        let canAccessAnonymousConversation = false;
+        if (conversation.type === 'anonymous-support') {
+          canAccessAnonymousConversation = true;
+          console.log('Visitor user granted access to anonymous conversation');
+        }
+        return isParticipant || isCreator || canAccessAnonymousConversation;
       }
 
-      console.log(`Access check: isParticipant=${isParticipant}, isCreator=${isCreator}, canAccessAnonymousConversation=${canAccessAnonymousConversation}`);
+      console.log(`Access check: isParticipant=${isParticipant}, isCreator=${isCreator}, isAssignedOperator=${isAssignedOperator}, userRole=${user?.role}`);
 
-      return isParticipant || isCreator || canAccessAnonymousConversation;
+      return false;
     } catch (error) {
       console.error('Error in canUserJoinConversation:', error);
       return false;
@@ -334,17 +340,17 @@ export class ChatService {
       });
 
       // Отправляем real-time уведомление о том, что сообщения прочитаны
+      // Используем прямую отправку WebSocket события вместо системных уведомлений для лучшей производительности
       try {
-        await this.notificationService.publishSystemNotification(
+        await this.notificationService.publishToConversation(
+          conversationId,
           'messages-read',
           {
             conversationId,
             readBy: userId,
             readAt: new Date().toISOString(),
             messagesMarked: updateResult.modifiedCount
-          },
-          undefined, // Отправляем всем участникам беседы
-          'normal'
+          }
         );
       } catch (notificationError) {
         console.error('Ошибка отправки уведомления о прочтении:', notificationError);
@@ -475,24 +481,20 @@ export class ChatService {
 
   async getUserConversations(userId: string) {
     // Получаем информацию о пользователе для проверки роли
-    const user = await this.userModel.findById(userId).select('role');
+    const user = await this.userModel.findById(userId).select('role').lean();
+    console.log(`getUserConversations: userId=${userId}, userRole=${user?.role}`);
     
     let query = {};
     
-    if (user?.role === 'admin') {
+    if (user?.role === UserRole.ADMIN) {
       // Админы видят все разговоры
       query = { status: { $ne: 'DELETED' } };
-    } else if (user?.role === 'operator') {
-      // Операторы видят только назначенные им беседы + беседы где они участники + неназначенные беседы
+    } else if (user?.role === UserRole.OPERATOR) {
+      // Операторы видят назначенные им беседы + беседы где они участники (для совместимости)
       query = {
         $or: [
-          { assignedOperator: new Types.ObjectId(userId) }, // Назначенные им беседы
-          { participants: new Types.ObjectId(userId) }, // Беседы где они участники
-          { 
-            assignedOperator: { $exists: false }, 
-            type: { $in: ['anonymous-support', 'user-operator'] },
-            status: { $ne: 'DELETED' }
-          } // Неназначенные беседы поддержки
+          { assignedOperator: new Types.ObjectId(userId) },
+          { participants: new Types.ObjectId(userId) }
         ],
         status: { $ne: 'DELETED' }
       };
@@ -504,7 +506,9 @@ export class ChatService {
       };
     }
     
-    return this.conversationModel
+    console.log(`Query for user conversations:`, JSON.stringify(query, null, 2));
+    
+    const conversations = await this.conversationModel
       .find(query)
       .populate('participants', 'email profile.username profile.avatarUrl role')
       .populate('assignedOperator', 'email profile.username profile.fullName')
@@ -512,11 +516,20 @@ export class ChatService {
       .sort({ updatedAt: -1 })
       .limit(100) // Ограничиваем количество разговоров
       .exec();
+      
+    console.log(`Found ${conversations.length} conversations for user ${userId}`);
+    conversations.forEach(conv => {
+      console.log(`Conversation ${conv._id}: assignedOperator=${conv.assignedOperator?.toString()}, participants=[${conv.participants.map(p => (p as any)._id?.toString()).join(', ')}]`);
+    });
+    
+    return conversations;
   }
 
   async getConversation(conversationId: string, userId: string) {
-    // Проверяем доступ
+    // Проверяем доступ с отладочной информацией
+    console.log(`getConversation: userId=${userId}, conversationId=${conversationId}`);
     const canAccess = await this.canUserJoinConversation(userId, conversationId);
+    console.log(`getConversation access result: ${canAccess}`);
     if (!canAccess) {
       throw new ForbiddenException('Нет доступа к этой беседе');
     }
@@ -1202,15 +1215,15 @@ export class ChatService {
 
     // Отправляем real-time уведомление о том, что сообщения прочитаны
     try {
-      await this.notificationService.publishSystemNotification(
+      await this.notificationService.publishToConversation(
+        conversationId,
         'messages-read',
         {
           conversationId,
           readBy: anonymousUserId.toString(),
-          readAt: new Date().toISOString()
-        },
-        undefined, // Отправляем всем участникам беседы
-        'normal'
+          readAt: new Date().toISOString(),
+          isAnonymous: true
+        }
       );
     } catch (notificationError) {
       console.error('Ошибка отправки уведомления о прочтении анонимным пользователем:', notificationError);

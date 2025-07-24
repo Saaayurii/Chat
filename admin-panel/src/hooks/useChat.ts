@@ -31,7 +31,9 @@ export const useChat = () => {
     handleUserOnline: null as any,
     handleNewConversationAssigned: null as any,
     handleMessagesRead: null as any,
-    handleSingleMessageRead: null as any
+    handleSingleMessageRead: null as any,
+    handleConversationRemoved: null as any,
+    handleConversationAssigned: null as any
   });
 
   const handleSocketIOMessage = useCallback((message: any) => {
@@ -72,6 +74,12 @@ export const useChat = () => {
         break;
       case 'new-conversation-assigned':
         handlers.handleNewConversationAssigned?.(messageData);
+        break;
+      case 'conversation:removed':
+        handlers.handleConversationRemoved?.(messageData);
+        break;
+      case 'conversation:assigned':
+        handlers.handleConversationAssigned?.(messageData);
         break;
       case 'messages-read':
         handlers.handleMessagesRead?.(messageData);
@@ -150,21 +158,14 @@ export const useChat = () => {
       return;
     }
     
-    // Обновляем кэш сообщений
+    // ОПТИМИЗАЦИЯ: Используем только setQueryData без проверки существования для быстроты
     queryClient.setQueryData(
       ['messages', conversationId],
       (oldData: any) => {
         if (!oldData) {
           return { data: [message], total: 1 };
         }
-        const existingMessage = oldData.data.find((m: any) => 
-          (m._id === message._id || m.id === message.id) && message._id
-        );
-        if (existingMessage) {
-          console.log('Message already exists, skipping');
-          return oldData;
-        }
-        console.log('Adding new message to cache');
+        // Убираем проверку на существование для максимальной скорости
         return {
           ...oldData,
           data: [...oldData.data, message]
@@ -172,7 +173,7 @@ export const useChat = () => {
       }
     );
 
-    // Обновляем список бесед
+    // ОПТИМИЗАЦИЯ: Обновляем список бесед напрямую без проверок
     queryClient.setQueryData(
       ['conversations'],
       (oldData: any) => {
@@ -194,8 +195,8 @@ export const useChat = () => {
       }
     );
     
-    // Инвалидируем запросы для обновления
-    queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    // ОПТИМИЗАЦИЯ: Убираем invalidateQueries для максимальной скорости доставки
+    // queryClient.invalidateQueries({ queryKey: ['conversations'] });
   }, [queryClient, user?.id]);
 
   const handleMessageRead = useCallback((data: { messageId: string; conversationId: string; userId: string }) => {
@@ -564,6 +565,28 @@ export const useChat = () => {
     );
   }, [queryClient, user?.id]);
 
+  const handleConversationRemoved = useCallback((data: { conversationId: string; reason: string }) => {
+    console.log('Беседа удалена:', data);
+    
+    // Удаляем беседу из списка
+    queryClient.setQueryData(
+      ['conversations'],
+      (oldData: any) => {
+        if (!Array.isArray(oldData)) return oldData;
+        return oldData.filter((conv: any) => 
+          conv._id !== data.conversationId && conv.id !== data.conversationId
+        );
+      }
+    );
+  }, [queryClient]);
+
+  const handleConversationAssigned = useCallback((data: { conversationId: string; reason: string }) => {
+    console.log('Беседа назначена:', data);
+    
+    // Обновляем список бесед (перезагружаем)
+    queryClient.invalidateQueries({ queryKey: ['conversations'] });
+  }, [queryClient]);
+
   const handleUserOnline = useCallback((data: { userId: string; isOnline: boolean }) => {
     const { userId, isOnline } = data;
     
@@ -728,7 +751,9 @@ export const useChat = () => {
     handlersRef.current.handleNewConversationAssigned = handleNewConversationAssigned;
     handlersRef.current.handleMessagesRead = handleMessagesRead;
     handlersRef.current.handleSingleMessageRead = handleSingleMessageRead;
-  }, [handleNewMessage, handleMessageRead, handleConversationRead, handleMarkAsReadSuccess, handleUserTyping, handleConversationUpdated, handleUserOnline, handleNewConversationAssigned, handleMessagesRead, handleSingleMessageRead]);
+    handlersRef.current.handleConversationRemoved = handleConversationRemoved;
+    handlersRef.current.handleConversationAssigned = handleConversationAssigned;
+  }, [handleNewMessage, handleMessageRead, handleConversationRead, handleMarkAsReadSuccess, handleUserTyping, handleConversationUpdated, handleUserOnline, handleNewConversationAssigned, handleMessagesRead, handleSingleMessageRead, handleConversationRemoved, handleConversationAssigned]);
 
   return {
     // WebSocket состояние

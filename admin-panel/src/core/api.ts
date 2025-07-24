@@ -288,7 +288,7 @@ export const chatAPI = {
     }[]>('/users/operators'),
 
   transferChat: (conversationId: string, operatorId: string) =>
-    api.post(`/transfer/initiate`, { conversationId, operatorId }),
+    api.post(`/transfer/request`, { chatId: conversationId, toOperatorId: operatorId }),
 
   getPendingTransferRequests: () =>
     api.get<{
@@ -635,7 +635,7 @@ export const transferAPI = {
 
   // Transfer chat to another operator
   transferChat: (conversationId: string, operatorId: string) =>
-    api.post(`/transfer/initiate`, { conversationId, operatorId }),
+    api.post(`/transfer/request`, { chatId: conversationId, toOperatorId: operatorId }),
 
   // Get pending transfer requests
   getPendingTransferRequests: () =>

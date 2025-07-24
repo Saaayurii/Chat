@@ -113,7 +113,11 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
         // Улучшенная проверка для определения сообщений от оператора
         let actualSenderId = msgData.senderId;
         
-        // Обрабатываем случай, когда senderId приходит как строка с объектом
+        // Обрабатываем случай, когда senderId приходит как объект с _id
+        if (typeof actualSenderId === 'object' && actualSenderId) {
+          actualSenderId = actualSenderId._id || actualSenderId.id;
+        }
+        // Обрабатываем случай, когда senderId приходит как строка с ObjectId
         if (typeof actualSenderId === 'string' && actualSenderId.includes('ObjectId')) {
           const idMatch = actualSenderId.match(/ObjectId\('([^']+)'\)/);
           if (idMatch) {
@@ -121,28 +125,43 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
           }
         }
         
-        const isOperatorMessage = actualSenderId === operatorInfo?.id || 
-                               msgData.isSystemMessage ||
-                               msgData.senderName?.includes('Оператор') ||
-                               msgData.senderName === 'Система' ||
-                               actualSenderId !== (user?._id || user?.id); // Если не от текущего пользователя, то от оператора
+        // Для анонимных пользователей используем sessionId, а не сгенерированный userId
+        const currentUserId = token === 'anonymous' 
+          ? sessionId 
+          : (user?._id || user?.id || sessionId);
+          
+        console.log(`📝 CurrentUserId logic: token=${token} sessionId=${sessionId} userId=${user?._id || user?.id} -> currentUserId=${currentUserId}`);
         
-        console.log('🔍 Message analysis:', {
-          actualSenderId,
-          operatorId: operatorInfo?.id,
-          userId: user?._id || user?.id,
-          isOperatorMessage,
-          senderName: msgData.senderName,
-          content: msgData.text || msgData.content,
-          timestamp: msgData.timestamp
-        });
+        // Логика как в операторском чате
+        const isSystemOperatorMessage = msgData.isSystemMessage && msgData.senderName && 
+          (msgData.senderName !== 'Неизвестный');
+        
+        const senderRole = msgData.senderRole || 'visitor';
+        
+        const isOperatorMessage = isSystemOperatorMessage || 
+                                 senderRole === 'operator' || 
+                                 senderRole === 'admin' ||
+                                 (actualSenderId && actualSenderId !== currentUserId && actualSenderId !== null);
+                                 
+        const isUserMessage = !isOperatorMessage;
+        const finalSender = isUserMessage ? 'user' : 'operator';
+        
+        console.log(`🔍 New message: [${(msgData.text || msgData.content || '').substring(0, 15)}...] senderId=${actualSenderId} currentUserId=${currentUserId} senderName=${msgData.senderName} -> ${finalSender.toUpperCase()}`);
+        
+        // Определяем корректное имя отправителя
+        let displayName = msgData.senderName || operatorName;
+        
+        // Если это сообщение от оператора и senderName содержит email, заменяем на имя оператора
+        if (isOperatorMessage && msgData.senderName && msgData.senderName.includes('@')) {
+          displayName = operatorInfo?.name || operatorName;
+        }
         
         const newMessage: Message = {
           id: msgData.id || msgData._id || Date.now().toString(),
           content: msgData.text || msgData.content,
           timestamp: new Date(msgData.timestamp || msgData.createdAt),
-          sender: isOperatorMessage ? 'operator' : 'user',
-          senderName: msgData.senderName || operatorName,
+          sender: finalSender,
+          senderName: displayName,
           type: msgData.isSystemMessage ? 'system' : (msgData.type || 'text'),
           isRead: msgData.isRead || false,
           readBy: msgData.readBy || []
@@ -153,9 +172,14 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
         
         // Обновляем информацию об операторе, если сообщение от оператора
         if (isOperatorMessage && actualSenderId && msgData.senderName) {
+          // Если senderName содержит email, получаем имя оператора из профиля
+          const operatorDisplayName = msgData.senderName.includes('@') 
+            ? operatorInfo?.name || 'Оператор поддержки'
+            : msgData.senderName;
+          
           setOperatorInfo({
             id: actualSenderId,
-            name: msgData.senderName,
+            name: operatorDisplayName,
             avatar: operatorInfo?.avatar,
             isOnline: true
           });
@@ -182,16 +206,47 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
           isOnline: message.data.isOnline
         } : null);
       } else if (message.type === 'cached-messages') {
-        const cachedMessages = ((message as any).messages || []).map((msg: any) => ({
-          id: msg.id,
-          content: msg.text,
-          timestamp: new Date(msg.timestamp),
-          sender: msg.senderId === (user?._id || user?.id) ? 'user' : 'operator',
-          senderName: msg.senderName || operatorName,
-          type: msg.type || 'text',
-          isRead: msg.isRead || false,
-          readBy: msg.readBy || []
-        }));
+        const cachedMessages = ((message as any).messages || []).map((msg: any) => {
+          // Для анонимных пользователей используем sessionId
+          const currentUserId = token === 'anonymous' 
+            ? sessionId 
+            : (user?._id || user?.id || sessionId);
+          
+          // Отладочные логи для cached messages
+          console.log(`📦 Cached: [${(msg.text || '').substring(0, 15)}...] senderId=${msg.senderId} currentUserId=${currentUserId} senderName=${msg.senderName}`);
+          
+          // Логика как в операторском чате
+          const isSystemOperatorMessage = msg.isSystemMessage && msg.senderName && 
+            (msg.senderName !== 'Неизвестный');
+          
+          const senderRole = msg.senderRole || 'visitor';
+          
+          const isOperatorMsg = isSystemOperatorMessage || 
+                               senderRole === 'operator' || 
+                               senderRole === 'admin' ||
+                               (msg.senderId && msg.senderId !== currentUserId && msg.senderId !== null);
+                               
+          const isUserMessage = !isOperatorMsg;
+          
+          console.log(`✅ Cached decision: [${(msg.text || '').substring(0, 15)}...] -> ${isUserMessage ? 'USER' : 'OPERATOR'} (isUser=${isUserMessage}, isOp=${isOperatorMsg})`);
+          
+          // Определяем корректное имя отправителя
+          let displayName = msg.senderName || operatorName;
+          if (isOperatorMsg && msg.senderName && msg.senderName.includes('@')) {
+            displayName = operatorInfo?.name || operatorName;
+          }
+          
+          return {
+            id: msg.id,
+            content: msg.text,
+            timestamp: new Date(msg.timestamp),
+            sender: isUserMessage ? 'user' : 'operator',
+            senderName: displayName,
+            type: msg.type || 'text',
+            isRead: msg.isRead || false,
+            readBy: msg.readBy || []
+          };
+        });
         
         setMessages([...cachedMessages, ...messages]);
         console.log('Loaded cached messages:', cachedMessages.length);
@@ -230,9 +285,19 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       const onlineOperators = await chatCore.getOnlineOperators();
       if (onlineOperators.length > 0) {
         const operator = onlineOperators[0];
+        // Создаем полное имя оператора
+        const getOperatorDisplayName = (operator: any) => {
+          if (operator?.profile?.fullName) return operator.profile.fullName;
+          if (operator?.firstName && operator?.lastName) return `${operator.firstName} ${operator.lastName}`;
+          if (operator?.profile?.username) return operator.profile.username;
+          if (operator?.firstName) return operator.firstName;
+          if (operator?.email && !operator.email.includes('@chatsystem.com')) return operator.email;
+          return 'Оператор поддержки';
+        };
+        
         return {
           id: operator.id,
-          name: operator.profile?.fullName || operator.profile?.username || operator.email || 'Оператор',
+          name: getOperatorDisplayName(operator),
           avatar: operator.profile?.avatarUrl,
           isOnline: true
         } as OperatorInfo;
@@ -242,9 +307,19 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       const operators = await chatCore.getOperators();
       if (operators.length > 0) {
         const operator = operators[0];
+        // Создаем полное имя оператора
+        const getOperatorDisplayName = (operator: any) => {
+          if (operator?.profile?.fullName) return operator.profile.fullName;
+          if (operator?.firstName && operator?.lastName) return `${operator.firstName} ${operator.lastName}`;
+          if (operator?.profile?.username) return operator.profile.username;
+          if (operator?.firstName) return operator.firstName;
+          if (operator?.email && !operator.email.includes('@chatsystem.com')) return operator.email;
+          return 'Оператор поддержки';
+        };
+        
         return {
           id: operator.id,
-          name: operator.profile?.fullName || operator.profile?.username || operator.email || 'Оператор',
+          name: getOperatorDisplayName(operator),
           avatar: operator.profile?.avatarUrl,
           isOnline: false
         } as OperatorInfo;
@@ -315,8 +390,19 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
         saveConversationId(convId);
         
         const assignedOperator = result.assignedOperator;
+        
+        // Создаем полное имя оператора из доступных данных
+        const getOperatorDisplayName = (operator: any) => {
+          if (operator?.profile?.fullName) return operator.profile.fullName;
+          if (operator?.firstName && operator?.lastName) return `${operator.firstName} ${operator.lastName}`;
+          if (operator?.profile?.username) return operator.profile.username;
+          if (operator?.firstName) return operator.firstName;
+          if (operator?.email && !operator.email.includes('@chatsystem.com')) return operator.email;
+          return 'Оператор поддержки';
+        };
+        
         const finalOperatorName = assignedOperator 
-          ? (assignedOperator.profile?.fullName || assignedOperator.profile?.username || assignedOperator.email || 'Оператор')
+          ? getOperatorDisplayName(assignedOperator)
           : operator.name;
         
         setOperatorInfo({
@@ -358,7 +444,11 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
               // Улучшенная проверка для определения сообщений от оператора при восстановлении
               let actualSenderId = msg.senderId;
               
-              // Обрабатываем случай, когда senderId приходит как строка с объектом
+              // Обрабатываем случай, когда senderId приходит как объект с _id
+              if (typeof actualSenderId === 'object' && actualSenderId) {
+                actualSenderId = actualSenderId._id || actualSenderId.id;
+              }
+              // Обрабатываем случай, когда senderId приходит как строка с ObjectId
               if (typeof actualSenderId === 'string' && actualSenderId.includes('ObjectId')) {
                 const idMatch = actualSenderId.match(/ObjectId\('([^']+)'\)/);
                 if (idMatch) {
@@ -366,25 +456,51 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
                 }
               }
               
-              const isOperatorMessage = actualSenderId === operatorInfo?.id || 
-                                      msg.isSystemMessage ||
-                                      msg.senderName?.includes('Оператор') ||
-                                      msg.senderName === 'Система' ||
-                                      actualSenderId !== (user?._id || user?.id); // Если не от текущего пользователя, то от оператора
+              // Для анонимных пользователей используем sessionId, а не сгенерированный userId
+              const currentUserId = token === 'anonymous' 
+                ? sessionId 
+                : (user?._id || user?.id || sessionId);
+              
+              // Отладочные логи для понимания проблемы
+              console.log(`🔍 Restore: [${(msg.text || msg.content || '').substring(0, 15)}...] senderId=${actualSenderId} currentUserId=${currentUserId} senderName=${msg.senderName}`);
+              
+              // Логика как в операторском чате: проверяем роль и тип сообщения
+              // Проверяем системное сообщение от оператора
+              const isSystemOperatorMessage = msg.isSystemMessage && msg.senderName && 
+                (msg.senderName !== 'Неизвестный');
+              
+              // Проверяем роль в самом сообщении
+              const senderRole = msg.senderRole || 'visitor';
+              
+              // Определяем сообщение от оператора
+              const isOperatorMessage = isSystemOperatorMessage || 
+                                       senderRole === 'operator' || 
+                                       senderRole === 'admin' ||
+                                       (actualSenderId && actualSenderId !== currentUserId && actualSenderId !== null);
+                                       
+              const isUserMessage = !isOperatorMessage;
+              
+              // Определяем корректное имя отправителя для восстанавливаемых сообщений
+              let displayName = msg.senderName || 'Неизвестный';
+              if (isOperatorMessage && msg.senderName && msg.senderName.includes('@')) {
+                displayName = operatorInfo?.name || operatorName;
+              }
+              
+              console.log(`✅ Restore decision: [${(msg.text || msg.content || '').substring(0, 15)}...] -> ${isUserMessage ? 'USER' : 'OPERATOR'} (isUser=${isUserMessage}, isOp=${isOperatorMessage})`);
               
               return {
                 id: msg._id || msg.id,
                 content: msg.text || msg.content,
                 timestamp: new Date(msg.createdAt || msg.timestamp),
-                sender: isOperatorMessage ? 'operator' : 'user',
-                senderName: msg.senderName || 'Неизвестный',
+                sender: isUserMessage ? 'user' : 'operator',
+                senderName: displayName,
                 type: msg.isSystemMessage ? 'system' : 'text',
                 isRead: msg.isRead || false,
                 readBy: msg.readBy || []
               } as Message;
             });
             
-            setMessages(formattedMessages.reverse());
+            setMessages(formattedMessages);
             setIsConnected(true);
             console.log('Restored messages:', formattedMessages.length);
           }
@@ -394,9 +510,17 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
           const assignedOperator = conversationData.assignedOperator;
           
           if (assignedOperator) {
-            const operatorName = assignedOperator.profile?.fullName || 
-                               assignedOperator.profile?.username || 
-                               assignedOperator.email || 'Оператор';
+            // Создаем полное имя оператора из доступных данных
+            const getOperatorDisplayName = (operator: any) => {
+              if (operator?.profile?.fullName) return operator.profile.fullName;
+              if (operator?.firstName && operator?.lastName) return `${operator.firstName} ${operator.lastName}`;
+              if (operator?.profile?.username) return operator.profile.username;
+              if (operator?.firstName) return operator.firstName;
+              if (operator?.email && !operator.email.includes('@chatsystem.com')) return operator.email;
+              return 'Оператор поддержки';
+            };
+            
+            const operatorName = getOperatorDisplayName(assignedOperator);
             setOperatorInfo({
               id: assignedOperator._id || assignedOperator.id,
               name: operatorName,
@@ -442,22 +566,41 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Mark messages as read when widget is open
+  // Mark messages as read when widget is open (with deduplication)
+  const hasUnreadMessages = useRef(false);
+  const lastReadTimestamp = useRef<number>(0);
+  
   useEffect(() => {
     if (isOpen && conversationId && messages.length > 0) {
-      const markAsRead = async () => {
-        try {
-          await chatCore.markMessagesAsRead(conversationId, sessionId || undefined);
-          console.log('Messages marked as read');
-        } catch (error) {
-          console.warn('Failed to mark messages as read:', error);
-        }
-      };
+      // Check if there are actually any unread messages from operator
+      const unreadOperatorMessages = messages.filter(msg => 
+        msg.sender === 'operator' && !msg.isRead
+      );
+      
+      // Only mark as read if there are unread operator messages and we haven't read recently
+      const now = Date.now();
+      const shouldMarkAsRead = unreadOperatorMessages.length > 0 && 
+                              (now - lastReadTimestamp.current) > 5000; // 5 second cooldown
+      
+      if (shouldMarkAsRead) {
+        hasUnreadMessages.current = true;
+        const markAsRead = async () => {
+          try {
+            lastReadTimestamp.current = now;
+            await chatCore.markMessagesAsRead(conversationId, sessionId || undefined);
+            console.log(`Messages marked as read (${unreadOperatorMessages.length} unread messages)`);
+            hasUnreadMessages.current = false;
+          } catch (error) {
+            console.warn('Failed to mark messages as read:', error);
+            lastReadTimestamp.current = 0; // Reset on error to allow retry
+          }
+        };
 
-      const timer = setTimeout(markAsRead, 1000);
-      return () => clearTimeout(timer);
+        const timer = setTimeout(markAsRead, 1000);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [isOpen, conversationId, messages.length, sessionId]);
+  }, [isOpen, conversationId, messages, sessionId]);
 
   // Handle send message
   const handleSendMessage = async () => {
@@ -684,7 +827,29 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
             </div>
           ) : (
             <>
-              {messages.map((message) => (
+              {/* Приветственное сообщение - всегда вверху и не входит в массив сообщений */}
+              {operatorInfo && (
+                <div className="flex justify-start mb-4">
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3 max-w-[85%]">
+                    <p className="text-sm text-blue-700 mb-1">
+                      {welcomeMessage} Вас обслуживает {operatorInfo.name}.
+                    </p>
+                    <div className="text-xs text-blue-500">
+                      Система поддержки
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Обычные сообщения чата, фильтруем системные приветственные сообщения */}
+              {messages.filter(message => 
+                !(message.type === 'system' && (
+                  message.content.includes('Добро пожаловать') ||
+                  message.content.includes('обслуживает') ||
+                  message.content.includes('Как могу помочь') ||
+                  message.content.includes('Вас обслуживает')
+                ))
+              ).map((message) => (
                 <div
                   key={message.id}
                   className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}

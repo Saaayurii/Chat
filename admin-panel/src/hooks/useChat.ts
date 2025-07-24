@@ -591,15 +591,34 @@ export const useChat = () => {
     return emit('send-message', messageData);
   }, [emit, isConnected]);
 
+  // Throttling for markAsRead to prevent over-updating
+  const markAsReadThrottle = useRef<{ [key: string]: number }>({});
+  
   const markAsRead = useCallback((conversationId: string, messageId?: string) => {
     if (!isConnected) {
       console.warn('Cannot mark as read - socket not connected');
       return false;
     }
+    
+    // Create throttle key
+    const throttleKey = messageId ? `${conversationId}:${messageId}` : conversationId;
+    const now = Date.now();
+    const lastCall = markAsReadThrottle.current[throttleKey] || 0;
+    
+    // Throttle: don't allow marking the same conversation/message as read more than once per 3 seconds
+    if (now - lastCall < 3000) {
+      console.log(`Throttling markAsRead for ${throttleKey} - called too recently (${now - lastCall}ms ago)`);
+      return false;
+    }
+    
+    markAsReadThrottle.current[throttleKey] = now;
+    
     const payload: { conversationId: string; messageId?: string } = { conversationId };
     if (messageId) {
       payload.messageId = messageId;
     }
+    
+    console.log(`Marking as read: ${throttleKey}`);
     return emit('mark-as-read', payload);
   }, [emit, isConnected]);
 
@@ -608,6 +627,19 @@ export const useChat = () => {
       console.warn('Cannot mark conversation as read - socket not connected');
       return false;
     }
+    
+    const now = Date.now();
+    const lastCall = markAsReadThrottle.current[conversationId] || 0;
+    
+    // Use same throttling logic
+    if (now - lastCall < 3000) {
+      console.log(`Throttling markConversationAsRead for ${conversationId} - called too recently (${now - lastCall}ms ago)`);
+      return false;
+    }
+    
+    markAsReadThrottle.current[conversationId] = now;
+    console.log(`Marking conversation as read: ${conversationId}`);
+    
     return emit('mark-as-read', {
       conversationId
       // без messageId - отметка всей беседы

@@ -201,17 +201,44 @@ export class ChatService {
     try {
       const skip = (page - 1) * limit;
       
+      this.logger.log(`Getting conversation messages: conversationId=${conversationId}, limit=${limit}, page=${page}, skip=${skip}`);
+      
       const messages = await this.messageModel
         .find({ conversationId: new Types.ObjectId(conversationId) })
         .sort({ createdAt: -1 }) // Сортируем по убыванию (новые сначала)
         .skip(skip)
         .limit(limit)
-        .populate('senderId', 'email profile.username profile.fullName profile.avatarUrl')
+        .populate('senderId', 'email firstName lastName profile role')
         .exec();
 
-      return messages.reverse(); // Возвращаем в хронологическом порядке
+      this.logger.log(`Found ${messages.length} messages for conversation ${conversationId}`);
+
+      // Обогащаем сообщения правильными именами отправителей
+      const enrichedMessages = messages.map(msg => {
+        const sender = msg.senderId as any;
+        let senderName = 'Неизвестный';
+        
+        if (sender) {
+          if (sender.profile?.fullName) {
+            senderName = sender.profile.fullName;
+          } else if (sender.firstName) {
+            senderName = sender.firstName + (sender.lastName ? ` ${sender.lastName}` : '');
+          } else if (sender.email) {
+            senderName = sender.role === 'operator' ? `Оператор (${sender.email})` : sender.email;
+          } else if (sender.role === 'operator') {
+            senderName = 'Оператор';
+          }
+        }
+        
+        // Обновляем senderName в сообщении
+        (msg as any).senderName = senderName;
+        return msg;
+      });
+
+      return enrichedMessages.reverse(); // Возвращаем в хронологическом порядке
     } catch (error) {
       this.logger.error('Error getting conversation messages:', error);
+      this.logger.error('Error details:', error.stack);
       return [];
     }
   }
@@ -253,100 +280,181 @@ export class ChatService {
 
   async markMessagesAsRead(conversationId: string, userId: string) {
     const userObjectId = new Types.ObjectId(userId);
-
-    // Помечаем сообщения как прочитанные
-    await this.messageModel.updateMany(
-      {
-        conversationId: new Types.ObjectId(conversationId),
-        senderId: { $ne: userObjectId }, // Не свои сообщения
-        readBy: { $ne: userObjectId }, // Еще не прочитанные
-      },
-      {
-        $addToSet: { readBy: userObjectId },
-        $set: { [`readTimestamps.${userId}`]: new Date() },
-      }
-    );
-
-    // Обнуляем счетчик непрочитанных для этого пользователя
-    await this.conversationModel.findByIdAndUpdate(conversationId, {
-      $set: { [`unreadByParticipant.${userId}`]: 0 }
-    });
-
-    // Отправляем real-time уведомление о том, что сообщения прочитаны
+    const deduplicationKey = `read_status:${conversationId}:${userId}`;
+    
     try {
-      await this.notificationService.publishSystemNotification(
-        'messages-read',
+      // Check Redis deduplication lock (5 second cooldown)
+      const client = this.redisService.getClient();
+      if (client) {
+        const existingLock = await client.get(deduplicationKey);
+        if (existingLock) {
+          this.logger.debug(`Skipping markMessagesAsRead for ${userId} in ${conversationId} - too frequent (${existingLock})`);
+          return; // Skip if marked as read within last 5 seconds
+        }
+
+        // Set deduplication lock
+        await client.setEx(deduplicationKey, 5, Date.now().toString());
+      }
+
+      // Check if there are actually any unread messages before updating
+      const unreadCount = await this.messageModel.countDocuments({
+        conversationId: new Types.ObjectId(conversationId),
+        senderId: { $ne: userObjectId },
+        readBy: { $ne: userObjectId }
+      });
+
+      if (unreadCount === 0) {
+        this.logger.debug(`No unread messages for user ${userId} in conversation ${conversationId}`);
+        return; // No unread messages to mark
+      }
+
+      this.logger.log(`Marking ${unreadCount} messages as read for user ${userId} in conversation ${conversationId}`);
+
+      // Помечаем сообщения как прочитанные
+      const updateResult = await this.messageModel.updateMany(
         {
-          conversationId,
-          readBy: userId,
-          readAt: new Date().toISOString()
+          conversationId: new Types.ObjectId(conversationId),
+          senderId: { $ne: userObjectId }, // Не свои сообщения
+          readBy: { $ne: userObjectId }, // Еще не прочитанные
         },
-        undefined, // Отправляем всем участникам беседы
-        'normal'
+        {
+          $addToSet: { readBy: userObjectId },
+          $set: { [`readTimestamps.${userId}`]: new Date() },
+        }
       );
-    } catch (notificationError) {
-      console.error('Ошибка отправки уведомления о прочтении:', notificationError);
+
+      if (updateResult.modifiedCount === 0) {
+        this.logger.debug(`No messages were updated for user ${userId} in conversation ${conversationId}`);
+        return; // No messages were actually updated
+      }
+
+      // Обнуляем счетчик непрочитанных для этого пользователя
+      await this.conversationModel.findByIdAndUpdate(conversationId, {
+        $set: { [`unreadByParticipant.${userId}`]: 0 }
+      });
+
+      // Отправляем real-time уведомление о том, что сообщения прочитаны
+      try {
+        await this.notificationService.publishSystemNotification(
+          'messages-read',
+          {
+            conversationId,
+            readBy: userId,
+            readAt: new Date().toISOString(),
+            messagesMarked: updateResult.modifiedCount
+          },
+          undefined, // Отправляем всем участникам беседы
+          'normal'
+        );
+      } catch (notificationError) {
+        console.error('Ошибка отправки уведомления о прочтении:', notificationError);
+      }
+
+      this.logger.log(`Successfully marked ${updateResult.modifiedCount} messages as read for user ${userId}`);
+    } catch (error) {
+      // Remove lock on error to allow retry
+      const client = this.redisService.getClient();
+      if (client) {
+        await client.del(deduplicationKey);
+      }
+      throw error;
     }
   }
 
   async markSingleMessageAsRead(conversationId: string, messageId: string, userId: string) {
     const userObjectId = new Types.ObjectId(userId);
     const messageObjectId = new Types.ObjectId(messageId);
+    const deduplicationKey = `read_single:${messageId}:${userId}`;
 
-    // Проверяем, что сообщение существует и принадлежит к указанной беседе
-    const message = await this.messageModel.findOne({
-      _id: messageObjectId,
-      conversationId: new Types.ObjectId(conversationId)
-    });
-
-    if (!message) {
-      throw new NotFoundException('Message not found');
-    }
-
-    // Проверяем, что это не сообщение самого пользователя
-    if (message.senderId.toString() === userId) {
-      return; // Не нужно отмечать свои сообщения как прочитанные
-    }
-
-    // Отмечаем сообщение как прочитанное
-    await this.messageModel.findByIdAndUpdate(messageObjectId, {
-      $addToSet: { readBy: userObjectId },
-      $set: { 
-        [`readTimestamps.${userId}`]: new Date(),
-        isRead: true // Устанавливаем общий флаг прочтения
-      }
-    });
-
-    // Пересчитываем количество непрочитанных сообщений для пользователя в этой беседе
-    const unreadCount = await this.messageModel.countDocuments({
-      conversationId: new Types.ObjectId(conversationId),
-      senderId: { $ne: userObjectId },
-      readBy: { $ne: userObjectId }
-    });
-
-    // Обновляем счетчик непрочитанных в беседе
-    await this.conversationModel.findByIdAndUpdate(conversationId, {
-      $set: { [`unreadByParticipant.${userId}`]: unreadCount }
-    });
-
-    // Отправляем real-time уведомление о прочтении конкретного сообщения
     try {
-      await this.notificationService.publishSystemNotification(
-        'message-read',
-        {
-          conversationId,
-          messageId,
-          readBy: userId,
-          readAt: new Date().toISOString()
-        },
-        undefined, // Отправляем всем участникам беседы
-        'normal'
-      );
-    } catch (notificationError) {
-      console.error('Ошибка отправки уведомления о прочтении сообщения:', notificationError);
-    }
+      // Check Redis deduplication lock
+      const client = this.redisService.getClient();
+      if (client) {
+        const existingLock = await client.get(deduplicationKey);
+        if (existingLock) {
+          this.logger.debug(`Skipping markSingleMessageAsRead for message ${messageId} by user ${userId} - already processed`);
+          return;
+        }
+      }
 
-    this.logger.log(`Message ${messageId} marked as read by user ${userId} in conversation ${conversationId}`);
+      // Проверяем, что сообщение существует и принадлежит к указанной беседе
+      const message = await this.messageModel.findOne({
+        _id: messageObjectId,
+        conversationId: new Types.ObjectId(conversationId)
+      });
+
+      if (!message) {
+        throw new NotFoundException('Message not found');
+      }
+
+      // Проверяем, что это не сообщение самого пользователя
+      if (message.senderId.toString() === userId) {
+        return; // Не нужно отмечать свои сообщения как прочитанные
+      }
+
+      // Проверяем, что сообщение еще не прочитано этим пользователем
+      if (message.readBy && message.readBy.some(id => id.toString() === userId)) {
+        this.logger.debug(`Message ${messageId} already read by user ${userId}`);
+        return;
+      }
+
+      // Set deduplication lock
+      if (client) {
+        await client.setEx(deduplicationKey, 10, Date.now().toString());
+      }
+
+      // Отмечаем сообщение как прочитанное
+      const updateResult = await this.messageModel.findByIdAndUpdate(messageObjectId, {
+        $addToSet: { readBy: userObjectId },
+        $set: { 
+          [`readTimestamps.${userId}`]: new Date(),
+          isRead: true // Устанавливаем общий флаг прочтения
+        }
+      });
+
+      if (!updateResult) {
+        this.logger.debug(`Message ${messageId} was not updated - already read by user ${userId}`);
+        return;
+      }
+
+      // Пересчитываем количество непрочитанных сообщений для пользователя в этой беседе
+      const unreadCount = await this.messageModel.countDocuments({
+        conversationId: new Types.ObjectId(conversationId),
+        senderId: { $ne: userObjectId },
+        readBy: { $ne: userObjectId }
+      });
+
+      // Обновляем счетчик непрочитанных в беседе
+      await this.conversationModel.findByIdAndUpdate(conversationId, {
+        $set: { [`unreadByParticipant.${userId}`]: unreadCount }
+      });
+
+      // Отправляем real-time уведомление о прочтении конкретного сообщения
+      try {
+        await this.notificationService.publishSystemNotification(
+          'message-read',
+          {
+            conversationId,
+            messageId,
+            readBy: userId,
+            readAt: new Date().toISOString()
+          },
+          undefined, // Отправляем всем участникам беседы
+          'normal'
+        );
+      } catch (notificationError) {
+        console.error('Ошибка отправки уведомления о прочтении сообщения:', notificationError);
+      }
+
+      this.logger.log(`Message ${messageId} marked as read by user ${userId} in conversation ${conversationId}`);
+    } catch (error) {
+      // Remove lock on error to allow retry
+      const client = this.redisService.getClient();
+      if (client) {
+        await client.del(deduplicationKey);
+      }
+      throw error;
+    }
   }
 
   async createConversation(createData: CreateConversationDto) {
@@ -790,9 +898,9 @@ export class ChatService {
 
       console.log(`Выбранный оператор: ${operator._id} (активных чатов: ${operator.activeChatsCount || 0})`);
       
-      // Определяем есть ли онлайн операторы
-      const hasOnlineOperators = operator.profile?.isOnline || false;
-      console.log('Есть онлайн операторы:', hasOnlineOperators);
+      // Всегда считаем что есть онлайн операторы (для создания приветственного сообщения)
+      const hasOnlineOperators = true; // operator ? true : false;
+      console.log('Есть назначенный оператор:', !!operator, 'создаем приветственное сообщение:', hasOnlineOperators);
 
     // Определяем, авторизован ли пользователь
     let actualUser: any = null;

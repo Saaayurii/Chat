@@ -385,7 +385,7 @@ async afterInit(server: Server) {
         createdAt: message.createdAt,
         type: message.type,
         status: message.status,
-        senderName: user.isAnonymous ? 'Посетитель' : (user.profile?.fullName || user.profile?.username || user.fullName || user.firstName + (user.lastName ? ' ' + user.lastName : '') || user.email)
+        senderName: user.isAnonymous ? 'Посетитель' : (user.profile?.fullName || user.profile?.username || user.fullName || (user.firstName ? user.firstName + (user.lastName ? ' ' + user.lastName : '') : null) || user.email || 'Оператор')
       };
 
       // Отправляем сообщение всем участникам беседы через Socket.IO
@@ -562,16 +562,36 @@ async afterInit(server: Server) {
         const dbMessages = await this.chatService.getConversationMessages(conversationId, limit);
         
         // Преобразуем сообщения для отправки
-        const formattedMessages = dbMessages.map(msg => ({
-          id: (msg._id as any).toString(),
-          text: msg.text,
-          senderId: msg.senderId.toString(),
-          conversationId: conversationId,
-          timestamp: msg.createdAt,
-          type: msg.type,
-          status: msg.status,
-          senderName: (msg.senderId as any)?.profile?.fullName || (msg.senderId as any)?.profile?.username || (msg.senderId as any)?.email || 'Unknown'
-        }));
+        const formattedMessages = dbMessages.map(msg => {
+          const sender = msg.senderId as any;
+          let senderName = 'Неизвестный';
+          
+          // Проверяем senderName в самом сообщении (установленный в getConversationMessages)
+          if ((msg as any).senderName) {
+            senderName = (msg as any).senderName;
+          } else if (sender) {
+            if (sender.profile?.fullName) {
+              senderName = sender.profile.fullName;
+            } else if (sender.firstName) {
+              senderName = sender.firstName + (sender.lastName ? ` ${sender.lastName}` : '');
+            } else if (sender.email) {
+              senderName = sender.role === 'operator' ? `Оператор (${sender.email})` : sender.email;
+            } else if (sender.role === 'operator') {
+              senderName = 'Оператор';
+            }
+          }
+          
+          return {
+            id: (msg._id as any).toString(),
+            text: msg.text,
+            senderId: msg.senderId.toString(),
+            conversationId: conversationId,
+            timestamp: msg.createdAt,
+            type: msg.type,
+            status: msg.status,
+            senderName: senderName
+          };
+        });
 
         // Кэшируем сообщения для следующих запросов
         for (const message of formattedMessages) {

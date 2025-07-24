@@ -58,10 +58,11 @@ export class PublicChatController {
     @Param('conversationId', ParseObjectIdPipe) conversationId: string,
     @Query() query: GetMessagesDto,
   ) {
+    const page = Math.floor((query.skip || 0) / (query.limit || 50)) + 1;
     return this.chatService.getConversationMessages(
       conversationId,
       query.limit,
-      query.skip,
+      page,
     );
   }
 

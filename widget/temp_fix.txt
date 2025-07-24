@@ -1,0 +1,103 @@
+  // Restore conversation function
+  const restoreConversation = useCallback(async () => {
+    console.log('Restore check:', { conversationId, token, messagesLength: messages.length });
+    if (conversationId && token && !messages.length) {
+      try {
+        console.log('Restoring conversation:', conversationId);
+        
+        const conversationMessages = await chatCore.getConversationMessages(conversationId, 50);
+        console.log('Got conversation messages:', conversationMessages);
+        
+        if (Array.isArray(conversationMessages) && conversationMessages.length > 0) {
+          const formattedMessages = conversationMessages.map((msg: any) => {
+            // Улучшенная проверка для определения сообщений от оператора при восстановлении
+            let actualSenderId = msg.senderId;
+            
+            // Обрабатываем случай, когда senderId приходит как объект с _id
+            if (typeof actualSenderId === 'object' && actualSenderId) {
+              actualSenderId = actualSenderId._id || actualSenderId.id;
+            }
+            // Обрабатываем случай, когда senderId приходит как строка с ObjectId
+            if (typeof actualSenderId === 'string' && actualSenderId.includes('ObjectId')) {
+              const idMatch = actualSenderId.match(/ObjectId\('([^']+)'\)/);
+              if (idMatch) {
+                actualSenderId = idMatch[1];
+              }
+            }
+            
+            // Для анонимных пользователей используем sessionId, а не сгенерированный userId
+            const currentUserId = token === 'anonymous' 
+              ? sessionId 
+              : (user?._id || user?.id || sessionId);
+            
+            // Отладочные логи для понимания проблемы
+            console.log(`🔍 Restore: [${(msg.text || msg.content || '').substring(0, 15)}...] senderId=${actualSenderId} currentUserId=${currentUserId} senderName=${msg.senderName}`);
+            
+            // Логика как в операторском чате: проверяем роль и тип сообщения
+            // Проверяем системное сообщение от оператора
+            const isSystemOperatorMessage = msg.isSystemMessage && msg.senderName && 
+              (msg.senderName !== 'Неизвестный');
+            
+            const senderRole = msg.senderRole || 'visitor';
+            
+            // Определяем, является ли сообщение от оператора
+            const isOperatorMsg = isSystemOperatorMessage || 
+                                 senderRole === 'operator' || 
+                                 senderRole === 'admin' ||
+                                 (actualSenderId && actualSenderId !== currentUserId && actualSenderId !== null);
+                                 
+            const isUserMessage = !isOperatorMsg;
+            
+            console.log(`✅ Restore decision: [${(msg.text || msg.content || '').substring(0, 15)}...] -> ${isUserMessage ? 'USER' : 'OPERATOR'} (isUser=${isUserMessage}, isOp=${isOperatorMsg})`);
+            
+            // Определяем корректное имя отправителя
+            let displayName = msg.senderName || operatorName;
+            if (isOperatorMsg && msg.senderName && msg.senderName.includes('@')) {
+              displayName = operatorInfo?.name || operatorName;
+            }
+            
+            return {
+              id: msg._id || msg.id,
+              content: msg.text || msg.content,
+              timestamp: new Date(msg.createdAt || msg.timestamp),
+              sender: isUserMessage ? 'user' : 'operator',
+              senderName: displayName,
+              type: msg.isSystemMessage ? 'system' : 'text',
+              isRead: msg.isRead || false,
+              readBy: msg.readBy || []
+            } as Message;
+          });
+          
+          setMessages(formattedMessages);
+          setIsConnected(true);
+          console.log('Restored messages:', formattedMessages.length);
+        }
+        
+        // Restore conversation info
+        const conversationData = await chatCore.getConversation(conversationId);
+        const assignedOperator = conversationData.assignedOperator;
+        
+        if (assignedOperator) {
+          // Создаем полное имя оператора из доступных данных
+          const getOperatorDisplayName = (operator: any) => {
+            if (operator?.profile?.fullName) return operator.profile.fullName;
+            if (operator?.firstName && operator?.lastName) return `${operator.firstName} ${operator.lastName}`;
+            if (operator?.firstName) return operator.firstName;
+            if (operator?.email) return `Оператор (${operator.email})`;
+            return operatorName;
+          };
+          
+          setOperatorInfo({
+            id: assignedOperator._id || assignedOperator.id,
+            name: getOperatorDisplayName(assignedOperator),
+            avatar: assignedOperator.profile?.avatarUrl,
+            isOnline: true
+          });
+        }
+      } catch (error) {
+        console.error('Error restoring conversation:', error);
+        setConversationId(null);
+        clearConversationId();
+      }
+    }
+  }, [conversationId, token, messages.length, operatorInfo?.id, chatCore]);

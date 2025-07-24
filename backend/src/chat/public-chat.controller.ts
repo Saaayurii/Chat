@@ -86,4 +86,19 @@ export class PublicChatController {
     // Для анонимных пользователей используем sessionId для идентификации
     return this.chatService.markAnonymousMessagesAsRead(conversationId, body.sessionId);
   }
+
+  @Put('conversations/:conversationId/link-user')
+  @ApiOperation({ summary: 'Связать анонимную беседу с авторизованным пользователем' })
+  @ApiResponse({ status: 200, description: 'Беседа успешно связана с пользователем' })
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+  async linkAnonymousConversationToUser(
+    @Param('conversationId', ParseObjectIdPipe) conversationId: string,
+    @Body() body: { sessionId: string; userId: string },
+  ) {
+    return this.chatService.linkAnonymousConversationToUser(
+      conversationId,
+      body.sessionId,
+      body.userId,
+    );
+  }
 }

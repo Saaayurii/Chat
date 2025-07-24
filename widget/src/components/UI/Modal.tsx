@@ -54,24 +54,24 @@ const Modal: React.FC<ModalProps> = ({
   };
 
   return (
-    <div className="chat-widget fixed inset-0 z-[99999] flex items-center justify-center">
+    <div className="chat-widget fixed inset-0 z-[99999] flex items-center justify-center backdrop-blur-sm">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black bg-opacity-50"
+        className="absolute inset-0 bg-black/60 transition-all duration-300"
         onClick={onClose}
       />
       
       {/* Modal */}
-      <div className={`relative bg-white rounded-lg shadow-xl w-full mx-4 ${sizeClasses[size]}`}>
+      <div className={`relative bg-white rounded-2xl shadow-2xl w-full mx-4 border border-gray-200/50 overflow-hidden transition-all duration-300 ${sizeClasses[size]}`}>
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between p-4 border-b">
-            <h3 className="text-lg font-medium text-gray-900">{title}</h3>
+          <div className="flex items-center justify-between p-6 border-b border-gray-200/50 backdrop-blur-sm bg-gradient-to-r from-blue-50/50 to-purple-50/50">
+            <h3 className="text-xl font-semibold text-gray-900 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{title}</h3>
             <Button
               variant="ghost"
               size="sm"
               onClick={onClose}
-              className="p-1 hover:bg-gray-100"
+              className="p-2 hover:bg-gray-100 rounded-full transition-all duration-200"
             >
               <X className="w-5 h-5" />
             </Button>
@@ -79,7 +79,7 @@ const Modal: React.FC<ModalProps> = ({
         )}
         
         {/* Content */}
-        <div className="p-4">
+        <div className="p-6 bg-gradient-to-br from-white to-gray-50/50">
           {children}
         </div>
       </div>

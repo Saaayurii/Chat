@@ -760,4 +760,71 @@ async afterInit(server: Server) {
       client.emit('error', { message: 'Failed to get presence history' });
     }
   }
+
+  @SubscribeMessage('user-authenticated')
+  async handleUserAuthenticated(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { userId: string; sessionId: string }
+  ) {
+    try {
+      const { userId, sessionId } = data;
+      
+      this.logger.log(`Обработка user-authenticated: userId=${userId}, sessionId=${sessionId}`);
+      
+      // Проверяем, что клиент был анонимным
+      const currentUser = client.data.user;
+      if (!currentUser?.isAnonymous || currentUser.sessionId !== sessionId) {
+        this.logger.warn(`Невалидное событие user-authenticated: currentUser=${JSON.stringify(currentUser)}`);
+        client.emit('error', { message: 'Invalid authentication event' });
+        return;
+      }
+
+      // Находим беседу по sessionId
+      const conversation = await this.chatService.findConversationBySessionId(sessionId);
+      if (!conversation) {
+        client.emit('error', { message: 'Conversation not found' });
+        return;
+      }
+
+      // Получаем conversationId как строку
+      const conversationId = (conversation._id as any).toString();
+
+      // Вызываем связывание беседы
+      const result = await this.chatService.linkAnonymousConversationToUser(
+        conversationId, 
+        sessionId, 
+        userId
+      );
+      
+      this.logger.log(`Беседа успешно связана: ${conversationId}`);
+      
+      // Обновляем данные пользователя в сокете
+      client.data.user = {
+        ...currentUser,
+        id: userId,
+        isAnonymous: false,
+        sessionId: undefined
+      };
+
+      // Уведомляем клиента об успешной связи
+      client.emit('conversation-linked', {
+        conversationId: conversationId,
+        userId: userId,
+        messagesUpdated: result.messagesUpdated
+      });
+
+      // Уведомляем всех участников беседы о смене статуса
+      this.server.to(`conversation:${conversationId}`).emit('user-status-changed', {
+        conversationId: conversationId,
+        userId: userId,
+        isAnonymous: false
+      });
+
+      this.logger.log(`Пользователь ${userId} успешно аутентифицирован и связан с беседой ${conversationId}`);
+
+    } catch (error) {
+      this.logger.error('User authenticated error:', error);
+      client.emit('error', { message: 'Failed to process authentication' });
+    }
+  }
 }

@@ -214,6 +214,29 @@ class ChatWidgetCore {
     }
   }
 
+  async linkAnonymousConversationToUser(
+    conversationId: string, 
+    sessionId: string, 
+    userId: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.apiClient.put(
+        `/public/chat/conversations/${conversationId}/link-user`, 
+        {
+          sessionId,
+          userId
+        }
+      );
+      return { success: true };
+    } catch (error: any) {
+      console.error('ChatWidget: Failed to link anonymous conversation:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message
+      };
+    }
+  }
+
   // =============================================================================
   // OPERATOR API METHODS
   // =============================================================================

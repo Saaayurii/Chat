@@ -66,7 +66,7 @@ const RatingModal: React.FC<RatingModalProps> = ({
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Ваша оценка
           </label>
-          <div className="flex items-center space-x-1">
+          <div className="flex items-center justify-center space-x-2 p-4 bg-gradient-to-r from-yellow-50 to-orange-50/50 rounded-xl border border-yellow-200/50 shadow-sm">
             {[1, 2, 3, 4, 5].map((star) => (
               <button
                 key={star}
@@ -74,28 +74,32 @@ const RatingModal: React.FC<RatingModalProps> = ({
                 onClick={() => setRating(star)}
                 onMouseEnter={() => setHoveredRating(star)}
                 onMouseLeave={() => setHoveredRating(0)}
-                className="p-1 transition-colors"
+                className="p-2 rounded-full hover:bg-yellow-50 transition-all duration-200 transform hover:scale-110"
               >
                 <Star
-                  className={`w-8 h-8 ${
+                  className={`w-10 h-10 ${
                     star <= (hoveredRating || rating)
-                      ? 'text-yellow-400 fill-current'
-                      : 'text-gray-300'
-                  } transition-colors`}
+                      ? 'text-yellow-500 fill-current drop-shadow-sm'
+                      : 'text-gray-300 hover:text-gray-400'
+                  } transition-all duration-200`}
                 />
               </button>
             ))}
           </div>
-          <div className="mt-1 text-sm text-gray-600">
+          <div className="mt-3 text-center">
             {rating > 0 && (
-              <span>
-                Выбрано: {rating} из 5 звезд
-                {rating === 1 && ' - Очень плохо'}
-                {rating === 2 && ' - Плохо'}
-                {rating === 3 && ' - Удовлетворительно'}
-                {rating === 4 && ' - Хорошо'}
-                {rating === 5 && ' - Отлично'}
-              </span>
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-3 rounded-xl border border-blue-200/50">
+                <span className="text-sm font-semibold text-gray-700">
+                  ⭐ Выбрано: {rating} из 5 звезд
+                </span>
+                <div className="text-sm text-gray-600 mt-1">
+                  {rating === 1 && '😞 Очень плохо'}
+                  {rating === 2 && '😕 Плохо'}
+                  {rating === 3 && '😐 Удовлетворительно'}
+                  {rating === 4 && '😊 Хорошо'}
+                  {rating === 5 && '🤩 Отлично'}
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -125,9 +129,9 @@ const RatingModal: React.FC<RatingModalProps> = ({
           <Button
             type="submit"
             disabled={rating === 0 || isSubmitting}
-            className="min-w-[100px]"
+            className="min-w-[120px] bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-medium py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
           >
-            {isSubmitting ? 'Отправка...' : 'Отправить'}
+            {isSubmitting ? '📝 Отправка...' : '⭐ Отправить оценку'}
           </Button>
         </div>
       </form>

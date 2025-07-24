@@ -1218,4 +1218,99 @@ export class ChatService {
 
     return { message: 'Сообщения отмечены как прочитанные' };
   }
+
+  async findConversationBySessionId(sessionId: string) {
+    return await this.conversationModel.findOne({ sessionId }).exec();
+  }
+
+  async linkAnonymousConversationToUser(
+    conversationId: string,
+    sessionId: string,
+    userId: string,
+  ) {
+    this.logger.log(`Linking anonymous conversation ${conversationId} (session: ${sessionId}) to user ${userId}`);
+
+    // Получаем беседу
+    const conversation = await this.conversationModel.findById(conversationId);
+    if (!conversation) {
+      throw new NotFoundException('Беседа не найдена');
+    }
+
+    // Проверяем, что это анонимная беседа и sessionId совпадает
+    if (conversation.type !== 'anonymous-support' || 
+        !conversation.anonymousUser || 
+        conversation.anonymousUser.sessionId !== sessionId) {
+      throw new ForbiddenException('Неверный идентификатор сессии');
+    }
+
+    const userObjectId = new Types.ObjectId(userId);
+    const anonymousUserId = conversation.anonymousUser._id;
+
+    // Добавляем пользователя в участники беседы
+    await this.conversationModel.findByIdAndUpdate(conversationId, {
+      $addToSet: { participants: userObjectId },
+      $set: { 
+        type: 'support', // Изменяем тип с anonymous-support на support
+        'anonymousUser.linkedUserId': userObjectId // Сохраняем связь для истории
+      }
+    });
+
+    // Обновляем все сообщения от анонимного пользователя
+    const updateResult = await this.messageModel.updateMany(
+      { 
+        conversationId: new Types.ObjectId(conversationId),
+        senderId: anonymousUserId
+      },
+      { 
+        senderId: userObjectId,
+        $unset: { anonymousUser: 1 } // Удаляем поле anonymousUser из сообщений
+      }
+    );
+
+    this.logger.log(`Updated ${updateResult.modifiedCount} messages from anonymous to user ${userId}`);
+
+    // Отправляем системное сообщение оператору о том, что пользователь авторизовался
+    const systemMessage = await this.messageModel.create({
+      conversationId: new Types.ObjectId(conversationId),
+      content: `🔐 Пользователь авторизовался в системе`,
+      type: 'system',
+      senderRole: 'system',
+      isSystemMessage: true,
+      isRead: false,
+      readBy: [],
+      readTimestamps: {},
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    // Отправляем real-time уведомление операторам
+    try {
+      await this.notificationService.publishSystemNotification(
+        'user-authenticated',
+        {
+          conversationId,
+          userId,
+          sessionId,
+          messagesUpdated: updateResult.modifiedCount,
+          timestamp: new Date().toISOString(),
+          systemMessage: {
+            id: (systemMessage._id as any).toString(),
+            content: systemMessage.text,
+            type: 'system',
+            timestamp: systemMessage.createdAt
+          }
+        },
+        undefined, // Отправляем всем участникам беседы 
+        'high'
+      );
+    } catch (notificationError) {
+      this.logger.error('Ошибка отправки уведомления о авторизации пользователя:', notificationError);
+    }
+
+    return { 
+      message: 'Беседа успешно связана с пользователем',
+      messagesUpdated: updateResult.modifiedCount,
+      systemMessageId: (systemMessage._id as any).toString()
+    };
+  }
 }

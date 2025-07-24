@@ -210,14 +210,14 @@ const AuthModal: React.FC<AuthModalProps> = ({
           </div>
         </div>
 
-        <Button type="submit" className="w-full" disabled={loading}>
+        <Button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200" disabled={loading}>
           {loading ? 'Вход...' : 'Войти'}
         </Button>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-3 flex items-start space-x-2">
+          <div className="bg-gradient-to-r from-red-50 to-red-100/50 border border-red-200 rounded-xl p-4 flex items-start space-x-3 shadow-sm">
             <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-            <div className="text-red-800 text-sm">{error}</div>
+            <div className="text-red-800 text-sm font-medium">{error}</div>
           </div>
         )}
       </form>
@@ -330,14 +330,14 @@ const AuthModal: React.FC<AuthModalProps> = ({
           </div>
         </div>
 
-        <Button type="submit" className="w-full" disabled={loading}>
+        <Button type="submit" className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-medium py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200" disabled={loading}>
           {loading ? 'Регистрация...' : 'Зарегистрироваться'}
         </Button>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-3 flex items-start space-x-2">
+          <div className="bg-gradient-to-r from-red-50 to-red-100/50 border border-red-200 rounded-xl p-4 flex items-start space-x-3 shadow-sm">
             <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-            <div className="text-red-800 text-sm">{error}</div>
+            <div className="text-red-800 text-sm font-medium">{error}</div>
           </div>
         )}
       </form>
@@ -370,7 +370,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
           </p>
           <Button
             onClick={() => setMode('login')}
-            className="w-full"
+            className="w-full bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-medium py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
           >
             Вернуться к входу
           </Button>
@@ -393,7 +393,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
             />
           </div>
 
-          <Button type="submit" className="w-full" disabled={loading}>
+          <Button type="submit" className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-medium py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200" disabled={loading}>
             {loading ? 'Отправка...' : 'Отправить ссылку'}
           </Button>
 
@@ -444,22 +444,22 @@ const AuthModal: React.FC<AuthModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto backdrop-blur-sm">
       <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={handleClose} />
+        <div className="fixed inset-0 bg-black/60 transition-all duration-300" onClick={handleClose} />
         
-        <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
-          <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium leading-6 text-gray-900">
+        <div className="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all duration-300 scale-100 sm:my-8 sm:w-full sm:max-w-lg border border-gray-200/50">
+          <div className="bg-gradient-to-br from-white to-gray-50/50 px-6 pb-6 pt-6 sm:p-8 sm:pb-6">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200/50">
+              <h3 className="text-xl font-semibold leading-6 text-gray-900 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 {getModalTitle()}
               </h3>
               <button
                 onClick={handleClose}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full p-2 transition-all duration-200"
                 type="button"
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5" />
               </button>
             </div>
             {renderContent()}

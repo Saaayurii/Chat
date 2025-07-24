@@ -186,9 +186,21 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
         }
       } else if (message.type === 'room-joined') {
         console.log('🏠 Successfully joined room:', message.data.conversationId);
+      } else if (message.type === 'message-read') {
+        console.log('📖 Single message marked as read:', message.data);
+        // Обновляем статус прочтения для конкретного сообщения
+        const { messageId, readBy } = message.data;
+        const updatedMessages = messages.map((msg: Message): Message => 
+          msg.id === messageId ? {
+            ...msg,
+            isRead: true,
+            readBy: [...(msg.readBy || []), readBy].filter((id: string, index: number, arr: string[]) => arr.indexOf(id) === index)
+          } : msg
+        );
+        setMessages(updatedMessages);
       } else if (message.type === 'conversation-read') {
-        console.log('📖 Message marked as read:', message.data);
-        // Обновляем статус прочтения для сообщений пользователя
+        console.log('📖 All messages marked as read:', message.data);
+        // Обновляем статус прочтения для всех сообщений пользователя
         const { readBy } = message.data;
         const updatedMessages = messages.map((msg: Message): Message => 
           msg.sender === 'user' ? {
@@ -428,76 +440,75 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
     setMessages, setIsConnected
   ]);
 
-  // Restore conversation on mount
-  useEffect(() => {
-    const restoreConversation = async () => {
-      console.log('Restore check:', { conversationId, token, messagesLength: messages.length });
-      if (conversationId && token && !messages.length) {
-        try {
-          console.log('Restoring conversation:', conversationId);
-          
-          const conversationMessages = await chatCore.getConversationMessages(conversationId, 50);
-          console.log('Got conversation messages:', conversationMessages);
-          
-          if (Array.isArray(conversationMessages) && conversationMessages.length > 0) {
-            const formattedMessages = conversationMessages.map((msg: any) => {
-              // Улучшенная проверка для определения сообщений от оператора при восстановлении
-              let actualSenderId = msg.senderId;
-              
-              // Обрабатываем случай, когда senderId приходит как объект с _id
-              if (typeof actualSenderId === 'object' && actualSenderId) {
-                actualSenderId = actualSenderId._id || actualSenderId.id;
+  // Restore conversation function
+  const restoreConversation = useCallback(async () => {
+    console.log('Restore check:', { conversationId, token, messagesLength: messages.length });
+    if (conversationId && token && !messages.length) {
+      try {
+        console.log('Restoring conversation:', conversationId);
+        
+        const conversationMessages = await chatCore.getConversationMessages(conversationId, 50);
+        console.log('Got conversation messages:', conversationMessages);
+        
+        if (Array.isArray(conversationMessages) && conversationMessages.length > 0) {
+          const formattedMessages = conversationMessages.map((msg: any) => {
+            // Улучшенная проверка для определения сообщений от оператора при восстановлении
+            let actualSenderId = msg.senderId;
+            
+            // Обрабатываем случай, когда senderId приходит как объект с _id
+            if (typeof actualSenderId === 'object' && actualSenderId) {
+              actualSenderId = actualSenderId._id || actualSenderId.id;
+            }
+            // Обрабатываем случай, когда senderId приходит как строка с ObjectId
+            if (typeof actualSenderId === 'string' && actualSenderId.includes('ObjectId')) {
+              const idMatch = actualSenderId.match(/ObjectId\('([^']+)'\)/);
+              if (idMatch) {
+                actualSenderId = idMatch[1];
               }
-              // Обрабатываем случай, когда senderId приходит как строка с ObjectId
-              if (typeof actualSenderId === 'string' && actualSenderId.includes('ObjectId')) {
-                const idMatch = actualSenderId.match(/ObjectId\('([^']+)'\)/);
-                if (idMatch) {
-                  actualSenderId = idMatch[1];
-                }
-              }
-              
-              // Для анонимных пользователей используем sessionId, а не сгенерированный userId
-              const currentUserId = token === 'anonymous' 
-                ? sessionId 
-                : (user?._id || user?.id || sessionId);
-              
-              // Отладочные логи для понимания проблемы
-              console.log(`🔍 Restore: [${(msg.text || msg.content || '').substring(0, 15)}...] senderId=${actualSenderId} currentUserId=${currentUserId} senderName=${msg.senderName}`);
-              
-              // Логика как в операторском чате: проверяем роль и тип сообщения
-              // Проверяем системное сообщение от оператора
-              const isSystemOperatorMessage = msg.isSystemMessage && msg.senderName && 
-                (msg.senderName !== 'Неизвестный');
-              
-              // Проверяем роль в самом сообщении
-              const senderRole = msg.senderRole || 'visitor';
-              
-              // Определяем сообщение от оператора
-              const isOperatorMessage = isSystemOperatorMessage || 
-                                       senderRole === 'operator' || 
-                                       senderRole === 'admin' ||
-                                       (actualSenderId && actualSenderId !== currentUserId && actualSenderId !== null);
-                                       
-              const isUserMessage = !isOperatorMessage;
-              
-              // Определяем корректное имя отправителя для восстанавливаемых сообщений
-              let displayName = msg.senderName || 'Неизвестный';
-              if (isOperatorMessage && msg.senderName && msg.senderName.includes('@')) {
-                displayName = operatorInfo?.name || operatorName;
-              }
-              
-              console.log(`✅ Restore decision: [${(msg.text || msg.content || '').substring(0, 15)}...] -> ${isUserMessage ? 'USER' : 'OPERATOR'} (isUser=${isUserMessage}, isOp=${isOperatorMessage})`);
-              
-              return {
-                id: msg._id || msg.id,
-                content: msg.text || msg.content,
-                timestamp: new Date(msg.createdAt || msg.timestamp),
-                sender: isUserMessage ? 'user' : 'operator',
-                senderName: displayName,
-                type: msg.isSystemMessage ? 'system' : 'text',
-                isRead: msg.isRead || false,
-                readBy: msg.readBy || []
-              } as Message;
+            }
+            
+            // Для анонимных пользователей используем sessionId, а не сгенерированный userId
+            const currentUserId = token === 'anonymous' 
+              ? sessionId 
+              : (user?._id || user?.id || sessionId);
+            
+            // Отладочные логи для понимания проблемы
+            console.log(`🔍 Restore: [${(msg.text || msg.content || '').substring(0, 15)}...] senderId=${actualSenderId} currentUserId=${currentUserId} senderName=${msg.senderName}`);
+            
+            // Логика как в операторском чате: проверяем роль и тип сообщения
+            // Проверяем системное сообщение от оператора
+            const isSystemOperatorMessage = msg.isSystemMessage && msg.senderName && 
+              (msg.senderName !== 'Неизвестный');
+            
+            // Проверяем роль в самом сообщении
+            const senderRole = msg.senderRole || 'visitor';
+            
+            // Определяем сообщение от оператора
+            const isOperatorMessage = isSystemOperatorMessage || 
+                                     senderRole === 'operator' || 
+                                     senderRole === 'admin' ||
+                                     (actualSenderId && actualSenderId !== currentUserId && actualSenderId !== null);
+                                     
+            const isUserMessage = !isOperatorMessage;
+            
+            // Определяем корректное имя отправителя для восстанавливаемых сообщений
+            let displayName = msg.senderName || 'Неизвестный';
+            if (isOperatorMessage && msg.senderName && msg.senderName.includes('@')) {
+              displayName = operatorInfo?.name || operatorName;
+            }
+            
+            console.log(`✅ Restore decision: [${(msg.text || msg.content || '').substring(0, 15)}...] -> ${isUserMessage ? 'USER' : 'OPERATOR'} (isUser=${isUserMessage}, isOp=${isOperatorMessage})`);
+            
+            return {
+              id: msg._id || msg.id,
+              content: msg.text || msg.content,
+              timestamp: new Date(msg.createdAt || msg.timestamp),
+              sender: isUserMessage ? 'user' : 'operator',
+              senderName: displayName,
+              type: msg.isSystemMessage ? 'system' : 'text',
+              isRead: msg.isRead || false,
+              readBy: msg.readBy || []
+            } as Message;
             });
             
             setMessages(formattedMessages);
@@ -528,16 +539,18 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
               isOnline: true
             });
           }
-        } catch (error) {
-          console.error('Error restoring conversation:', error);
-          setConversationId(null);
-          clearConversationId();
-        }
+      } catch (error) {
+        console.error('Error restoring conversation:', error);
+        setConversationId(null);
+        clearConversationId();
       }
-    };
+    }
+  }, [conversationId, token, messages.length, operatorInfo?.id, chatCore]);
 
+  // Restore conversation on mount
+  useEffect(() => {
     restoreConversation();
-  }, [conversationId, token, messages.length, operatorInfo?.id]);
+  }, [restoreConversation]);
 
   // Create conversation when opening widget
   useEffect(() => {
@@ -789,7 +802,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       {/* Main widget card */}
       <div className={`${themeClasses[theme]} shadow-2xl border-0 h-full flex flex-col rounded-lg overflow-hidden`}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b" style={{ backgroundColor: primaryColor }}>
+        <div className="flex items-center justify-between p-4 border-b border-white/20 backdrop-blur-sm z-10" style={{ backgroundColor: primaryColor }}>
           <div className="flex items-center space-x-3">
             <Avatar 
               src={operatorInfo?.avatar || operatorAvatar} 
@@ -909,7 +922,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
         </div>
         
         {/* Input area */}
-        <div className="border-t p-4 space-y-3">
+        <div className="rounded-t-xl border-t border-t-gray-300 backdrop-blur-sm bg-gradient-to-r from-white/5 to-white/10 p-4 space-y-3 shadow-lg transform -translate-y-1 relative z-10">
           <div className="flex items-center space-x-2">
             <Input
               value={inputMessage}
@@ -1010,9 +1023,53 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
         onClose={() => setShowAuthModal(false)}
         initialMode={authModalMode}
         apiUrl={apiUrl}
-        onAuthSuccess={(token, userData) => {
+        onAuthSuccess={async (token, userData) => {
+          const oldSessionId = sessionId;
+          const wasAnonymous = token === 'anonymous' || !token;
+          
           // Update auth store
           useAuthStore.getState().setAuth(token, userData);
+          
+          // Если есть активная беседа и пользователь переходит с анонимного на авторизованного
+          if (conversationId && oldSessionId && wasAnonymous && userData?.id) {
+            console.log('🔗 Linking anonymous conversation to user:', {
+              conversationId,
+              oldSessionId, 
+              userId: userData.id
+            });
+            
+            try {
+              const linkResult = await chatCore.linkAnonymousConversationToUser(
+                conversationId,
+                oldSessionId,
+                userData.id
+              );
+              
+              if (linkResult.success) {
+                console.log('✅ Successfully linked conversation to user');
+                
+                // Отправляем уведомление оператору через WebSocket
+                if (chatCore.isWebSocketConnected()) {
+                  chatCore.emitWebSocket('user-authenticated', {
+                    conversationId,
+                    userId: userData.id,
+                    userName: userData.profile?.fullName || userData.fullName || userData.email,
+                    userEmail: userData.email,
+                    sessionId: oldSessionId,
+                    timestamp: new Date()
+                  });
+                }
+                
+                // Перезагружаем сообщения для обновления отображения
+                await restoreConversation();
+              } else {
+                console.error('❌ Failed to link conversation:', linkResult.error);
+              }
+            } catch (error) {
+              console.error('❌ Error linking conversation:', error);
+            }
+          }
+          
           setShowAuthModal(false);
         }}
       />

@@ -80,7 +80,7 @@ const ComplaintModal: React.FC<ComplaintModalProps> = ({
             {reasons.map((reasonOption) => (
               <label
                 key={reasonOption}
-                className="flex items-center space-x-2 cursor-pointer"
+                className="flex items-center space-x-3 cursor-pointer p-3 rounded-xl hover:bg-gray-50 transition-colors duration-200 border border-transparent hover:border-gray-200"
               >
                 <input
                   type="radio"
@@ -88,7 +88,7 @@ const ComplaintModal: React.FC<ComplaintModalProps> = ({
                   value={reasonOption}
                   checked={reason === reasonOption}
                   onChange={(e) => setReason(e.target.value)}
-                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 focus:ring-2"
                 />
                 <span className="text-sm text-gray-700">{reasonOption}</span>
               </label>
@@ -106,7 +106,7 @@ const ComplaintModal: React.FC<ComplaintModalProps> = ({
             placeholder="Опишите подробно ситуацию, которая вас расстроила..."
             maxLength={1000}
             rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none bg-gradient-to-br from-white to-gray-50/50 shadow-sm transition-all duration-200"
             required
           />
           <div className="mt-1 text-xs text-gray-500">
@@ -114,11 +114,11 @@ const ComplaintModal: React.FC<ComplaintModalProps> = ({
           </div>
         </div>
 
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+        <div className="bg-gradient-to-r from-yellow-50 to-orange-50/50 border border-yellow-200/50 rounded-xl p-4 shadow-sm">
           <div className="flex">
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-yellow-800">
-                Обратите внимание
+              <h3 className="text-sm font-semibold text-yellow-800">
+                ⚠️ Обратите внимание
               </h3>
               <div className="mt-2 text-sm text-yellow-700">
                 <p>
@@ -142,8 +142,7 @@ const ComplaintModal: React.FC<ComplaintModalProps> = ({
           <Button
             type="submit"
             disabled={!reason.trim() || !details.trim() || isSubmitting}
-            className="min-w-[120px]"
-            variant="secondary"
+            className="min-w-[120px] bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white font-medium py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
           >
             {isSubmitting ? 'Отправка...' : 'Отправить жалобу'}
           </Button>

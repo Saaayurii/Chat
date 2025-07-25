@@ -31,7 +31,9 @@ export class ChatService {
 
   async canUserJoinConversation(userId: string | null, conversationId: string, sessionId?: string): Promise<boolean> {
     try {
-      const conversation = await this.conversationModel.findById(conversationId);
+      const conversation = await this.conversationModel.findById(conversationId)
+        .populate('assignedOperator', '_id email')
+        .lean(false); // Отключаем lean для правильного populate
       
       console.log(`canUserJoinConversation check: userId=${userId}, conversationId=${conversationId}, sessionId=${sessionId}`);
       console.log(`Found conversation: ${conversation ? 'YES' : 'NO'}`);
@@ -75,9 +77,35 @@ export class ChatService {
       const isCreator = conversation.createdBy && conversation.createdBy.toString() === userId;
 
       // Проверяем, является ли пользователь назначенным оператором
-      const isAssignedOperator = conversation.assignedOperator && conversation.assignedOperator.toString() === userId;
+      let isAssignedOperator = false;
+      if (conversation.assignedOperator) {
+        console.log(`assignedOperator raw:`, conversation.assignedOperator);
+        console.log(`assignedOperator type:`, typeof conversation.assignedOperator);
+        console.log(`assignedOperator has _id:`, !!conversation.assignedOperator._id);
+        
+        const assignedOperatorId = conversation.assignedOperator._id 
+          ? conversation.assignedOperator._id.toString() 
+          : conversation.assignedOperator.toString();
+        
+        // Дополнительные проверки для отладки
+        console.log(`assignedOperatorId length: ${assignedOperatorId.length}, userId length: ${userId?.length}`);
+        console.log(`assignedOperatorId bytes:`, Array.from(assignedOperatorId).map(c => c.charCodeAt(0)));
+        console.log(`userId bytes:`, userId ? Array.from(userId).map(c => c.charCodeAt(0)) : 'userId is null/undefined');
+        
+        // Пробуем несколько способов сравнения
+        const directMatch = assignedOperatorId === userId;
+        const trimMatch = userId ? (assignedOperatorId.trim() === userId.trim()) : false;
+        const hexMatch = userId ? (conversation.assignedOperator._id.toHexString() === userId) : false;
+        
+        isAssignedOperator = directMatch || trimMatch || hexMatch;
+        console.log(`Operator comparison: assignedOperatorId="${assignedOperatorId}", userId="${userId}"`);
+        console.log(`Match results: direct=${directMatch}, trim=${trimMatch}, hex=${hexMatch}, final=${isAssignedOperator}`);
+      } else {
+        console.log(`No assignedOperator found in conversation`);
+      }
       
-      console.log(`Access check details: userId=${userId}, userRole=${user?.role}, assignedOperator=${conversation.assignedOperator?.toString()}, isAssignedOperator=${isAssignedOperator}`);
+      console.log(`Access check details: userId=${userId}, userRole=${user?.role}, assignedOperator=${conversation.assignedOperator?.toString()}, assignedOperatorType=${typeof conversation.assignedOperator}, isAssignedOperator=${isAssignedOperator}`);
+      console.log(`assignedOperator full object:`, conversation.assignedOperator);
 
       // Проверяем роль пользователя
       if (user?.role === UserRole.ADMIN) {
@@ -250,6 +278,14 @@ export class ChatService {
   }
 
   async getConversationMessagesWithAuth(conversationId: string, userId: string, limit = 50, skip = 0) {
+    // Дополнительная проверка userId
+    if (!userId) {
+      this.logger.error('getConversationMessagesWithAuth called with undefined userId');
+      throw new ForbiddenException('Ошибка аутентификации пользователя');
+    }
+
+    this.logger.debug(`getConversationMessagesWithAuth: userId=${userId}, conversationId=${conversationId}`);
+
     // Проверяем доступ к беседе
     const canAccess = await this.canUserJoinConversation(userId, conversationId);
     if (!canAccess) {

@@ -336,7 +336,7 @@ export const useChat = () => {
           
           // Проверяем, что беседа еще не существует
           const exists = oldData.find(conv => 
-            conv._id === conversation._id || conv.id === conversation.id
+            conv._id === conversation._id || (conv as any).id === (conversation as any).id
           );
           
           if (!exists) {

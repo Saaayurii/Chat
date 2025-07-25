@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useUnreadMessages } from '@/contexts/UnreadMessagesContext';
+import { useUI } from '@/contexts/UIContext';
 import { UserRole } from '@/types';
 import { chatAPI } from '@/core/api';
 import * as Radix from '@radix-ui/themes';
@@ -160,12 +161,10 @@ export default function Navbar() {
   const { theme, setTheme } = useTheme();
   const { user, logout } = useAuthStore();
   const { totalUnreadCount } = useUnreadMessages();
+  const { state, actions } = useUI();
   const queryClient = useQueryClient();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Теперь используем глобальный контекст вместо локальной логики
   
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -339,7 +338,7 @@ export default function Navbar() {
                       </Button>
                       
                       {dropdownOpen === category.name && (
-                        <div className="absolute top-full left-0 mt-1 w-48 bg-background border border-border rounded-md shadow-lg z-50">
+                        <div className="absolute top-full left-0 mt-1 w-48 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border border-border rounded-md shadow-lg z-50">
                           {category.items.map((item) => {
                             const isActive = pathname === item.href;
                             return (
@@ -382,7 +381,12 @@ export default function Navbar() {
             </Button>
 
             {/* User dropdown */}
-            <DropdownMenu>
+            <DropdownMenu onOpenChange={(open) => {
+              // Закрываем мобильное меню при открытии user dropdown
+              if (open && state.isMobileMenuOpen) {
+                actions.closeMobileMenu();
+              }
+            }}>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
@@ -393,7 +397,7 @@ export default function Navbar() {
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
+              <DropdownMenuContent className="w-56 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">
@@ -442,18 +446,18 @@ export default function Navbar() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              onClick={actions.toggleMobileMenu}
               className="md:hidden"
             >
-              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {state.isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </Button>
           </div>
         </div>
       </div>
 
       {/* Mobile menu */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden border-t bg-background">
+      {state.isMobileMenuOpen && (
+        <div className="md:hidden border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="px-2 pt-2 pb-3 space-y-1">
             {/* User info mobile */}
             <div className="flex items-center px-3 py-3 border-b border-border mb-3">
@@ -492,7 +496,7 @@ export default function Navbar() {
                   variant={isActive ? "default" : "ghost"}
                   onClick={() => {
                     router.push(item.href);
-                    setIsMobileMenuOpen(false);
+                    actions.closeMobileMenu();
                   }}
                   className="w-full justify-start mb-1 relative"
                 >
@@ -524,7 +528,7 @@ export default function Navbar() {
                       variant={isActive ? "default" : "ghost"}
                       onClick={() => {
                         router.push(item.href);
-                        setIsMobileMenuOpen(false);
+                        actions.closeMobileMenu();
                       }}
                       className="w-full justify-start ml-3 mb-1"
                     >
@@ -557,7 +561,7 @@ export default function Navbar() {
               variant="ghost"
               onClick={() => {
                 handleProfile();
-                setIsMobileMenuOpen(false);
+                actions.closeMobileMenu();
               }}
               className="w-full justify-start"
             >
@@ -570,7 +574,7 @@ export default function Navbar() {
               variant="ghost"
               onClick={() => {
                 handleLogout();
-                setIsMobileMenuOpen(false);
+                actions.closeMobileMenu();
               }}
               className="w-full justify-start text-destructive hover:text-destructive"
             >

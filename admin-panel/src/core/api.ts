@@ -309,11 +309,20 @@ export const chatAPI = {
       timestamp: string;
     }[]>('/transfer/pending'),
 
-  respondToTransfer: (requestId: string, accept: boolean) =>
-    api.post(`/transfer/respond`, { requestId, accept }),
+  respondToTransfer: (transferId: string, accepted: boolean) =>
+    api.put(`/transfer/respond`, { transferId, accepted }),
 
   blockUser: (userId: string, data: { reason: string; comment: string; conversationId: string }) =>
     api.post('/blacklist', { userId, reason: data.reason, comment: data.comment, conversationId: data.conversationId }),
+    
+  requestUserBlock: (userId: string, data: { reason: string; comment: string; conversationId: string }) =>
+    api.post('/blacklist/request', { 
+      userId, 
+      reason: data.reason, 
+      description: data.comment,
+      type: 'temporary',
+      severity: 1
+    }),
 };
 
 // Email API
@@ -658,8 +667,8 @@ export const transferAPI = {
     }[]>('/transfer/pending'),
 
   // Respond to transfer request
-  respondToTransfer: (requestId: string, accept: boolean) =>
-    api.post(`/transfer/respond`, { requestId, accept }),
+  respondToTransfer: (transferId: string, accepted: boolean) =>
+    api.put(`/transfer/respond`, { transferId, accepted }),
 
   // Block user
   blockUser: (userId: string, data: { reason: string; comment: string; conversationId: string }) =>

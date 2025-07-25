@@ -71,6 +71,47 @@ export class BlacklistService {
     return savedEntry.populate(['userId', 'blockedBy', 'approvedBy']);
   }
 
+  async requestBlacklist(
+    createDto: CreateBlacklistEntryDto,
+    requestedById: string,
+  ): Promise<BlacklistEntry> {
+    // Проверяем, нет ли уже активного запроса или блокировки для этого пользователя
+    const existingEntry = await this.blacklistModel.findOne({
+      userId: new Types.ObjectId(createDto.userId),
+      $or: [
+        { status: BlacklistStatus.ACTIVE },
+        { status: BlacklistStatus.ACTIVE, approvedByAdmin: false }
+      ]
+    });
+
+    if (existingEntry) {
+      if (existingEntry.approvedByAdmin) {
+        throw new ForbiddenException('Пользователь уже заблокирован');
+      } else {
+        throw new ForbiddenException('Запрос на блокировку этого пользователя уже отправлен');
+      }
+    }
+
+    // Создаем запрос на блокировку (не активируем блокировку до одобрения)
+    const blacklistRequest = new this.blacklistModel({
+      ...createDto,
+      userId: new Types.ObjectId(createDto.userId),
+      blockedBy: new Types.ObjectId(requestedById),
+      relatedComplaints: createDto.relatedComplaints?.map(id => new Types.ObjectId(id)),
+      relatedMessages: createDto.relatedMessages?.map(id => new Types.ObjectId(id)),
+      status: BlacklistStatus.ACTIVE, // Статус остается активным, но без одобрения админа
+      approvedByAdmin: false, // Требует одобрения админа
+      // Не обновляем статус пользователя до одобрения
+      // Не отправляем уведомление до одобрения
+    });
+
+    const savedRequest = await blacklistRequest.save();
+
+    // TODO: Можно добавить уведомление админам о новом запросе
+    
+    return savedRequest.populate(['userId', 'blockedBy']);
+  }
+
   async findAll(queryDto: QueryBlacklistDto): Promise<{ entries: BlacklistEntry[]; total: number }> {
     const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc', ...filters } = queryDto;
     

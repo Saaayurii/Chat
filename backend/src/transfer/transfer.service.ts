@@ -295,16 +295,38 @@ export class TransferService {
     });
   }
 
-  async getPendingTransfers(operatorId: string): Promise<Transfer[]> {
-    return this.transferModel
+  async getPendingTransfers(operatorId: string): Promise<any[]> {
+    const transfers = await this.transferModel
       .find({
         toOperatorId: new Types.ObjectId(operatorId),
         status: TransferStatus.PENDING
       })
       .sort({ requestedAt: -1 })
       .populate('fromOperatorId', 'name email avatar')
-      .populate('visitorId', 'name email')
+      .populate('visitorId', 'name email avatar')
       .exec();
+
+    // Трансформируем данные для frontend
+    return transfers.map(transfer => {
+      const transferObj = transfer.toObject();
+      return {
+        id: (transferObj._id as any).toString(),
+        fromOperator: {
+          id: (transferObj.fromOperatorId as any)._id?.toString() || transferObj.fromOperatorId.toString(),
+          name: (transferObj.fromOperatorId as any).name || 'Unknown Operator',
+          avatar: (transferObj.fromOperatorId as any).avatar
+        },
+        visitor: {
+          id: (transferObj.visitorId as any)._id?.toString() || transferObj.visitorId.toString(),
+          name: (transferObj.visitorId as any).name || 'Unknown Visitor',
+          email: (transferObj.visitorId as any).email || 'No email',
+          avatar: (transferObj.visitorId as any).avatar
+        },
+        conversationId: transferObj.chatId.toString(),
+        reason: transferObj.reason,
+        timestamp: transferObj.requestedAt.toISOString()
+      };
+    });
   }
 
   async getTransferHistory(operatorId: string, limit: number = 10): Promise<Transfer[]> {

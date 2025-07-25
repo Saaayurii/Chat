@@ -42,29 +42,40 @@ export default function TransferRequestModal({
   const queryClient = useQueryClient();
 
   const respondToTransferMutation = useMutation({
-    mutationFn: async ({ accept }: { accept: boolean }) => {
-      const response = await chatAPI.respondToTransfer(transferRequest.id, accept);
-      return response.data;
+    mutationFn: async ({ accepted }: { accepted: boolean }) => {
+      const response = await chatAPI.respondToTransfer(transferRequest.id, accepted);
+      return { data: response.data, accepted };
     },
-    onSuccess: () => {
+    onSuccess: ({ accepted }) => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       queryClient.invalidateQueries({ queryKey: ['transfer-requests'] });
-      onRequestProcessed();
-      onClose();
+      
+      if (accepted) {
+        // При принятии запроса даем время серверу обновить права доступа
+        setTimeout(() => {
+          onRequestProcessed();
+          onClose();
+        }, 2000);
+      } else {
+        // При отклонении закрываем сразу
+        onRequestProcessed();
+        onClose();
+      }
     },
     onError: (error) => {
       console.error('Transfer response failed:', error);
+      setIsProcessing(false);
     }
   });
 
   const handleAccept = () => {
     setIsProcessing(true);
-    respondToTransferMutation.mutate({ accept: true });
+    respondToTransferMutation.mutate({ accepted: true });
   };
 
   const handleReject = () => {
     setIsProcessing(true);
-    respondToTransferMutation.mutate({ accept: false });
+    respondToTransferMutation.mutate({ accepted: false });
   };
 
   return (
@@ -96,13 +107,13 @@ export default function TransferRequestModal({
             </div>
             <div className="flex items-center space-x-3">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={transferRequest.fromOperator.avatar} alt={transferRequest.fromOperator.name} />
+                <AvatarImage src={transferRequest.fromOperator?.avatar} alt={transferRequest.fromOperator?.name} />
                 <AvatarFallback>
-                  {transferRequest.fromOperator.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                  {transferRequest.fromOperator?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'O'}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <p className="font-medium text-foreground">{transferRequest.fromOperator.name}</p>
+                <p className="font-medium text-foreground">{transferRequest.fromOperator?.name || 'Unknown Operator'}</p>
                 <Badge variant="outline" className="text-xs">
                   Оператор
                 </Badge>
@@ -118,14 +129,14 @@ export default function TransferRequestModal({
             </div>
             <div className="flex items-center space-x-3">
               <Avatar className="h-10 w-10">
-                <AvatarImage src={transferRequest.visitor.avatar} alt={transferRequest.visitor.name} />
+                <AvatarImage src={transferRequest.visitor?.avatar} alt={transferRequest.visitor?.name} />
                 <AvatarFallback>
-                  {transferRequest.visitor.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                  {transferRequest.visitor?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'V'}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <h4 className="font-medium text-foreground">{transferRequest.visitor.name}</h4>
-                <p className="text-sm text-muted-foreground">{transferRequest.visitor.email}</p>
+                <h4 className="font-medium text-foreground">{transferRequest.visitor?.name || 'Unknown Visitor'}</h4>
+                <p className="text-sm text-muted-foreground">{transferRequest.visitor?.email || 'No email'}</p>
                 <Badge variant="secondary" className="mt-1">
                   Посетитель
                 </Badge>

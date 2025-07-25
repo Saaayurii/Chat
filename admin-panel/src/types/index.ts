@@ -40,6 +40,8 @@ export interface User {
   updatedAt: Date;
 }
 
+export type ChatUser = User;
+
 // Conversation Types
 export enum ConversationType {
   USER_OPERATOR = 'user-operator',

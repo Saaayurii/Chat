@@ -65,9 +65,17 @@ export class ChatController {
     @Query() query: GetMessagesDto,
     @Request() req: AuthenticatedRequest,
   ) {
+    if (!req.user || !req.user._id) {
+      console.error('getMessages: User or user._id is undefined');
+      throw new Error('Ошибка аутентификации пользователя');
+    }
+
+    const userId = req.user._id.toString();
+    console.log(`getMessages: userId=${userId}, conversationId=${conversationId}`);
+
     return this.chatService.getConversationMessagesWithAuth(
       conversationId,
-      req.user._id,
+      userId,
       query.limit,
       query.skip,
     );
@@ -125,7 +133,15 @@ export class ChatController {
   @ApiOperation({ summary: 'Получить список бесед пользователя' })
   @ApiResponse({ status: 200, description: 'Список бесед' })
   async getUserConversations(@Request() req: AuthenticatedRequest) {
-    return this.chatService.getUserConversations(req.user._id);
+    if (!req.user || !req.user._id) {
+      console.error('getUserConversations: User or user._id is undefined');
+      throw new Error('Ошибка аутентификации пользователя');
+    }
+
+    const userId = req.user._id.toString();
+    console.log(`getUserConversations: userId=${userId}, userRole=${req.user.role}`);
+
+    return this.chatService.getUserConversations(userId);
   }
 
   @Get('conversations/:conversationId')

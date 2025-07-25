@@ -359,6 +359,41 @@ export class BlacklistController {
     await this.blacklistService.deleteEntry(id);
   }
 
+  @Post('request')
+  @Roles(UserRole.OPERATOR)
+  @ApiOperation({ 
+    summary: 'Запросить блокировку пользователя',
+    description: 'Позволяет оператору отправить запрос на блокировку пользователя администратору для рассмотрения'
+  })
+  @ApiBody({ type: CreateBlacklistEntryDto })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Запрос на блокировку отправлен',
+    schema: {
+      type: 'object',
+      properties: {
+        _id: { type: 'string', example: '507f1f77bcf86cd799439011' },
+        userId: { type: 'object' },
+        reason: { type: 'string', example: 'SPAM' },
+        description: { type: 'string' },
+        type: { type: 'string', example: 'temporary' },
+        status: { type: 'string', example: 'active' },
+        approvedByAdmin: { type: 'boolean', example: false },
+        blockedBy: { type: 'object' },
+        createdAt: { type: 'string', format: 'date-time' }
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Некорректные данные' })
+  @ApiResponse({ status: 401, description: 'Не авторизован' })
+  @ApiResponse({ status: 403, description: 'Недостаточно прав доступа' })
+  async requestBlacklist(
+    @Body() createDto: CreateBlacklistEntryDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.blacklistService.requestBlacklist(createDto, req.user._id.toString());
+  }
+
   @Post('process-expired')
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)

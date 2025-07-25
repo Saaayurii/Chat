@@ -215,12 +215,12 @@ function OperatorChatPageContent() {
         displayParticipants = [(conversation as any).anonymousUser];
       } else {
         displayParticipants = participants.filter(
-          (participant: any) => participant.id !== user?.id
+          (participant: any) => (participant._id || participant.id) !== user?.id
         );
       }
 
       displayParticipants.forEach((participant: any) => {
-        const participantKey = participant.id;
+        const participantKey = participant._id || participant.id;
         const lastMessage = conversation.lastMessage;
         const lastMessageTime = lastMessage?.timestamp || conversation.createdAt;
         
@@ -232,7 +232,7 @@ function OperatorChatPageContent() {
         
         if (!existingSender || new Date(lastMessageTime) > new Date(existingSender.lastMessageTime)) {
           sendersMap.set(participantKey, {
-            id: participant.id,
+            id: participant._id || participant.id,
             name: participant.profile?.fullName || participant.profile?.username || participant.email || 'Анонимный',
             type: participant.role === 'operator' || participant.role === 'admin' ? 'operator' : 'visitor',
             avatar: participant.profile?.avatarUrl,
@@ -704,10 +704,10 @@ function OperatorChatPageContent() {
           <RequestBlockUserModal
             isOpen={showRequestBlockModal}
             onClose={() => setShowRequestBlockModal(false)}
-            userId={selectedSender.id}
-            userName={selectedSender.name}
-            userEmail={selectedSender.email}
-            userAvatar={selectedSender.avatar}
+            userId={selectedSender?.id || ""}
+            userName={selectedSender?.name || ""}
+            userEmail={selectedSender?.email || ""}
+            userAvatar={selectedSender?.avatar}
             conversationId={selectedConversation || ""}
             onRequestComplete={handleRequestBlockComplete}
           />

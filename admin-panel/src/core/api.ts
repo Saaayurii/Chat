@@ -317,7 +317,7 @@ export const chatAPI = {
     
   requestUserBlock: (userId: string, data: { reason: string; comment: string; conversationId: string }) =>
     api.post('/blacklist/request', { 
-      userId, 
+      userId: userId, 
       reason: data.reason, 
       description: data.comment,
       type: 'temporary',

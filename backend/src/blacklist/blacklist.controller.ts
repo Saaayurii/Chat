@@ -360,7 +360,7 @@ export class BlacklistController {
   }
 
   @Post('request')
-  @Roles(UserRole.OPERATOR)
+  @Roles(UserRole.OPERATOR, UserRole.ADMIN)
   @ApiOperation({ 
     summary: 'Запросить блокировку пользователя',
     description: 'Позволяет оператору отправить запрос на блокировку пользователя администратору для рассмотрения'
@@ -391,7 +391,14 @@ export class BlacklistController {
     @Body() createDto: CreateBlacklistEntryDto,
     @Request() req: AuthenticatedRequest,
   ) {
-    return this.blacklistService.requestBlacklist(createDto, req.user._id.toString());
+    try {
+      console.log('Request blacklist data:', createDto);
+      console.log('User:', req.user);
+      return this.blacklistService.requestBlacklist(createDto, req.user._id.toString());
+    } catch (error) {
+      console.error('Error in requestBlacklist:', error);
+      throw error;
+    }
   }
 
   @Post('process-expired')

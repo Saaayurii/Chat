@@ -334,6 +334,12 @@ class ChatWidgetCore {
     
     console.log(`ChatWidget: Connecting WebSocket to ${this.wsUrl}${namespace}`);
     console.log('ChatWidget: WebSocket auth data:', { hasToken: !!token, tokenValue: token, hasSessionId: !!sessionId, sessionIdValue: sessionId });
+    console.log('ChatWidget: localStorage contents:', {
+      chat_widget_token: localStorage.getItem('chat_widget_token'),
+      access_token: localStorage.getItem('access_token'),
+      chat_widget_session_id: localStorage.getItem('chat_widget_session_id'),
+      chat_widget_user: localStorage.getItem('chat_widget_user')
+    });
 
     const connectionOptions: any = {
       transports: ['websocket', 'polling'],
@@ -357,6 +363,7 @@ class ChatWidgetCore {
       connectionOptions.query = { sessionId };
     }
 
+    console.log('ChatWidget: Final connection options:', JSON.stringify(connectionOptions, null, 2));
     this.socket = io(`${this.wsUrl}${namespace}`, connectionOptions);
 
     // Обработчики событий

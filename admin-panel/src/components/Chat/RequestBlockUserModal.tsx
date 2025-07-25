@@ -89,7 +89,7 @@ export default function RequestBlockUserModal({
   };
 
   const handleRequestBlock = () => {
-    if (selectedReason) {
+    if (selectedReason && userId) {
       requestBlockMutation.mutate({ 
         reason: selectedReason,
         comment: comment.trim()
@@ -199,7 +199,7 @@ export default function RequestBlockUserModal({
             </Button>
             <Button
               onClick={handleRequestBlock}
-              disabled={!selectedReason || requestBlockMutation.isPending}
+              disabled={!selectedReason || !userId || requestBlockMutation.isPending}
               className="flex-1"
             >
               {requestBlockMutation.isPending ? (

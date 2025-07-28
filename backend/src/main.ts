@@ -88,7 +88,7 @@ async function bootstrap() {
         process.env.ADMIN_PANEL_URL,
         'https://chat-admin-panel.vercel.app', // Админ панель
         'https://chat-nine-snowy.vercel.app' // Виджет
-      ].filter(Boolean)
+      ].filter(Boolean).map(url => url?.replace(/\/$/, '')) // Убираем слеш в конце
     : [
         process.env.CLIENT_URL,
         process.env.WIDGET_URL,
@@ -97,7 +97,7 @@ async function bootstrap() {
         'http://localhost:3000',
         'http://localhost:3001',
         'http://localhost:3005'
-      ].filter(Boolean);
+      ].filter(Boolean).map(url => url?.replace(/\/$/, '')); // Убираем слеш в конце
 
   app.enableCors({
     origin: (origin, callback) => {

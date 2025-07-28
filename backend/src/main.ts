@@ -82,10 +82,16 @@ async function bootstrap() {
 
   // 🔐 CORS настройки для безопасности
   const corsOrigins = process.env.NODE_ENV === 'production' 
-    ? [process.env.CLIENT_URL, process.env.WIDGET_URL].filter(Boolean)
+    ? [
+        process.env.CLIENT_URL, 
+        process.env.WIDGET_URL, 
+        process.env.ADMIN_PANEL_URL,
+        'https://chat-admin-panel.vercel.app' // Временное решение для админ панели
+      ].filter(Boolean)
     : [
         process.env.CLIENT_URL,
         process.env.WIDGET_URL,
+        process.env.ADMIN_PANEL_URL,
         'http://localhost:5500',
         'http://localhost:3000',
         'http://localhost:3001'

@@ -72,6 +72,14 @@ function AdminChatPageContent() {
     }
   });
 
+  // Автоматически выбираем первую беседу при загрузке
+  useEffect(() => {
+    if (conversations?.data?.length > 0 && !selectedConversation) {
+      const firstConversation = conversations.data[0];
+      setSelectedConversation(firstConversation._id);
+    }
+  }, [conversations, selectedConversation]);
+
   const { data: messages, isLoading: messagesLoading } = useQuery({
     queryKey: ['admin-messages', selectedConversation],
     queryFn: async () => {

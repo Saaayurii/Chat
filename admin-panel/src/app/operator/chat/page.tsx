@@ -133,6 +133,7 @@ function OperatorChatPageContent() {
     refetchInterval: 30000,
   });
 
+ 
   const { data: transferRequests } = useQuery({
     queryKey: ['transfer-requests'],
     queryFn: async () => [],  // Mock empty array for now
@@ -145,9 +146,19 @@ function OperatorChatPageContent() {
       if (!selectedConversation) return [];
       try {
         const response = await chatAPI.getMessages(selectedConversation);
-        // API возвращает пагинированный ответ, извлекаем данные
+        // API возвращает пагинированный ответ типа PaginatedResponse<Message>
         const responseData = response.data;
-        return responseData.data || [];
+        console.log('Messages API response:', responseData);
+        
+        // Проверяем структуру ответа и извлекаем массив сообщений
+        if (Array.isArray(responseData)) {
+          return responseData;
+        } else if (responseData && responseData.data && Array.isArray(responseData.data)) {
+          return responseData.data;
+        }
+        
+        console.warn('Unexpected response format:', responseData);
+        return [];
       } catch (error) {
         console.error('Error fetching messages:', error);
         return []; // Возвращаем пустой массив в случае ошибки
@@ -161,17 +172,8 @@ function OperatorChatPageContent() {
   const calculateUnreadCount = useCallback((conversationId: string) => {
     const cachedMessages = queryClient.getQueryData(['messages', conversationId]);
     
-    if (cachedMessages) {
-      let messageList = [];
-      if ((cachedMessages as any)?.data && Array.isArray((cachedMessages as any).data)) {
-        messageList = (cachedMessages as any).data;
-      } else if ((cachedMessages as any)?.messages && Array.isArray((cachedMessages as any).messages)) {
-        messageList = (cachedMessages as any).messages;
-      } else if (Array.isArray(cachedMessages)) {
-        messageList = cachedMessages;
-      }
-      
-      return messageList.filter((msg: any) => {
+    if (cachedMessages && Array.isArray(cachedMessages)) {
+      return cachedMessages.filter((msg: any) => {
         let actualSenderId = msg.senderId;
         if (typeof actualSenderId === 'string' && actualSenderId.includes('ObjectId')) {
           const idMatch = actualSenderId.match(/ObjectId\('([^']+)'\)/);
@@ -445,7 +447,7 @@ function OperatorChatPageContent() {
             }`}
           >
             <p className={`${isMobile ? 'text-base' : 'text-sm'} leading-relaxed`}>
-              {message.content || message.text}
+              {message.text || message.content}
             </p>
             <div className="flex items-center justify-between mt-1">
               <p
@@ -453,7 +455,7 @@ function OperatorChatPageContent() {
                   isOperatorMessage ? "text-blue-200" : "text-gray-500"
                 }`}
               >
-                {new Date(message.timestamp || message.createdAt || new Date()).toLocaleTimeString()}
+                {new Date(message.createdAt || message.timestamp || new Date()).toLocaleTimeString()}
               </p>
               <div className="flex items-center space-x-1">
                 {(() => {

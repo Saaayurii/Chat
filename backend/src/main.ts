@@ -86,7 +86,8 @@ async function bootstrap() {
         process.env.CLIENT_URL, 
         process.env.WIDGET_URL, 
         process.env.ADMIN_PANEL_URL,
-        'https://chat-admin-panel.vercel.app' // Временное решение для админ панели
+        'https://chat-admin-panel.vercel.app', // Админ панель
+        'https://chat-nine-snowy.vercel.app' // Виджет
       ].filter(Boolean)
     : [
         process.env.CLIENT_URL,
@@ -94,11 +95,32 @@ async function bootstrap() {
         process.env.ADMIN_PANEL_URL,
         'http://localhost:5500',
         'http://localhost:3000',
-        'http://localhost:3001'
+        'http://localhost:3001',
+        'http://localhost:3005'
       ].filter(Boolean);
 
   app.enableCors({
-    origin: corsOrigins,
+    origin: (origin, callback) => {
+      // Разрешить запросы без origin (например, мобильные приложения)
+      if (!origin) return callback(null, true);
+      
+      // Разрешить запросы с разрешенных доменов
+      if (corsOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      
+      // Разрешить все vercel.app домены в production
+      if (process.env.NODE_ENV === 'production' && origin.endsWith('.vercel.app')) {
+        return callback(null, true);
+      }
+      
+      // Разрешить localhost в development
+      if (process.env.NODE_ENV !== 'production' && origin.includes('localhost')) {
+        return callback(null, true);
+      }
+      
+      callback(new Error('Not allowed by CORS'));
+    },
     credentials: true, // Разрешить cookies
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [

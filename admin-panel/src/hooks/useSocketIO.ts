@@ -97,7 +97,7 @@ export const useSocketIO = (namespace: string, options: UseSocketIOOptions = {})
     setError(null);
 
     try {
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3004';
+      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_API_URL;
       console.log(`[${timestamp}] SocketIO: Connecting to ${wsUrl}${namespace}`);
       
       const connectionOptions: any = {

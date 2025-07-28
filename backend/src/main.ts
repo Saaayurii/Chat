@@ -101,24 +101,34 @@ async function bootstrap() {
 
   app.enableCors({
     origin: (origin, callback) => {
+      console.log(`🌐 CORS check: origin = ${origin}, NODE_ENV = ${process.env.NODE_ENV}`);
+      console.log(`🌐 CORS origins:`, corsOrigins);
+      
       // Разрешить запросы без origin (например, мобильные приложения)
-      if (!origin) return callback(null, true);
+      if (!origin) {
+        console.log(`🌐 CORS: Allowing request without origin`);
+        return callback(null, true);
+      }
       
       // Разрешить запросы с разрешенных доменов
       if (corsOrigins.includes(origin)) {
+        console.log(`🌐 CORS: Origin ${origin} found in corsOrigins - ALLOWED`);
         return callback(null, true);
       }
       
       // Разрешить все vercel.app домены в production
       if (process.env.NODE_ENV === 'production' && origin.endsWith('.vercel.app')) {
+        console.log(`🌐 CORS: Vercel domain ${origin} - ALLOWED`);
         return callback(null, true);
       }
       
       // Разрешить localhost в development
       if (process.env.NODE_ENV !== 'production' && origin.includes('localhost')) {
+        console.log(`🌐 CORS: Localhost domain ${origin} - ALLOWED`);
         return callback(null, true);
       }
       
+      console.log(`🌐 CORS: Origin ${origin} - BLOCKED`);
       callback(new Error('Not allowed by CORS'));
     },
     credentials: true, // Разрешить cookies
@@ -142,8 +152,12 @@ async function bootstrap() {
 
   // 📊 Логирование информации о запуске
   console.log('🚀 Приложение запущено на порту:', port);
+  console.log('🌍 NODE_ENV:', process.env.NODE_ENV);
   console.log('📚 API Documentation:', process.env.API_DOCUMENTATION);
   console.log('🔗 Client URL:', process.env.CLIENT_URL);
+  console.log('🔗 Admin Panel URL:', process.env.ADMIN_PANEL_URL);
+  console.log('🔗 Widget URL:', process.env.WIDGET_URL);
+  console.log('🌐 CORS Origins:', corsOrigins);
   console.log(
     '🍪 Cookie Secret:',
     process.env.COOKIE_SECRET ? '✅ Настроен' : '❌ Не настроен',

@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import { useUnreadMessages } from '@/contexts/UnreadMessagesContext';
 import { useUI } from '@/contexts/UIContext';
-import { UserRole, ChatUser } from '@/types';
+import { UserRole, ChatUser, CachedResponse, PaginatedResponse, Message } from '@/types';
 import { chatAPI } from '@/core/api';
 import { useChat } from '@/hooks/useChat';
 import { usePresence } from '@/components/Presence/usePresence';
@@ -134,6 +134,7 @@ function OperatorChatPageContent() {
   });
 
  
+  
   const { data: transferRequests } = useQuery({
     queryKey: ['transfer-requests'],
     queryFn: async () => [],  // Mock empty array for now
@@ -146,15 +147,29 @@ function OperatorChatPageContent() {
       if (!selectedConversation) return [];
       try {
         const response = await chatAPI.getMessages(selectedConversation);
-        // API возвращает пагинированный ответ типа PaginatedResponse<Message>
-        const responseData = response.data;
+        // API может возвращать разные типы ответов
+        const responseData = response.data as unknown;
         console.log('Messages API response:', responseData);
+        
+        // Type guard для CachedResponse
+        const isCachedResponse = (data: unknown): data is CachedResponse<Message> => {
+          return typeof data === 'object' && data !== null && 
+                 'messages' in data && 'fromCache' in data && 'cacheInfo' in data;
+        };
+        
+        // Type guard для PaginatedResponse
+        const isPaginatedResponse = (data: unknown): data is PaginatedResponse<Message> => {
+          return typeof data === 'object' && data !== null && 
+                 'data' in data && 'total' in data && 'page' in data;
+        };
         
         // Проверяем структуру ответа и извлекаем массив сообщений
         if (Array.isArray(responseData)) {
           return responseData;
-        } else if (responseData && responseData.data && Array.isArray(responseData.data)) {
+        } else if (isPaginatedResponse(responseData)) {
           return responseData.data;
+        } else if (isCachedResponse(responseData)) {
+          return responseData.messages;
         }
         
         console.warn('Unexpected response format:', responseData);

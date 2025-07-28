@@ -137,6 +137,15 @@ export interface PaginatedResponse<T> {
   totalPages: number;
 }
 
+export interface CachedResponse<T> {
+  messages: T[];
+  fromCache: boolean;
+  cacheInfo: {
+    totalCached: number;
+    lastCached: number | null;
+  };
+}
+
 // Statistics
 export interface StatisticsData {
   totalMessages: number;

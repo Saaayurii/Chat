@@ -9,6 +9,7 @@ interface UsePresenceOptions {
   userId: string;
   token?: string;
   heartbeatInterval?: number;
+  updateInterval?: number; // Добавляем updateInterval
   autoConnect?: boolean;
   enableCrossTabSync?: boolean;
   enableNotifications?: boolean;

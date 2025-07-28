@@ -6,6 +6,7 @@ import Button from '@/components/UI/Button';
 import Badge from '@/components/UI/Badge';
 import OnlineUsersList from '@/components/Presence/OnlineUsersList';
 import PresenceAvatar from '@/components/Presence/PresenceAvatar';
+import { PresenceStatus } from '@/components/Presence/types';
 import * as Radix from '@radix-ui/themes';
 
 interface ChatSidebarProps {
@@ -243,6 +244,7 @@ function ChatSidebar({
                       userId={sender.id}
                       userName={sender.name}
                       avatar={sender.avatar}
+                      status={sender.isOnline ? PresenceStatus.ONLINE : PresenceStatus.OFFLINE}
                       showStatus={true}
                       size="md"
                     />

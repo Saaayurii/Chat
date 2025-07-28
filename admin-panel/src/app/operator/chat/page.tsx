@@ -49,7 +49,7 @@ interface SenderType {
   source?: string;
 }
 
-interface Message {
+interface LocalMessage {
   _id?: string;
   id?: string;
   senderId: string;
@@ -57,7 +57,7 @@ interface Message {
   content?: string;
   text?: string;
   timestamp?: string;
-  createdAt?: string;
+  createdAt?: string | Date;
   isRead?: boolean;
   readBy?: string[];
 }
@@ -65,7 +65,7 @@ interface Message {
 function OperatorChatPageContent() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { updateUnreadCount } = useUnreadMessages();
+  const { updateUnreadCount, decrementUnreadCount } = useUnreadMessages();
   const { state: uiState, actions: uiActions } = useUI();
   const queryClient = useQueryClient();
 
@@ -112,6 +112,7 @@ function OperatorChatPageContent() {
 
   const presence = usePresence({
     apiUrl: '/api/presence',
+    userId: user?.id || '',
     updateInterval: 30000
   });
 
@@ -145,7 +146,7 @@ function OperatorChatPageContent() {
         const response = await chatAPI.getMessages(selectedConversation);
         // API возвращает пагинированный ответ, извлекаем данные
         const responseData = response.data;
-        return responseData.data || responseData.messages || responseData || [];
+        return responseData.data || [];
       } catch (error) {
         console.error('Error fetching messages:', error);
         return []; // Возвращаем пустой массив в случае ошибки
@@ -317,7 +318,8 @@ function OperatorChatPageContent() {
         markConversationAsRead(sender.conversationId);
         queryClient.invalidateQueries({ queryKey: ['messages', sender.conversationId] });
         queryClient.invalidateQueries({ queryKey: ['operator-conversations'] });
-        updateUnreadCount(sender.conversationId);
+        // Update unread count - this should be handled by the context
+        decrementUnreadCount();
       } catch (error) {
         console.error('Error marking messages as read:', error);
       }
@@ -381,9 +383,9 @@ function OperatorChatPageContent() {
   // Transfer requests effect
   useEffect(() => {
     if (transferRequests && Array.isArray(transferRequests) && transferRequests.length > 0 && !showTransferRequestModal) {
-      const latestRequest = transferRequests[0];
+      const latestRequest = transferRequests[0] as any;
       const currentRequestId = transferRequest?.id;
-      if (latestRequest.id !== currentRequestId) {
+      if (latestRequest?.id && latestRequest.id !== currentRequestId) {
         setTransferRequest(latestRequest);
         setShowTransferRequestModal(true);
       }
@@ -394,7 +396,7 @@ function OperatorChatPageContent() {
   const renderMessages = () => {
     if (!messages || !Array.isArray(messages)) return null;
 
-    return messages.map((message: Message) => {
+    return messages.map((message: any) => {
       let actualSenderId = message.senderId;
       if (typeof actualSenderId === 'string' && actualSenderId.includes('ObjectId')) {
         const idMatch = actualSenderId.match(/ObjectId\('([^']+)'\)/);
@@ -411,8 +413,8 @@ function OperatorChatPageContent() {
           (conv._id === selectedSender.conversationId || (conv as any).id === selectedSender.conversationId)
         );
         if (conversation) {
-          const participant = conversation.participants?.find((p: any) => p.id === actualSenderId);
-          if (participant) {
+          const participant = conversation.participants?.find((p: any) => (p.id || p._id) === actualSenderId) as any;
+          if (participant && typeof participant === 'object' && participant.role) {
             senderRole = participant.role || 'visitor';
           }
         }
@@ -684,7 +686,27 @@ function OperatorChatPageContent() {
         <UserInfoSidebar
           isOpen={uiState.isUserInfoOpen}
           onClose={uiActions.closeUserInfo}
-          selectedUser={selectedSender as ChatUser}
+          selectedUser={{
+            _id: selectedSender.id,
+            id: selectedSender.id,
+            email: selectedSender.email,
+            role: (selectedSender.role as UserRole) || UserRole.VISITOR,
+            isActivated: selectedSender.isAuthorized || false,
+            isBlocked: false,
+            blacklistedByAdmin: false,
+            blacklistedByOperator: false,
+            profile: {
+              username: selectedSender.name,
+              fullName: selectedSender.name,
+              phone: selectedSender.phone,
+              avatarUrl: selectedSender.avatar,
+              bio: undefined,
+              lastSeenAt: new Date(),
+              isOnline: selectedSender.isOnline
+            },
+            createdAt: new Date(),
+            updatedAt: new Date()
+          } as ChatUser}
           isMobile={isMobile}
         />
       )}

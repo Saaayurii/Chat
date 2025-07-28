@@ -6,7 +6,7 @@ import Button from '@/components/UI/Button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/UI/Avatar';
 import Badge from '@/components/UI/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/UI/Card';
-import { ChatUser } from '@/types';
+import { ChatUser, UserRole } from '@/types';
 
 interface UserInfoSidebarProps {
   isOpen: boolean;
@@ -136,11 +136,11 @@ function UserInfoSidebar({ isOpen, onClose, selectedUser, isMobile }: UserInfoSi
                       {selectedUser.email}
                     </p>
                     <div className="flex items-center space-x-2 mt-2">
-                      <Badge variant={selectedUser.role === 'ADMIN' ? 'destructive' : selectedUser.role === 'OPERATOR' ? 'default' : 'secondary'}>
-                        {selectedUser.role === 'ADMIN' ? 'Администратор' : selectedUser.role === 'OPERATOR' ? 'Оператор' : 'Посетитель'}
+                      <Badge variant={selectedUser.role === UserRole.ADMIN ? 'destructive' : selectedUser.role === UserRole.OPERATOR ? 'default' : 'secondary'}>
+                        {selectedUser.role === UserRole.ADMIN ? 'Администратор' : selectedUser.role === UserRole.OPERATOR ? 'Оператор' : 'Посетитель'}
                       </Badge>
-                      <Badge variant={selectedUser.isOnline ? 'default' : 'secondary'}>
-                        {selectedUser.isOnline ? 'Онлайн' : 'Оффлайн'}
+                      <Badge variant={selectedUser.profile?.isOnline ? 'default' : 'secondary'}>
+                        {selectedUser.profile?.isOnline ? 'Онлайн' : 'Оффлайн'}
                       </Badge>
                     </div>
                   </div>
@@ -187,14 +187,14 @@ function UserInfoSidebar({ isOpen, onClose, selectedUser, isMobile }: UserInfoSi
               <CardContent className="p-4 pt-0 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Роль:</span>
-                  <Badge variant={selectedUser.role === 'ADMIN' ? 'destructive' : selectedUser.role === 'OPERATOR' ? 'default' : 'secondary'}>
-                    {selectedUser.role === 'ADMIN' ? 'Администратор' : selectedUser.role === 'OPERATOR' ? 'Оператор' : 'Посетитель'}
+                  <Badge variant={selectedUser.role === UserRole.ADMIN ? 'destructive' : selectedUser.role === UserRole.OPERATOR ? 'default' : 'secondary'}>
+                    {selectedUser.role === UserRole.ADMIN ? 'Администратор' : selectedUser.role === UserRole.OPERATOR ? 'Оператор' : 'Посетитель'}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Статус:</span>
-                  <Badge variant={selectedUser.isOnline ? 'default' : 'secondary'}>
-                    {selectedUser.isOnline ? 'Онлайн' : 'Оффлайн'}
+                  <Badge variant={selectedUser.profile?.isOnline ? 'default' : 'secondary'}>
+                    {selectedUser.profile?.isOnline ? 'Онлайн' : 'Оффлайн'}
                   </Badge>
                 </div>
                 {selectedUser.createdAt && (
@@ -203,17 +203,17 @@ function UserInfoSidebar({ isOpen, onClose, selectedUser, isMobile }: UserInfoSi
                     <span className="text-sm">{formatDate(selectedUser.createdAt)}</span>
                   </div>
                 )}
-                {selectedUser.lastActiveAt && (
+                {selectedUser.profile?.lastSeenAt && (
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Последняя активность:</span>
-                    <span className="text-sm">{formatDate(selectedUser.lastActiveAt)}</span>
+                    <span className="text-sm">{formatDate(selectedUser.profile.lastSeenAt)}</span>
                   </div>
                 )}
               </CardContent>
             </Card>
 
             {/* Statistics */}
-            {selectedUser.stats && (
+            {selectedUser.operatorStats && (
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base flex items-center">
@@ -224,16 +224,16 @@ function UserInfoSidebar({ isOpen, onClose, selectedUser, isMobile }: UserInfoSi
                 <CardContent className="p-4 pt-0 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Всего сообщений:</span>
-                    <span className="text-sm font-medium">{selectedUser.stats.totalMessages || 0}</span>
+                    <span className="text-sm font-medium">{selectedUser.operatorStats.totalQuestions || 0}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Всего чатов:</span>
-                    <span className="text-sm font-medium">{selectedUser.stats.totalChats || 0}</span>
+                    <span className="text-sm font-medium">{selectedUser.operatorStats.resolvedQuestions || 0}</span>
                   </div>
-                  {selectedUser.stats.averageRating && (
+                  {selectedUser.operatorStats.averageRating && (
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Средняя оценка:</span>
-                      <span className="text-sm font-medium">{selectedUser.stats.averageRating.toFixed(1)}</span>
+                      <span className="text-sm font-medium">{selectedUser.operatorStats.averageRating.toFixed(1)}</span>
                     </div>
                   )}
                 </CardContent>

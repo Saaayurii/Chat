@@ -64,7 +64,7 @@ interface LocalMessage {
 
 function OperatorChatPageContent() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   const { updateUnreadCount, decrementUnreadCount } = useUnreadMessages();
   const { state: uiState, actions: uiActions } = useUI();
   const queryClient = useQueryClient();
@@ -111,8 +111,9 @@ function OperatorChatPageContent() {
   } = useChat();
 
   const presence = usePresence({
-    apiUrl: '/api/presence',
+    apiUrl: process.env.NEXT_PUBLIC_API_URL || 'https://chat-backend-13tr.onrender.com',
     userId: user?.id || '',
+    token: token || undefined,
     updateInterval: 30000
   });
 

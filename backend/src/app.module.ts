@@ -19,12 +19,18 @@ import { TransferModule } from './transfer/transfer.module';
 import { CommonModule } from './common/common.module';
 import { HealthModule } from './health/health.module';
 import { redisConfig } from './config/redis.config';
+import { databaseConfig } from './config/database.config';
+import { validate } from './config/env.validation';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { StaticFilesService } from './common/services/static-files.service';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+      validate,
     }),
     LoggerModule.forRoot({
       pinoHttp: {
@@ -53,29 +59,7 @@ import { redisConfig } from './config/redis.config';
     }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => {
-        const uri = configService.get<string>('MONGO_URI');
-
-        if (!uri) {
-          console.error('❌ MONGO_URI не найден в переменных окружения!');
-          console.log(
-            'Доступные переменные:',
-            Object.keys(process.env).slice(0, 10),
-          );
-          throw new Error('MONGO_URI is required');
-        }
-
-        console.log('✅ MONGO_URI найден, подключаемся...');
-
-        return {
-          uri,
-          serverSelectionTimeoutMS: 5000, // 5 секунд на подключение
-          socketTimeoutMS: 45000,
-          maxPoolSize: 10,
-          retryWrites: true,
-          w: 'majority',
-        };
-      },
+      useFactory: databaseConfig,
       inject: [ConfigService],
     }),
     AuthModule,
@@ -91,5 +75,7 @@ import { redisConfig } from './config/redis.config';
     HealthModule,
     DatabaseModule,
   ],
+  controllers: [AppController],
+  providers: [AppService, StaticFilesService],
 })
 export class AppModule {}

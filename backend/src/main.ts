@@ -81,12 +81,18 @@ async function bootstrap() {
   SwaggerModule.setup('api-docs', app, swaggerDocument);
 
   // 🔐 CORS настройки для безопасности
+  const corsOrigins = process.env.NODE_ENV === 'production' 
+    ? [process.env.CLIENT_URL, process.env.WIDGET_URL].filter(Boolean)
+    : [
+        process.env.CLIENT_URL,
+        process.env.WIDGET_URL,
+        'http://localhost:5500',
+        'http://localhost:3000',
+        'http://localhost:3001'
+      ].filter(Boolean);
+
   app.enableCors({
-    origin: [
-      process.env.CLIENT_URL,
-      process.env.WIDGET_URL,
-      'http://localhost:5500'
-    ], // Разрешённые домены
+    origin: corsOrigins,
     credentials: true, // Разрешить cookies
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [
@@ -103,7 +109,7 @@ async function bootstrap() {
   app.useWebSocketAdapter(new IoAdapter(app));
 
   // 🚀 Запуск приложения
-  const port = process.env.SERVER_PORT || 3003;
+  const port = process.env.PORT || 3000;
   await app.listen(port);
 
   // 📊 Логирование информации о запуске

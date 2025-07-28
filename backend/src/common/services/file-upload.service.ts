@@ -12,7 +12,7 @@ export class FileUploadService {
   private readonly allowedImageTypes: string[];
 
   constructor(private configService: ConfigService) {
-    this.uploadDir = this.configService.get<string>('UPLOAD_DIR', './uploads');
+    this.uploadDir = this.configService.get<string>('UPLOAD_DIR', '/opt/render/project/src/uploads');
     this.maxFileSize = this.configService.get<number>('MAX_FILE_SIZE', 10 * 1024 * 1024); // 10MB
     this.allowedMimeTypes = [
       'image/jpeg',

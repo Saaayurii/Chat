@@ -7,8 +7,8 @@ WORKDIR /app
 # Копируем package.json и package-lock.json
 COPY package*.json ./
 
-# Устанавливаем зависимости
-RUN npm ci --only=production && npm cache clean --force
+# Устанавливаем все зависимости для сборки
+RUN npm ci && npm cache clean --force
 
 # Копируем исходный код
 COPY . .
@@ -22,6 +22,7 @@ FROM node:20-alpine AS production
 # Устанавливаем необходимые системные зависимости
 RUN apk add --no-cache \
     tini \
+    dumb-init \
     && addgroup -g 1001 -S nodejs \
     && adduser -S nestjs -u 1001
 
@@ -37,11 +38,13 @@ RUN npm ci --only=production && npm cache clean --force
 # Копируем собранное приложение из builder stage
 COPY --from=builder /app/dist ./dist
 
-# Создаем директорию для uploads
-RUN mkdir -p /app/uploads && chown -R nestjs:nodejs /app/uploads
+# Создаем директорию для uploads с правильными правами
+RUN mkdir -p /opt/render/project/src/uploads && \
+    chown -R nestjs:nodejs /opt/render/project/src/uploads && \
+    chmod 755 /opt/render/project/src/uploads
 
 # Копируем необходимые файлы
-COPY --chown=nestjs:nodejs . .
+COPY --chown=nestjs:nodejs healthcheck.js .
 
 # Переключаемся на непривилегированного пользователя
 USER nestjs
@@ -53,8 +56,8 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD node healthcheck.js
 
-# Используем tini как init процесс
-ENTRYPOINT ["/sbin/tini", "--"]
+# Используем dumb-init как init процесс для правильной обработки сигналов
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 
 # Запускаем приложение
 CMD ["node", "dist/main.js"]

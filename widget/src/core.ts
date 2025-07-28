@@ -455,7 +455,7 @@ class ChatWidgetCore {
 
 // Экспортируем singleton инстанс
 export const chatCore = new ChatWidgetCore(
-  import.meta.env.VITE_API_URL || 'http://localhost:3004'
+  import.meta.env.VITE_API_URL || 'https://chat-backend-13tr.onrender.com'
 );
 
 export default chatCore;

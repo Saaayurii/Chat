@@ -268,18 +268,77 @@ dist/
 └── assets/              # Другие ресурсы
 ```
 
-## 🚀 Деплой
+## 🚀 Деплой на Vercel
+
+### Подготовка к деплою
 
 1. **Соберите проект:**
 ```bash
 npm run build
 ```
 
-2. **Разместите файлы на вашем сервере:**
-   - `chat-widget.js` и `chat-widget.css` должны быть доступны по HTTP
+2. **Проверьте файлы сборки:**
+После сборки в папке `dist/` должны появиться:
+- `chat-widget.iife.js` - основной файл виджета
+- `chat-widget.css` - стили виджета
+
+### Настройки Vercel
+
+1. **Build Command:** `npm run build`
+2. **Output Directory:** `dist`
+3. **Node.js Version:** 18.x или выше
+
+### Environment Variables для Vercel
+
+Установите в настройках Vercel:
+
+```
+VITE_API_URL=https://chat-backend-13tr.onrender.com
+VITE_DEBUG=false
+NODE_ENV=production
+```
+
+### Использование после деплоя
+
+После деплоя виджет будет доступен по адресу:
+```
+https://your-vercel-app.vercel.app/chat-widget.iife.js
+https://your-vercel-app.vercel.app/chat-widget.css
+```
+
+Для встраивания на сайт используйте:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://your-vercel-app.vercel.app/chat-widget.css">
+</head>
+<body>
+    <!-- Ваш контент -->
+    
+    <script src="https://your-vercel-app.vercel.app/chat-widget.iife.js"></script>
+    <script>
+        // Инициализация виджета
+        if (window.ChatWidget) {
+            window.ChatWidget.initChatWidget({
+                apiUrl: 'https://chat-backend-13tr.onrender.com',
+                theme: 'light',
+                position: 'bottom-right'
+            });
+        }
+    </script>
+</body>
+</html>
+```
+
+### Ручной деплой
+
+1. **Разместите файлы на вашем сервере:**
+   - `chat-widget.iife.js` и `chat-widget.css` должны быть доступны по HTTP
    - Настройте CORS для доменов, где будет использоваться виджет
 
-3. **Обновите конфигурацию:**
+2. **Обновите конфигурацию:**
    - Установите правильный `apiUrl` в конфигурации виджета
    - Убедитесь, что backend API доступен и настроен
 

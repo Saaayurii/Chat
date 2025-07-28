@@ -9,7 +9,7 @@ export default defineConfig({
   define: {
     __VITE_DEBUG__: JSON.stringify(false),
     'process.env.NODE_ENV': JSON.stringify('production'),
-    'import.meta.env.VITE_API_URL': JSON.stringify('http://localhost:3004'),
+    'import.meta.env.VITE_API_URL': JSON.stringify('https://chat-backend-13tr.onrender.com'),
     'import.meta.env.MODE': JSON.stringify('production'),
     'import.meta.env.PROD': JSON.stringify(true),
     'import.meta.env.DEV': JSON.stringify(false),
@@ -26,11 +26,13 @@ export default defineConfig({
         entryFileNames: 'chat-widget.iife.js',
         assetFileNames: 'chat-widget.css',
         inlineDynamicImports: true,
-        extend: true, // Позволяет добавлять к существующему глобальному объекту
+        extend: true,
+        manualChunks: undefined
       },
-      external: [], // Не делаем ничего внешним
+      external: [],
     },
-    // Увеличиваем лимит для предупреждений о размере
-    chunkSizeWarningLimit: 1000
+    chunkSizeWarningLimit: 1000,
+    minify: 'terser',
+    sourcemap: false
   }
 })

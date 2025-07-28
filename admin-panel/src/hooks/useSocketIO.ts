@@ -97,7 +97,7 @@ export const useSocketIO = (namespace: string, options: UseSocketIOOptions = {})
     setError(null);
 
     try {
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_API_URL || 'https://chat-backend-13tr.onrender.com';
+      const wsUrl = 'https://chat-backend-13tr.onrender.com'; // Временно захардкожено
       console.log(`[${timestamp}] SocketIO: Connecting to ${wsUrl}${namespace}`);
       
       const connectionOptions: any = {

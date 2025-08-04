@@ -1,66 +1,96 @@
-'use client';
+"use client";
 
-import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Search, MessageSquare, Ban, User, Mail, Phone, Globe, Calendar, Filter } from 'lucide-react';
-import { useAuthStore } from '@/store/authStore';
-import { usersAPI } from '@/core/api';
-import { UserRole } from '@/types';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import Button from '@/components/UI/Button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/UI/Avatar';
-import Badge from '@/components/UI/Badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/UI/Card';
-import { Input } from '@/components/UI/Input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/UI/Select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/UI/Table';
-import Pagination from '@/components/UI/Pagination';
-import { PresenceIndicator, PresenceStatus } from '@/components/Presence';
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Search,
+  MessageSquare,
+  Ban,
+  User,
+  Mail,
+  Phone,
+  Globe,
+  Calendar,
+  Filter,
+} from "lucide-react";
+import { useAuthStore } from "@/store/authStore";
+import { usersAPI } from "@/core/api";
+import { UserRole } from "@/types";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import Button from "@/components/UI/Button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/UI/Avatar";
+import Badge from "@/components/UI/Badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/UI/Card";
+import { Input } from "@/components/UI/Input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/UI/Select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/UI/Table";
+import Pagination from "@/components/UI/Pagination";
+import { PresenceIndicator, PresenceStatus } from "@/components/Presence";
 
 function VisitorsPageContent() {
   const { user } = useAuthStore();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [sourceFilter, setSourceFilter] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(10);
+  const { 0: searchQuery, 1: setSearchQuery } = useState("");
+  const { 0: statusFilter, 1: setStatusFilter } = useState("all");
+  const { 0: sourceFilter, 1: setSourceFilter } = useState("all");
+  const { 0: currentPage, 1: setCurrentPage } = useState(1);
+  const { 0: pageSize } = useState(10);
 
   const { data: visitorsData, isLoading } = useQuery({
-    queryKey: ['visitors', currentPage, pageSize, searchQuery, statusFilter, sourceFilter],
+    queryKey: [
+      "visitors",
+      currentPage,
+      pageSize,
+      searchQuery,
+      statusFilter,
+      sourceFilter,
+    ],
     queryFn: async () => {
       const response = await usersAPI.getUsers({
         role: UserRole.VISITOR,
         search: searchQuery,
         page: currentPage,
-        limit: pageSize
+        limit: pageSize,
       });
       return response.data;
-    }
+    },
   });
 
   const filteredVisitors = useMemo(() => {
     if (!visitorsData?.data) return [];
-    
+
     let filtered = visitorsData.data;
-    
+
     // Filter by status
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(visitor => {
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((visitor) => {
         switch (statusFilter) {
-          case 'authorized':
+          case "authorized":
             return visitor.isActivated && !visitor.isBlocked;
-          case 'unauthorized':
+          case "unauthorized":
             return !visitor.isActivated && !visitor.isBlocked;
-          case 'blocked':
+          case "blocked":
             return visitor.isBlocked;
           default:
             return true;
         }
       });
     }
-    
+
     // Filter by source - removed as this property doesn't exist in User type
-    
+
     return filtered;
   }, [visitorsData, statusFilter, sourceFilter]);
 
@@ -71,7 +101,7 @@ function VisitorsPageContent() {
 
   const handleBlockUser = (visitorId: string) => {
     // Open block user modal
-    console.log('Block user:', visitorId);
+    console.log("Block user:", visitorId);
   };
 
   const getStatusBadge = (visitor: any) => {
@@ -104,25 +134,31 @@ function VisitorsPageContent() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Всего посетителей</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Всего посетителей
+            </CardTitle>
             <User className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{visitorsData?.total || 0}</div>
             <p className="text-xs text-muted-foreground">
-              {visitorsData?.data?.filter(v => v.profile?.isOnline).length || 0} в сети
+              {visitorsData?.data?.filter((v) => v.profile?.isOnline).length ||
+                0}{" "}
+              в сети
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Авторизованные</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Авторизованные
+            </CardTitle>
             <User className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {visitorsData?.data?.filter(v => v.isActivated).length || 0}
+              {visitorsData?.data?.filter((v) => v.isActivated).length || 0}
             </div>
             <p className="text-xs text-muted-foreground">
               Подтвержденные аккаунты
@@ -132,12 +168,14 @@ function VisitorsPageContent() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Заблокированные</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Заблокированные
+            </CardTitle>
             <Ban className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {visitorsData?.data?.filter(v => v.isBlocked).length || 0}
+              {visitorsData?.data?.filter((v) => v.isBlocked).length || 0}
             </div>
             <p className="text-xs text-muted-foreground">
               Заблокированные пользователи
@@ -151,12 +189,8 @@ function VisitorsPageContent() {
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {0}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Ведут диалоги
-            </p>
+            <div className="text-2xl font-bold text-blue-600">{0}</div>
+            <p className="text-xs text-muted-foreground">Ведут диалоги</p>
           </CardContent>
         </Card>
       </div>
@@ -190,7 +224,9 @@ function VisitorsPageContent() {
                 <SelectContent>
                   <SelectItem value="all">Все статусы</SelectItem>
                   <SelectItem value="authorized">Авторизованные</SelectItem>
-                  <SelectItem value="unauthorized">Не авторизованные</SelectItem>
+                  <SelectItem value="unauthorized">
+                    Не авторизованные
+                  </SelectItem>
                   <SelectItem value="blocked">Заблокированные</SelectItem>
                   <SelectItem value="online">В сети</SelectItem>
                 </SelectContent>
@@ -259,18 +295,29 @@ function VisitorsPageContent() {
                       <TableCell>
                         <div className="flex items-center space-x-3">
                           <Avatar className="h-8 w-8">
-                            <AvatarImage src={visitor.profile?.avatarUrl} alt={visitor.profile?.fullName} />
+                            <AvatarImage
+                              src={visitor.profile?.avatarUrl}
+                              alt={visitor.profile?.fullName}
+                            />
                             <AvatarFallback>
-                              {visitor.profile?.fullName?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+                              {visitor.profile?.fullName
+                                ?.split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                                .toUpperCase() || "U"}
                             </AvatarFallback>
                           </Avatar>
                           <div>
                             <div className="flex items-center space-x-2">
                               <p className="font-medium text-foreground">
-                                {visitor.profile?.fullName || visitor.profile?.username || 'Неизвестный'}
+                                {visitor.profile?.fullName ||
+                                  visitor.profile?.username ||
+                                  "Неизвестный"}
                               </p>
-                              <PresenceIndicator 
-                                status={getPresenceStatus(visitor.profile?.isOnline || false)}
+                              <PresenceIndicator
+                                status={getPresenceStatus(
+                                  visitor.profile?.isOnline || false
+                                )}
                                 size="sm"
                               />
                             </div>
@@ -280,21 +327,21 @@ function VisitorsPageContent() {
                           </div>
                         </div>
                       </TableCell>
-                      
+
                       <TableCell>
                         <div className="space-y-1">
                           {getStatusBadge(visitor)}
                           {/* Active chats info removed - property doesn't exist in User type */}
                         </div>
                       </TableCell>
-                      
+
                       <TableCell>
                         <div className="flex items-center space-x-2">
                           <Globe className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm">Веб-сайт</span>
                         </div>
                       </TableCell>
-                      
+
                       <TableCell>
                         <div className="space-y-1">
                           <div className="flex items-center space-x-2">
@@ -304,12 +351,14 @@ function VisitorsPageContent() {
                           {visitor.profile?.phone && (
                             <div className="flex items-center space-x-2">
                               <Phone className="h-3 w-3 text-muted-foreground" />
-                              <span className="text-sm">{visitor.profile.phone}</span>
+                              <span className="text-sm">
+                                {visitor.profile.phone}
+                              </span>
                             </div>
                           )}
                         </div>
                       </TableCell>
-                      
+
                       <TableCell>
                         <div className="flex items-center space-x-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -318,7 +367,7 @@ function VisitorsPageContent() {
                           </span>
                         </div>
                       </TableCell>
-                      
+
                       <TableCell>
                         <div className="flex space-x-2">
                           <Button

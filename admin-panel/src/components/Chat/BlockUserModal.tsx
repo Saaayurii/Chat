@@ -1,13 +1,18 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, AlertTriangle, MessageSquare, Ban, FileText } from 'lucide-react';
-import { chatAPI } from '@/core/api';
-import Button from '@/components/UI/Button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/UI/Dialog';
-import Badge from '@/components/UI/Badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/UI/Avatar';
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { X, AlertTriangle, MessageSquare, Ban, FileText } from "lucide-react";
+import { chatAPI } from "@/core/api";
+import Button from "@/components/UI/Button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/UI/Dialog";
+import Badge from "@/components/UI/Badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/UI/Avatar";
 
 interface BlockUserModalProps {
   isOpen: boolean;
@@ -22,29 +27,29 @@ interface BlockUserModalProps {
 
 const blockReasons = [
   {
-    id: 'spam',
-    label: 'Спам',
-    description: 'Отправка нежелательных сообщений',
-    icon: MessageSquare
+    id: "spam",
+    label: "Спам",
+    description: "Отправка нежелательных сообщений",
+    icon: MessageSquare,
   },
   {
-    id: 'inappropriate_language',
-    label: 'Нецензурная лексика',
-    description: 'Использование неприемлемых выражений',
-    icon: Ban
+    id: "inappropriate_language",
+    label: "Нецензурная лексика",
+    description: "Использование неприемлемых выражений",
+    icon: Ban,
   },
   {
-    id: 'inappropriate_behavior',
-    label: 'Неадекватное поведение',
-    description: 'Агрессивное или неуважительное поведение',
-    icon: AlertTriangle
+    id: "inappropriate_behavior",
+    label: "Неадекватное поведение",
+    description: "Агрессивное или неуважительное поведение",
+    icon: AlertTriangle,
   },
   {
-    id: 'other',
-    label: 'Другое',
-    description: 'Иная причина блокировки',
-    icon: FileText
-  }
+    id: "other",
+    label: "Другое",
+    description: "Иная причина блокировки",
+    icon: FileText,
+  },
 ];
 
 export default function BlockUserModal({
@@ -55,44 +60,52 @@ export default function BlockUserModal({
   userEmail,
   userAvatar,
   conversationId,
-  onBlockComplete
+  onBlockComplete,
 }: BlockUserModalProps) {
-  const [selectedReason, setSelectedReason] = useState<string | null>(null);
-  const [comment, setComment] = useState('');
+  const { 0: selectedReason, 1: setSelectedReason } = useState<string | null>(
+    null
+  );
+  const { 0: comment, 1: setComment } = useState("");
   const queryClient = useQueryClient();
 
   const blockMutation = useMutation({
-    mutationFn: async ({ reason, comment }: { reason: string; comment: string }) => {
+    mutationFn: async ({
+      reason,
+      comment,
+    }: {
+      reason: string;
+      comment: string;
+    }) => {
       const response = await chatAPI.blockUser(userId, {
         reason,
         comment,
-        conversationId
+        conversationId,
       });
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      queryClient.invalidateQueries({ queryKey: ['blacklist'] });
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["blacklist"] });
       onBlockComplete();
       onClose();
       resetForm();
     },
     onError: (error) => {
-      console.error('Block user failed:', error);
-    }
+      console.error("Block user failed:", error);
+    },
   });
 
   const resetForm = () => {
     setSelectedReason(null);
-    setComment('');
+    setComment("");
   };
 
   const handleBlock = () => {
     if (selectedReason) {
-      const reason = blockReasons.find(r => r.id === selectedReason);
-      blockMutation.mutate({ 
+      const reason = blockReasons.find((r) => r.id === selectedReason);
+      blockMutation.mutate({
         reason: reason?.label || selectedReason,
-        comment: comment.trim()
+        comment: comment.trim(),
       });
     }
   };
@@ -116,9 +129,7 @@ export default function BlockUserModal({
               size="icon"
               onClick={handleClose}
               className="h-6 w-6"
-            >
-             
-            </Button>
+            ></Button>
           </div>
         </DialogHeader>
 
@@ -129,7 +140,11 @@ export default function BlockUserModal({
               <Avatar className="h-10 w-10">
                 <AvatarImage src={userAvatar} alt={userName} />
                 <AvatarFallback>
-                  {userName.split(' ').map(n => n[0]).join('').toUpperCase()}
+                  {userName
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div>
@@ -155,16 +170,20 @@ export default function BlockUserModal({
                     key={reason.id}
                     className={`p-3 rounded-lg border cursor-pointer transition-all ${
                       selectedReason === reason.id
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border hover:border-muted-foreground'
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-muted-foreground"
                     }`}
                     onClick={() => setSelectedReason(reason.id)}
                   >
                     <div className="flex items-center space-x-3">
                       <IconComponent className="h-5 w-5 text-muted-foreground" />
                       <div>
-                        <p className="font-medium text-foreground">{reason.label}</p>
-                        <p className="text-sm text-muted-foreground">{reason.description}</p>
+                        <p className="font-medium text-foreground">
+                          {reason.label}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {reason.description}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -200,8 +219,9 @@ export default function BlockUserModal({
                   Предупреждение
                 </p>
                 <p className="text-sm text-orange-700 dark:text-orange-300">
-                  Данное предложение о блокировке посетителя будет отправлено администратору на рассмотрение.
-                  Окончательное решение о блокировке принимает администратор.
+                  Данное предложение о блокировке посетителя будет отправлено
+                  администратору на рассмотрение. Окончательное решение о
+                  блокировке принимает администратор.
                 </p>
               </div>
             </div>
@@ -227,7 +247,7 @@ export default function BlockUserModal({
                   Отправляю...
                 </>
               ) : (
-                'Отправить на блокировку'
+                "Отправить на блокировку"
               )}
             </Button>
           </div>

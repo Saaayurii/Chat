@@ -1,13 +1,18 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Check, AlertTriangle, MessageSquare, User } from 'lucide-react';
-import { chatAPI } from '@/core/api';
-import Button from '@/components/UI/Button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/UI/Dialog';
-import Badge from '@/components/UI/Badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/UI/Avatar';
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { X, Check, AlertTriangle, MessageSquare, User } from "lucide-react";
+import { chatAPI } from "@/core/api";
+import Button from "@/components/UI/Button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/UI/Dialog";
+import Badge from "@/components/UI/Badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/UI/Avatar";
 
 interface TransferRequestModalProps {
   isOpen: boolean;
@@ -36,20 +41,23 @@ export default function TransferRequestModal({
   isOpen,
   onClose,
   transferRequest,
-  onRequestProcessed
+  onRequestProcessed,
 }: TransferRequestModalProps) {
-  const [isProcessing, setIsProcessing] = useState(false);
+  const { 0: isProcessing, 1: setIsProcessing } = useState(false);
   const queryClient = useQueryClient();
 
   const respondToTransferMutation = useMutation({
     mutationFn: async ({ accepted }: { accepted: boolean }) => {
-      const response = await chatAPI.respondToTransfer(transferRequest.id, accepted);
+      const response = await chatAPI.respondToTransfer(
+        transferRequest.id,
+        accepted
+      );
       return { data: response.data, accepted };
     },
     onSuccess: ({ accepted }) => {
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      queryClient.invalidateQueries({ queryKey: ['transfer-requests'] });
-      
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["transfer-requests"] });
+
       if (accepted) {
         // При принятии запроса даем время серверу обновить права доступа
         setTimeout(() => {
@@ -63,9 +71,9 @@ export default function TransferRequestModal({
       }
     },
     onError: (error) => {
-      console.error('Transfer response failed:', error);
+      console.error("Transfer response failed:", error);
       setIsProcessing(false);
-    }
+    },
   });
 
   const handleAccept = () => {
@@ -103,17 +111,28 @@ export default function TransferRequestModal({
           <div className="bg-muted/50 rounded-lg p-3">
             <div className="flex items-center space-x-3 mb-2">
               <User className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground">От оператора:</span>
+              <span className="text-sm font-medium text-foreground">
+                От оператора:
+              </span>
             </div>
             <div className="flex items-center space-x-3">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={transferRequest.fromOperator?.avatar} alt={transferRequest.fromOperator?.name} />
+                <AvatarImage
+                  src={transferRequest.fromOperator?.avatar}
+                  alt={transferRequest.fromOperator?.name}
+                />
                 <AvatarFallback>
-                  {transferRequest.fromOperator?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'O'}
+                  {transferRequest.fromOperator?.name
+                    ?.split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase() || "O"}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <p className="font-medium text-foreground">{transferRequest.fromOperator?.name || 'Unknown Operator'}</p>
+                <p className="font-medium text-foreground">
+                  {transferRequest.fromOperator?.name || "Unknown Operator"}
+                </p>
                 <Badge variant="outline" className="text-xs">
                   Оператор
                 </Badge>
@@ -125,18 +144,31 @@ export default function TransferRequestModal({
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
             <div className="flex items-center space-x-3 mb-2">
               <MessageSquare className="h-4 w-4 text-blue-500" />
-              <span className="text-sm font-medium text-foreground">Посетитель для передачи:</span>
+              <span className="text-sm font-medium text-foreground">
+                Посетитель для передачи:
+              </span>
             </div>
             <div className="flex items-center space-x-3">
               <Avatar className="h-10 w-10">
-                <AvatarImage src={transferRequest.visitor?.avatar} alt={transferRequest.visitor?.name} />
+                <AvatarImage
+                  src={transferRequest.visitor?.avatar}
+                  alt={transferRequest.visitor?.name}
+                />
                 <AvatarFallback>
-                  {transferRequest.visitor?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'V'}
+                  {transferRequest.visitor?.name
+                    ?.split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase() || "V"}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <h4 className="font-medium text-foreground">{transferRequest.visitor?.name || 'Unknown Visitor'}</h4>
-                <p className="text-sm text-muted-foreground">{transferRequest.visitor?.email || 'No email'}</p>
+                <h4 className="font-medium text-foreground">
+                  {transferRequest.visitor?.name || "Unknown Visitor"}
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  {transferRequest.visitor?.email || "No email"}
+                </p>
                 <Badge variant="secondary" className="mt-1">
                   Посетитель
                 </Badge>
@@ -149,16 +181,21 @@ export default function TransferRequestModal({
             <div className="bg-muted/50 rounded-lg p-3">
               <div className="flex items-center space-x-2 mb-2">
                 <AlertTriangle className="h-4 w-4 text-orange-500" />
-                <span className="text-sm font-medium text-foreground">Причина передачи:</span>
+                <span className="text-sm font-medium text-foreground">
+                  Причина передачи:
+                </span>
               </div>
-              <p className="text-sm text-foreground pl-6">{transferRequest.reason}</p>
+              <p className="text-sm text-foreground pl-6">
+                {transferRequest.reason}
+              </p>
             </div>
           )}
 
           {/* Timestamp */}
           <div className="text-center">
             <p className="text-xs text-muted-foreground">
-              Запрос отправлен: {new Date(transferRequest.timestamp).toLocaleString()}
+              Запрос отправлен:{" "}
+              {new Date(transferRequest.timestamp).toLocaleString()}
             </p>
           </div>
 
@@ -182,7 +219,7 @@ export default function TransferRequestModal({
                 </>
               )}
             </Button>
-            
+
             <Button
               onClick={handleAccept}
               disabled={isProcessing || respondToTransferMutation.isPending}

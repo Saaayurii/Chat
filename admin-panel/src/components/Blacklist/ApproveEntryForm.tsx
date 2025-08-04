@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { ApproveBlacklistEntryData } from '@/types';
+import { useState } from "react";
+import { ApproveBlacklistEntryData } from "@/types";
 
 interface ApproveEntryFormProps {
   loading: boolean;
@@ -9,16 +9,20 @@ interface ApproveEntryFormProps {
   onClose: () => void;
 }
 
-export default function ApproveEntryForm({ loading, onSubmit, onClose }: ApproveEntryFormProps) {
-  const [formData, setFormData] = useState<ApproveBlacklistEntryData>({
+export default function ApproveEntryForm({
+  loading,
+  onSubmit,
+  onClose,
+}: ApproveEntryFormProps) {
+  const { 0: formData, 1: setFormData } = useState<ApproveBlacklistEntryData>({
     approved: true,
-    comments: ''
+    comments: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onSubmit(formData);
-    setFormData({ approved: true, comments: '' });
+    setFormData({ approved: true, comments: "" });
   };
 
   return (
@@ -51,11 +55,15 @@ export default function ApproveEntryForm({ loading, onSubmit, onClose }: Approve
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Комментарии</label>
+            <label className="block text-sm font-medium mb-1">
+              Комментарии
+            </label>
             <textarea
               placeholder="Комментарии к решению..."
               value={formData.comments}
-              onChange={(e) => setFormData({ ...formData, comments: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, comments: e.target.value })
+              }
               className="w-full border rounded px-3 py-2 h-24"
             />
           </div>
@@ -65,12 +73,16 @@ export default function ApproveEntryForm({ loading, onSubmit, onClose }: Approve
               type="submit"
               disabled={loading}
               className={`flex-1 text-white py-2 rounded disabled:opacity-50 ${
-                formData.approved 
-                  ? 'bg-green-500 hover:bg-green-600' 
-                  : 'bg-red-500 hover:bg-red-600'
+                formData.approved
+                  ? "bg-green-500 hover:bg-green-600"
+                  : "bg-red-500 hover:bg-red-600"
               }`}
             >
-              {loading ? 'Обработка...' : (formData.approved ? 'Одобрить' : 'Отклонить')}
+              {loading
+                ? "Обработка..."
+                : formData.approved
+                ? "Одобрить"
+                : "Отклонить"}
             </button>
             <button
               type="button"

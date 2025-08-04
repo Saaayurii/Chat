@@ -1,15 +1,20 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, User, UserCheck, UserX, Coffee, WifiOff } from 'lucide-react';
-import { chatAPI } from '@/core/api';
-import { UserRole } from '@/types';
-import Button from '@/components/UI/Button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/UI/Avatar';
-import Badge from '@/components/UI/Badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/UI/Dialog';
-import { PresenceAvatar, PresenceStatus } from '@/components/Presence';
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { X, User, UserCheck, UserX, Coffee, WifiOff } from "lucide-react";
+import { chatAPI } from "@/core/api";
+import { UserRole } from "@/types";
+import Button from "@/components/UI/Button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/UI/Avatar";
+import Badge from "@/components/UI/Badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/UI/Dialog";
+import { PresenceAvatar, PresenceStatus } from "@/components/Presence";
 
 interface Operator {
   id: string;
@@ -19,7 +24,7 @@ interface Operator {
     fullName: string;
     avatarUrl?: string;
     isOnline: boolean;
-    status?: 'free' | 'busy' | 'break' | 'offline';
+    status?: "free" | "busy" | "break" | "offline";
   };
   role: UserRole;
   activeChats: number;
@@ -41,18 +46,20 @@ export default function TransferModal({
   visitorId,
   visitorName,
   conversationId,
-  onTransferComplete
+  onTransferComplete,
 }: TransferModalProps) {
-  const [selectedOperator, setSelectedOperator] = useState<string | null>(null);
+  const { 0: selectedOperator, 1: setSelectedOperator } = useState<
+    string | null
+  >(null);
   const queryClient = useQueryClient();
 
   const { data: operators, isLoading } = useQuery({
-    queryKey: ['operators', 'available'],
+    queryKey: ["operators", "available"],
     queryFn: async () => {
       const response = await chatAPI.getOperators();
       return response.data;
     },
-    enabled: isOpen
+    enabled: isOpen,
   });
 
   const transferMutation = useMutation({
@@ -61,13 +68,13 @@ export default function TransferModal({
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
       onTransferComplete();
       onClose();
     },
     onError: (error) => {
-      console.error('Transfer failed:', error);
-    }
+      console.error("Transfer failed:", error);
+    },
   });
 
   const handleTransfer = () => {
@@ -78,13 +85,13 @@ export default function TransferModal({
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'free':
+      case "free":
         return <UserCheck className="h-4 w-4 text-green-500" />;
-      case 'busy':
+      case "busy":
         return <User className="h-4 w-4 text-yellow-500" />;
-      case 'break':
+      case "break":
         return <Coffee className="h-4 w-4 text-blue-500" />;
-      case 'offline':
+      case "offline":
         return <WifiOff className="h-4 w-4 text-gray-500" />;
       default:
         return <UserX className="h-4 w-4 text-gray-500" />;
@@ -93,46 +100,48 @@ export default function TransferModal({
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'free':
-        return 'Свободен';
-      case 'busy':
-        return 'Занят';
-      case 'break':
-        return 'Перерыв';
-      case 'offline':
-        return 'Не в сети';
+      case "free":
+        return "Свободен";
+      case "busy":
+        return "Занят";
+      case "break":
+        return "Перерыв";
+      case "offline":
+        return "Не в сети";
       default:
-        return 'Неизвестно';
+        return "Неизвестно";
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'free':
-        return 'success';
-      case 'busy':
-        return 'warning';
-      case 'break':
-        return 'info';
-      case 'offline':
-        return 'secondary';
+      case "free":
+        return "success";
+      case "busy":
+        return "warning";
+      case "break":
+        return "info";
+      case "offline":
+        return "secondary";
       default:
-        return 'secondary';
+        return "secondary";
     }
   };
 
   const canAssign = (operator: Operator) => {
-    return operator.profile.status === 'free' || operator.profile.status === 'busy';
+    return (
+      operator.profile.status === "free" || operator.profile.status === "busy"
+    );
   };
 
   const getPresenceStatus = (status: string) => {
     switch (status) {
-      case 'free':
-      case 'busy':
+      case "free":
+      case "busy":
         return PresenceStatus.ONLINE;
-      case 'break':
+      case "break":
         return PresenceStatus.AWAY;
-      case 'offline':
+      case "offline":
         return PresenceStatus.OFFLINE;
       default:
         return PresenceStatus.OFFLINE;
@@ -152,17 +161,16 @@ export default function TransferModal({
               size="icon"
               onClick={onClose}
               className="h-6 w-6"
-            >
-              
-            </Button>
+            ></Button>
           </div>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="bg-muted/50 rounded-lg p-3">
             <p className="text-sm text-muted-foreground">
-              Выберите оператора для назначения обработки сообщения от посетителя.
-              Активная кнопка "Назначить" доступна только для операторов со статусом "свободен".
+              Выберите оператора для назначения обработки сообщения от
+              посетителя. Активная кнопка "Назначить" доступна только для
+              операторов со статусом "свободен".
             </p>
           </div>
 
@@ -177,8 +185,8 @@ export default function TransferModal({
                   key={operator.id}
                   className={`p-4 rounded-lg border transition-all cursor-pointer ${
                     selectedOperator === operator.id
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border hover:border-muted-foreground'
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-muted-foreground"
                   }`}
                   onClick={() => setSelectedOperator(operator.id)}
                 >
@@ -186,25 +194,34 @@ export default function TransferModal({
                     <div className="flex items-center space-x-3">
                       <PresenceAvatar
                         userId={operator.id}
-                        userName={operator.profile.fullName || operator.profile.username}
+                        userName={
+                          operator.profile.fullName || operator.profile.username
+                        }
                         avatar={operator.profile.avatarUrl}
-                        status={getPresenceStatus(operator.profile.status || 'offline')}
+                        status={getPresenceStatus(
+                          operator.profile.status || "offline"
+                        )}
                         size="md"
                       />
-                      
+
                       <div className="flex-1">
                         <div className="flex items-center space-x-2">
                           <h4 className="font-medium text-foreground">
-                            {operator.profile.fullName || operator.profile.username}
+                            {operator.profile.fullName ||
+                              operator.profile.username}
                           </h4>
                           <div className="flex items-center space-x-1">
-                            {getStatusIcon(operator.profile.status || 'offline')}
+                            {getStatusIcon(
+                              operator.profile.status || "offline"
+                            )}
                             <span className="text-sm text-muted-foreground">
-                              {getStatusText(operator.profile.status || 'offline')}
+                              {getStatusText(
+                                operator.profile.status || "offline"
+                              )}
                             </span>
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center space-x-4 mt-1">
                           <p className="text-sm text-muted-foreground">
                             {operator.email}
@@ -217,24 +234,32 @@ export default function TransferModal({
                     </div>
 
                     <div className="flex flex-col items-end space-y-2">
-                      <Badge variant={getStatusColor(operator.profile.status || 'offline') as any}>
-                        {getStatusText(operator.profile.status || 'offline')}
+                      <Badge
+                        variant={
+                          getStatusColor(
+                            operator.profile.status || "offline"
+                          ) as any
+                        }
+                      >
+                        {getStatusText(operator.profile.status || "offline")}
                       </Badge>
-                      
+
                       <Button
                         size="sm"
-                        disabled={!canAssign(operator) || transferMutation.isPending}
+                        disabled={
+                          !canAssign(operator) || transferMutation.isPending
+                        }
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedOperator(operator.id);
                         }}
                         className={`${
-                          canAssign(operator) 
-                            ? 'bg-green-600 hover:bg-green-700' 
-                            : 'bg-gray-400 cursor-not-allowed'
+                          canAssign(operator)
+                            ? "bg-green-600 hover:bg-green-700"
+                            : "bg-gray-400 cursor-not-allowed"
                         }`}
                       >
-                        {canAssign(operator) ? 'Назначить' : 'Недоступен'}
+                        {canAssign(operator) ? "Назначить" : "Недоступен"}
                       </Button>
                     </div>
                   </div>
@@ -261,7 +286,7 @@ export default function TransferModal({
                   Перенаправляю...
                 </>
               ) : (
-                'Перенаправить чат'
+                "Перенаправить чат"
               )}
             </Button>
           </div>

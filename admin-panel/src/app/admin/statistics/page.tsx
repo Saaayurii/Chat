@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { 
-  MessageSquare, 
-  Users, 
-  Clock, 
-  ThumbsUp, 
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  MessageSquare,
+  Users,
+  Clock,
+  ThumbsUp,
   ThumbsDown,
   TrendingUp,
   Calendar,
@@ -14,82 +14,91 @@ import {
   Shield,
   AlertTriangle,
   Star,
-  Activity
-} from 'lucide-react';
-import { useAuthStore } from '@/store/authStore';
-import { useRouter } from 'next/navigation';
-import { usersAPI, statisticsAPI } from '@/core/api';
-import { User as UserType, UserRole } from '@/types';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import Button from '@/components/UI/Button';
-import { Card } from '@/components/UI/Card';
-import { 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer, 
-  BarChart, 
-  Bar, 
-  PieChart, 
-  Pie, 
-  Cell
-} from 'recharts';
-import { Badge } from '@/components/UI';
-import { SearchInput } from '@/components/UI/SearchInput';
+  Activity,
+} from "lucide-react";
+import { useAuthStore } from "@/store/authStore";
+import { useRouter } from "next/navigation";
+import { usersAPI, statisticsAPI } from "@/core/api";
+import { User as UserType, UserRole } from "@/types";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import Button from "@/components/UI/Button";
+import { Card } from "@/components/UI/Card";
+import {
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+import { Badge } from "@/components/UI";
+import { SearchInput } from "@/components/UI/SearchInput";
 
 // Types for time periods
-type TimePeriod = 'today' | 'yesterday' | 'week' | 'month' | 'custom';
-type UserRoleFilter = 'all' | 'admin' | 'operator';
+type TimePeriod = "today" | "yesterday" | "week" | "month" | "custom";
+type UserRoleFilter = "all" | "admin" | "operator";
 
 // Color schemes for charts
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+const COLORS = [
+  "#3b82f6",
+  "#10b981",
+  "#f59e0b",
+  "#ef4444",
+  "#8b5cf6",
+  "#06b6d4",
+];
 
 function AdminStatisticsPageContent() {
   const { user } = useAuthStore();
-  
+
   // State management
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedOperator, setSelectedOperator] = useState<string | null>(null);
-  const [timePeriod, setTimePeriod] = useState<TimePeriod>('today');
-  const [roleFilter, setRoleFilter] = useState<UserRoleFilter>('admin');
-  const [dateRange, setDateRange] = useState({ from: '', to: '' });
-  const [showOperatorModal, setShowOperatorModal] = useState(false);
+  const { 0: searchQuery, 1: setSearchQuery } = useState("");
+  const { 0: selectedOperator, 1: setSelectedOperator } = useState<
+    string | null
+  >(null);
+  const { 0: timePeriod, 1: setTimePeriod } = useState<TimePeriod>("today");
+  const { 0: roleFilter, 1: setRoleFilter } = useState<UserRoleFilter>("admin");
+  const { 0: dateRange, 1: setDateRange } = useState({ from: "", to: "" });
+  const { 0: showOperatorModal, 1: setShowOperatorModal } = useState(false);
 
   // Calculate date range based on period
   const getDateRange = (period: TimePeriod) => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
+
     switch (period) {
-      case 'today':
+      case "today":
         return {
           dateFrom: today.toISOString(),
-          dateTo: new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString()
+          dateTo: new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString(),
         };
-      case 'yesterday':
+      case "yesterday":
         const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
         return {
           dateFrom: yesterday.toISOString(),
-          dateTo: today.toISOString()
+          dateTo: today.toISOString(),
         };
-      case 'week':
+      case "week":
         const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
         return {
           dateFrom: weekAgo.toISOString(),
-          dateTo: new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString()
+          dateTo: new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString(),
         };
-      case 'month':
+      case "month":
         const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
         return {
           dateFrom: monthAgo.toISOString(),
-          dateTo: new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString()
+          dateTo: new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString(),
         };
-      case 'custom':
+      case "custom":
         return {
           dateFrom: dateRange.from,
-          dateTo: dateRange.to
+          dateTo: dateRange.to,
         };
       default:
         return {};
@@ -97,74 +106,81 @@ function AdminStatisticsPageContent() {
   };
 
   const currentDateRange = getDateRange(timePeriod);
-  const operatorId = roleFilter === 'operator' ? selectedOperator : undefined;
+  const operatorId = roleFilter === "operator" ? selectedOperator : undefined;
 
   // Data fetching queries
   const { data: operators, isLoading: operatorsLoading } = useQuery({
-    queryKey: ['operators'],
+    queryKey: ["operators"],
     queryFn: async () => {
       const response = await usersAPI.getOperators();
       return response.data;
-    }
+    },
   });
 
   const { data: usersStats, isLoading: usersStatsLoading } = useQuery({
-    queryKey: ['users-stats', currentDateRange],
+    queryKey: ["users-stats", currentDateRange],
     queryFn: async () => {
       const response = await statisticsAPI.getUsersStats(currentDateRange);
       return response.data;
-    }
+    },
   });
 
   const { data: questionsStats, isLoading: questionsStatsLoading } = useQuery({
-    queryKey: ['questions-stats', currentDateRange, operatorId],
+    queryKey: ["questions-stats", currentDateRange, operatorId],
     queryFn: async () => {
       const response = await statisticsAPI.getQuestionsStats({
         ...currentDateRange,
-        operatorId: operatorId || undefined
+        operatorId: operatorId || undefined,
       });
       return response.data;
-    }
+    },
   });
 
   const { data: ratingsStats, isLoading: ratingsStatsLoading } = useQuery({
-    queryKey: ['ratings-stats', currentDateRange, operatorId],
+    queryKey: ["ratings-stats", currentDateRange, operatorId],
     queryFn: async () => {
       const response = await statisticsAPI.getRatingsStats({
         ...currentDateRange,
-        operatorId: operatorId || undefined
+        operatorId: operatorId || undefined,
       });
-      return response.data;
-    }
-  });
-
-  const { data: complaintsStats, isLoading: complaintsStatsLoading } = useQuery({
-    queryKey: ['complaints-stats', currentDateRange, operatorId],
-    queryFn: async () => {
-      const response = await statisticsAPI.getComplaintsStats({
-        ...currentDateRange,
-        operatorId: operatorId || undefined
-      });
-      return response.data;
-    }
-  });
-
-  const { data: selectedOperatorWorkload } = useQuery({
-    queryKey: ['operator-workload', selectedOperator],
-    queryFn: async () => {
-      if (!selectedOperator) return null;
-      const response = await statisticsAPI.getOperatorWorkload(selectedOperator);
       return response.data;
     },
-    enabled: !!selectedOperator && roleFilter === 'operator'
+  });
+
+  const { data: complaintsStats, isLoading: complaintsStatsLoading } = useQuery(
+    {
+      queryKey: ["complaints-stats", currentDateRange, operatorId],
+      queryFn: async () => {
+        const response = await statisticsAPI.getComplaintsStats({
+          ...currentDateRange,
+          operatorId: operatorId || undefined,
+        });
+        return response.data;
+      },
+    }
+  );
+
+  const { data: selectedOperatorWorkload } = useQuery({
+    queryKey: ["operator-workload", selectedOperator],
+    queryFn: async () => {
+      if (!selectedOperator) return null;
+      const response = await statisticsAPI.getOperatorWorkload(
+        selectedOperator
+      );
+      return response.data;
+    },
+    enabled: !!selectedOperator && roleFilter === "operator",
   });
 
   // Filter operators
   const filteredOperators = useMemo(() => {
     if (!operators) return [];
-    return operators.filter(op => 
-      op.profile.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      op.profile.username.toLowerCase().includes(searchQuery.toLowerCase())
+    return operators.filter(
+      (op) =>
+        op.profile.fullName
+          ?.toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        op.profile.username.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [operators, searchQuery]);
 
@@ -173,60 +189,87 @@ function AdminStatisticsPageContent() {
   // Get period display name
   const getPeriodDisplayName = (period: TimePeriod) => {
     switch (period) {
-      case 'today': return 'Сегодня';
-      case 'yesterday': return 'Вчера';
-      case 'week': return 'Неделя';
-      case 'month': return 'Месяц';
-      case 'custom': return 'Период';
-      default: return 'Сегодня';
+      case "today":
+        return "Сегодня";
+      case "yesterday":
+        return "Вчера";
+      case "week":
+        return "Неделя";
+      case "month":
+        return "Месяц";
+      case "custom":
+        return "Период";
+      default:
+        return "Сегодня";
     }
   };
 
   // Calculate likes/dislikes from ratings
   const likesDislikesData = useMemo(() => {
     if (!ratingsStats?.distribution) return { likes: 0, dislikes: 0 };
-    
+
     const likes = ratingsStats.distribution
-      .filter(item => item._id >= 4)
+      .filter((item) => item._id >= 4)
       .reduce((sum, item) => sum + item.count, 0);
-    
+
     const dislikes = ratingsStats.distribution
-      .filter(item => item._id <= 2)
+      .filter((item) => item._id <= 2)
       .reduce((sum, item) => sum + item.count, 0);
-    
+
     return { likes, dislikes };
   }, [ratingsStats]);
 
   // Prepare chart data
-  const ratingsDistributionData = ratingsStats?.distribution?.map(item => ({
-    name: `${item._id} звезд`,
-    count: item.count,
-    percentage: ((item.count / ratingsStats.overall.totalRatings) * 100).toFixed(1)
-  })) || [];
+  const ratingsDistributionData =
+    ratingsStats?.distribution?.map((item) => ({
+      name: `${item._id} звезд`,
+      count: item.count,
+      percentage: (
+        (item.count / ratingsStats.overall.totalRatings) *
+        100
+      ).toFixed(1),
+    })) || [];
 
   const questionsStatusData = useMemo(() => {
     if (!questionsStats?.statusStats) return [];
-    
-    const totalQuestions = questionsStats.statusStats.reduce((sum, item) => sum + item.count, 0);
-    
-    return questionsStats.statusStats.map(item => {
-      const statusName = item._id === 'open' ? 'Открытые' : 
-                        item._id === 'closed' ? 'Закрытые' : 
-                        item._id === 'in_progress' ? 'В работе' : 
-                        item._id === 'assigned' ? 'Назначенные' : 
-                        item._id === 'transferred' ? 'Переданные' : item._id;
-                        
-      const percentage = totalQuestions > 0 ? ((item.count / totalQuestions) * 100).toFixed(1) : '0';
-      
+
+    const totalQuestions = questionsStats.statusStats.reduce(
+      (sum, item) => sum + item.count,
+      0
+    );
+
+    return questionsStats.statusStats.map((item) => {
+      const statusName =
+        item._id === "open"
+          ? "Открытые"
+          : item._id === "closed"
+          ? "Закрытые"
+          : item._id === "in_progress"
+          ? "В работе"
+          : item._id === "assigned"
+          ? "Назначенные"
+          : item._id === "transferred"
+          ? "Переданные"
+          : item._id;
+
+      const percentage =
+        totalQuestions > 0
+          ? ((item.count / totalQuestions) * 100).toFixed(1)
+          : "0";
+
       return {
         name: statusName,
         count: item.count,
-        percentage: percentage
+        percentage: percentage,
       };
     });
   }, [questionsStats]);
 
-  const isLoading = usersStatsLoading || questionsStatsLoading || ratingsStatsLoading || complaintsStatsLoading;
+  const isLoading =
+    usersStatsLoading ||
+    questionsStatsLoading ||
+    ratingsStatsLoading ||
+    complaintsStatsLoading;
 
   return (
     <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -241,18 +284,18 @@ function AdminStatisticsPageContent() {
             <div className="space-y-3">
               <Button
                 onClick={() => {
-                  setRoleFilter('admin');
+                  setRoleFilter("admin");
                   setSelectedOperator(null);
                 }}
-                variant={roleFilter === 'admin' ? 'default' : 'outline'}
+                variant={roleFilter === "admin" ? "default" : "outline"}
                 className="w-full justify-start"
               >
                 <Shield className="w-4 h-4 mr-2" />
                 Администратор
               </Button>
               <Button
-                onClick={() => setRoleFilter('operator')}
-                variant={roleFilter === 'operator' ? 'default' : 'outline'}
+                onClick={() => setRoleFilter("operator")}
+                variant={roleFilter === "operator" ? "default" : "outline"}
                 className="w-full justify-start"
               >
                 <User className="w-4 h-4 mr-2" />
@@ -268,11 +311,19 @@ function AdminStatisticsPageContent() {
               Период времени
             </h2>
             <div className="space-y-2">
-              {(['today', 'yesterday', 'week', 'month', 'custom'] as TimePeriod[]).map((period) => (
+              {(
+                [
+                  "today",
+                  "yesterday",
+                  "week",
+                  "month",
+                  "custom",
+                ] as TimePeriod[]
+              ).map((period) => (
                 <Button
                   key={period}
                   onClick={() => setTimePeriod(period)}
-                  variant={timePeriod === period ? 'default' : 'outline'}
+                  variant={timePeriod === period ? "default" : "outline"}
                   size="sm"
                   className="w-full justify-start"
                 >
@@ -280,19 +331,23 @@ function AdminStatisticsPageContent() {
                 </Button>
               ))}
             </div>
-            
-            {timePeriod === 'custom' && (
+
+            {timePeriod === "custom" && (
               <div className="mt-4 space-y-2">
                 <input
                   type="date"
                   value={dateRange.from}
-                  onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
+                  onChange={(e) =>
+                    setDateRange((prev) => ({ ...prev, from: e.target.value }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm"
                 />
                 <input
                   type="date"
                   value={dateRange.to}
-                  onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
+                  onChange={(e) =>
+                    setDateRange((prev) => ({ ...prev, to: e.target.value }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm"
                 />
               </div>
@@ -304,13 +359,15 @@ function AdminStatisticsPageContent() {
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
               Операторы
             </h2>
-            
+
             {/* Search */}
             <div className="mb-4">
               <SearchInput
                 placeholder="Поиск оператора..."
                 value={searchQuery}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setSearchQuery(e.target.value)
+                }
                 className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
               />
             </div>
@@ -319,31 +376,35 @@ function AdminStatisticsPageContent() {
             <div className="space-y-2">
               <Button
                 onClick={() => setSelectedOperator(null)}
-                variant={!selectedOperator ? 'default' : 'outline'}
+                variant={!selectedOperator ? "default" : "outline"}
                 size="sm"
                 className="w-full justify-between"
               >
                 <span>Все операторы</span>
-                <Badge variant="secondary">
-                  {operators?.length || 0}
-                </Badge>
+                <Badge variant="secondary">{operators?.length || 0}</Badge>
               </Button>
-              
+
               {operatorsLoading ? (
-                <div className="py-4 text-center text-gray-500">Загрузка...</div>
+                <div className="py-4 text-center text-gray-500">
+                  Загрузка...
+                </div>
               ) : (
                 displayedOperators.map((operator) => (
                   <Button
                     key={operator._id}
                     onClick={() => setSelectedOperator(operator._id)}
-                    variant={selectedOperator === operator._id ? 'default' : 'outline'}
+                    variant={
+                      selectedOperator === operator._id ? "default" : "outline"
+                    }
                     size="sm"
                     className="w-full justify-between"
                   >
                     <div className="flex items-center">
-                      <div 
+                      <div
                         className={`w-2 h-2 rounded-full mr-2 ${
-                          operator.profile.isOnline ? 'bg-green-500' : 'bg-gray-300'
+                          operator.profile.isOnline
+                            ? "bg-green-500"
+                            : "bg-gray-300"
                         }`}
                       />
                       <span className="truncate">
@@ -356,7 +417,7 @@ function AdminStatisticsPageContent() {
                   </Button>
                 ))
               )}
-              
+
               {filteredOperators.length > 8 && (
                 <Button
                   onClick={() => setShowOperatorModal(true)}
@@ -381,11 +442,17 @@ function AdminStatisticsPageContent() {
                   Статистика
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400 mt-1">
-                  {roleFilter === 'admin' ? 'Административная панель' : 'Статистика оператора'} • {getPeriodDisplayName(timePeriod)}
+                  {roleFilter === "admin"
+                    ? "Административная панель"
+                    : "Статистика оператора"}{" "}
+                  • {getPeriodDisplayName(timePeriod)}
                   {selectedOperator && operators && (
                     <span className="ml-2">
-                      • {operators.find(op => op._id === selectedOperator)?.profile.fullName || 
-                          operators.find(op => op._id === selectedOperator)?.profile.username}
+                      •{" "}
+                      {operators.find((op) => op._id === selectedOperator)
+                        ?.profile.fullName ||
+                        operators.find((op) => op._id === selectedOperator)
+                          ?.profile.username}
                     </span>
                   )}
                 </p>
@@ -421,7 +488,10 @@ function AdminStatisticsPageContent() {
                           Диалогов
                         </p>
                         <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">
-                          {questionsStats?.statusStats?.reduce((sum, stat) => sum + stat.count, 0) || 0}
+                          {questionsStats?.statusStats?.reduce(
+                            (sum, stat) => sum + stat.count,
+                            0
+                          ) || 0}
                         </p>
                         <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
                           Всего вопросов
@@ -475,7 +545,9 @@ function AdminStatisticsPageContent() {
                           Среднее время ответа
                         </p>
                         <p className="text-3xl font-bold text-purple-900 dark:text-purple-100">
-                          {questionsStats?.avgResponseTime ? Math.round(questionsStats.avgResponseTime) : 0}
+                          {questionsStats?.avgResponseTime
+                            ? Math.round(questionsStats.avgResponseTime)
+                            : 0}
                         </p>
                         <p className="text-xs text-purple-700 dark:text-purple-300 mt-1">
                           минут
@@ -486,51 +558,53 @@ function AdminStatisticsPageContent() {
                 </div>
 
                 {/* Additional Role-specific Stats */}
-                {roleFilter === 'operator' && selectedOperator && selectedOperatorWorkload && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <Card className="p-6">
-                      <div className="flex items-center">
-                        <Activity className="w-8 h-8 text-orange-600" />
-                        <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                            Активные вопросы
-                          </p>
-                          <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {selectedOperatorWorkload.activeQuestions}
-                          </p>
+                {roleFilter === "operator" &&
+                  selectedOperator &&
+                  selectedOperatorWorkload && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <Card className="p-6">
+                        <div className="flex items-center">
+                          <Activity className="w-8 h-8 text-orange-600" />
+                          <div className="ml-4">
+                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                              Активные вопросы
+                            </p>
+                            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                              {selectedOperatorWorkload.activeQuestions}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </Card>
-                    
-                    <Card className="p-6">
-                      <div className="flex items-center">
-                        <TrendingUp className="w-8 h-8 text-blue-600" />
-                        <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                            Всего вопросов
-                          </p>
-                          <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {selectedOperatorWorkload.totalQuestions}
-                          </p>
+                      </Card>
+
+                      <Card className="p-6">
+                        <div className="flex items-center">
+                          <TrendingUp className="w-8 h-8 text-blue-600" />
+                          <div className="ml-4">
+                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                              Всего вопросов
+                            </p>
+                            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                              {selectedOperatorWorkload.totalQuestions}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </Card>
-                    
-                    <Card className="p-6">
-                      <div className="flex items-center">
-                        <Star className="w-8 h-8 text-green-600" />
-                        <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                            Закрыто сегодня
-                          </p>
-                          <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {selectedOperatorWorkload.closedToday}
-                          </p>
+                      </Card>
+
+                      <Card className="p-6">
+                        <div className="flex items-center">
+                          <Star className="w-8 h-8 text-green-600" />
+                          <div className="ml-4">
+                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                              Закрыто сегодня
+                            </p>
+                            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                              {selectedOperatorWorkload.closedToday}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </Card>
-                  </div>
-                )}
+                      </Card>
+                    </div>
+                  )}
 
                 {/* Charts Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -547,13 +621,18 @@ function AdminStatisticsPageContent() {
                             cx="50%"
                             cy="50%"
                             labelLine={false}
-                            label={({ name, percentage }) => `${name}: ${percentage}%`}
+                            label={({ name, percentage }) =>
+                              `${name}: ${percentage}%`
+                            }
                             outerRadius={80}
                             fill="#8884d8"
                             dataKey="count"
                           >
                             {questionsStatusData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={COLORS[index % COLORS.length]}
+                              />
                             ))}
                           </Pie>
                           <Tooltip />
@@ -570,44 +649,63 @@ function AdminStatisticsPageContent() {
                     <div className="h-80">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={ratingsDistributionData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                          <XAxis 
-                            dataKey="name" 
-                            stroke="#6b7280" 
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="#e5e7eb"
+                          />
+                          <XAxis
+                            dataKey="name"
+                            stroke="#6b7280"
                             tick={{ fontSize: 12 }}
                           />
                           <YAxis stroke="#6b7280" />
-                          <Tooltip 
+                          <Tooltip
                             formatter={(value: number) => [
-                              `${value} (${ratingsDistributionData.find(item => item.count === value)?.percentage}%)`,
-                              'Количество'
+                              `${value} (${
+                                ratingsDistributionData.find(
+                                  (item) => item.count === value
+                                )?.percentage
+                              }%)`,
+                              "Количество",
                             ]}
                           />
-                          <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                          <Bar
+                            dataKey="count"
+                            fill="#3b82f6"
+                            radius={[4, 4, 0, 0]}
+                          />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
                   </Card>
 
                   {/* Top Operators Performance */}
-                  {roleFilter === 'admin' && (
+                  {roleFilter === "admin" && (
                     <Card className="p-6 lg:col-span-2">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                         Производительность операторов
                       </h3>
                       <div className="h-80">
                         <ResponsiveContainer width="100%" height="100%">
-                          <BarChart 
-                            data={operators?.slice(0, 10).map(op => ({
-                              name: op.profile.fullName || op.profile.username,
-                              questions: op.operatorStats?.totalQuestions || 0,
-                              rating: op.operatorStats?.averageRating || 0,
-                              responseTime: op.operatorStats?.responseTimeAvg || 0
-                            })) || []}
+                          <BarChart
+                            data={
+                              operators?.slice(0, 10).map((op) => ({
+                                name:
+                                  op.profile.fullName || op.profile.username,
+                                questions:
+                                  op.operatorStats?.totalQuestions || 0,
+                                rating: op.operatorStats?.averageRating || 0,
+                                responseTime:
+                                  op.operatorStats?.responseTimeAvg || 0,
+                              })) || []
+                            }
                           >
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                            <XAxis 
-                              dataKey="name" 
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              stroke="#e5e7eb"
+                            />
+                            <XAxis
+                              dataKey="name"
                               stroke="#6b7280"
                               tick={{ fontSize: 11 }}
                               angle={-45}
@@ -617,8 +715,16 @@ function AdminStatisticsPageContent() {
                             <YAxis stroke="#6b7280" />
                             <Tooltip />
                             <Legend />
-                            <Bar dataKey="questions" fill="#3b82f6" name="Вопросы" />
-                            <Bar dataKey="rating" fill="#10b981" name="Рейтинг" />
+                            <Bar
+                              dataKey="questions"
+                              fill="#3b82f6"
+                              name="Вопросы"
+                            />
+                            <Bar
+                              dataKey="rating"
+                              fill="#10b981"
+                              name="Рейтинг"
+                            />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
@@ -630,33 +736,45 @@ function AdminStatisticsPageContent() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <Card className="p-4 text-center">
                     <Users className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Всего пользователей</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Всего пользователей
+                    </p>
                     <p className="text-xl font-bold text-gray-900 dark:text-white">
                       {usersStats?.total || 0}
                     </p>
                   </Card>
-                  
+
                   <Card className="p-4 text-center">
                     <Activity className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Онлайн сейчас</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Онлайн сейчас
+                    </p>
                     <p className="text-xl font-bold text-gray-900 dark:text-white">
                       {usersStats?.online || 0}
                     </p>
                   </Card>
-                  
+
                   <Card className="p-4 text-center">
                     <Star className="w-8 h-8 text-yellow-600 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Средний рейтинг</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Средний рейтинг
+                    </p>
                     <p className="text-xl font-bold text-gray-900 dark:text-white">
-                      {ratingsStats?.overall?.averageRating?.toFixed(1) || '0.0'}
+                      {ratingsStats?.overall?.averageRating?.toFixed(1) ||
+                        "0.0"}
                     </p>
                   </Card>
-                  
+
                   <Card className="p-4 text-center">
                     <AlertTriangle className="w-8 h-8 text-red-600 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Жалобы</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Жалобы
+                    </p>
                     <p className="text-xl font-bold text-gray-900 dark:text-white">
-                      {complaintsStats?.statusStats?.reduce((sum, stat) => sum + stat.count, 0) || 0}
+                      {complaintsStats?.statusStats?.reduce(
+                        (sum, stat) => sum + stat.count,
+                        0
+                      ) || 0}
                     </p>
                   </Card>
                 </div>
@@ -685,24 +803,27 @@ function AdminStatisticsPageContent() {
             <div className="flex-1 overflow-auto p-6">
               <div className="space-y-3">
                 {filteredOperators.map((operator) => (
-                  <div 
-                    key={operator._id} 
+                  <div
+                    key={operator._id}
                     className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
                     onClick={() => {
                       setSelectedOperator(operator._id);
-                      setRoleFilter('operator');
+                      setRoleFilter("operator");
                       setShowOperatorModal(false);
                     }}
                   >
                     <div className="flex items-center">
-                      <div 
+                      <div
                         className={`w-3 h-3 rounded-full mr-3 ${
-                          operator.profile.isOnline ? 'bg-green-500' : 'bg-gray-300'
+                          operator.profile.isOnline
+                            ? "bg-green-500"
+                            : "bg-gray-300"
                         }`}
                       />
                       <div>
                         <p className="font-medium text-gray-900 dark:text-white">
-                          {operator.profile.fullName || operator.profile.username}
+                          {operator.profile.fullName ||
+                            operator.profile.username}
                         </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                           {operator.email}
@@ -714,7 +835,9 @@ function AdminStatisticsPageContent() {
                         {operator.operatorStats?.totalQuestions || 0} вопросов
                       </p>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {operator.operatorStats?.averageRating?.toFixed(1) || '0.0'} ★
+                        {operator.operatorStats?.averageRating?.toFixed(1) ||
+                          "0.0"}{" "}
+                        ★
                       </p>
                     </div>
                   </div>

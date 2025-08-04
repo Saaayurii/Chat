@@ -1,42 +1,48 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useAuthStore } from '@/store/authStore';
-import { useUnreadMessages } from '@/contexts/UnreadMessagesContext';
-import { useUI } from '@/contexts/UIContext';
-import { UserRole, ChatUser, CachedResponse, PaginatedResponse, Message } from '@/types';
-import { chatAPI } from '@/core/api';
-import { useChat } from '@/hooks/useChat';
-import { usePresence } from '@/components/Presence/usePresence';
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuthStore } from "@/store/authStore";
+import { useUnreadMessages } from "@/contexts/UnreadMessagesContext";
+import { useUI } from "@/contexts/UIContext";
+import {
+  UserRole,
+  ChatUser,
+  CachedResponse,
+  PaginatedResponse,
+  Message,
+} from "@/types";
+import { chatAPI } from "@/core/api";
+import { useChat } from "@/hooks/useChat";
+import { usePresence } from "@/components/Presence/usePresence";
 
 // UI Components
-import ProtectedRoute from '@/components/ProtectedRoute';
-import { ChatSidebar } from '@/components/Chat/ChatSidebar';
-import UserInfoSidebar from '@/components/Chat/UserInfoSidebar';
-import MessageInput from '@/components/Chat/MessageInput';
-import TransferModal from '@/components/Chat/TransferModal';
-import RequestBlockUserModal from '@/components/Chat/RequestBlockUserModal';
-import TransferRequestModal from '@/components/Chat/TransferRequestModal';
-import Button from '@/components/UI/Button';
+import ProtectedRoute from "@/components/ProtectedRoute";
+import { ChatSidebar } from "@/components/Chat/ChatSidebar";
+import UserInfoSidebar from "@/components/Chat/UserInfoSidebar";
+import MessageInput from "@/components/Chat/MessageInput";
+import TransferModal from "@/components/Chat/TransferModal";
+import RequestBlockUserModal from "@/components/Chat/RequestBlockUserModal";
+import TransferRequestModal from "@/components/Chat/TransferRequestModal";
+import Button from "@/components/UI/Button";
 
 // Icons
-import { 
-  Menu, 
-  ArrowLeft, 
-  Info, 
-  ChevronDown, 
+import {
+  Menu,
+  ArrowLeft,
+  Info,
+  ChevronDown,
   Search,
   ArrowRightLeft,
-  UserX
-} from 'lucide-react';
+  UserX,
+} from "lucide-react";
 
 // Types
 interface SenderType {
   id: string;
   name: string;
-  type: 'operator' | 'visitor';
+  type: "operator" | "visitor";
   avatar?: string;
   unreadCount?: number;
   lastMessageTime: string | Date;
@@ -70,15 +76,21 @@ function OperatorChatPageContent() {
   const queryClient = useQueryClient();
 
   // Local state
-  const [selectedSender, setSelectedSender] = useState<SenderType | null>(null);
-  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [displayedDialogsCount, setDisplayedDialogsCount] = useState(20);
-  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
-  const [showTransferModal, setShowTransferModal] = useState(false);
-  const [showRequestBlockModal, setShowRequestBlockModal] = useState(false);
-  const [showTransferRequestModal, setShowTransferRequestModal] = useState(false);
-  const [transferRequest, setTransferRequest] = useState<any>(null);
+  const { 0: selectedSender, 1: setSelectedSender } =
+    useState<SenderType | null>(null);
+  const { 0: selectedConversation, 1: setSelectedConversation } = useState<
+    string | null
+  >(null);
+  const { 0: searchQuery, 1: setSearchQuery } = useState("");
+  const { 0: displayedDialogsCount, 1: setDisplayedDialogsCount } =
+    useState(20);
+  const { 0: shouldAutoScroll, 1: setShouldAutoScroll } = useState(true);
+  const { 0: showTransferModal, 1: setShowTransferModal } = useState(false);
+  const { 0: showRequestBlockModal, 1: setShowRequestBlockModal } =
+    useState(false);
+  const { 0: showTransferRequestModal, 1: setShowTransferRequestModal } =
+    useState(false);
+  const { 0: transferRequest, 1: setTransferRequest } = useState<any>(null);
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -86,13 +98,13 @@ function OperatorChatPageContent() {
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   // Responsive design
-  const [isMobile, setIsMobile] = useState(false);
-  
+  const { 0: isMobile, 1: setIsMobile } = useState(false);
+
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   // Chat and WebSocket
@@ -107,25 +119,27 @@ function OperatorChatPageContent() {
     leaveConversation,
     setTyping,
     markAsRead,
-    markConversationAsRead
+    markConversationAsRead,
   } = useChat();
 
   const presence = usePresence({
-    apiUrl: process.env.NEXT_PUBLIC_API_URL || 'https://chat-backend-13tr.onrender.com',
-    userId: user?.id || '',
+    apiUrl:
+      process.env.NEXT_PUBLIC_API_URL ||
+      "https://chat-backend-13tr.onrender.com",
+    userId: user?.id || "",
     token: token || undefined,
-    updateInterval: 30000
+    updateInterval: 30000,
   });
 
   // Queries
   const { data: conversations, isLoading: conversationsLoading } = useQuery({
-    queryKey: ['operator-conversations', user?.id],
+    queryKey: ["operator-conversations", user?.id],
     queryFn: async () => {
       try {
         const response = await chatAPI.getConversations();
         return response.data || []; // Извлекаем данные из AxiosResponse
       } catch (error) {
-        console.error('Error fetching conversations:', error);
+        console.error("Error fetching conversations:", error);
         return []; // Возвращаем пустой массив в случае ошибки
       }
     },
@@ -133,36 +147,48 @@ function OperatorChatPageContent() {
     refetchInterval: 30000,
   });
 
- 
-  
   const { data: transferRequests } = useQuery({
-    queryKey: ['transfer-requests'],
-    queryFn: async () => [],  // Mock empty array for now
+    queryKey: ["transfer-requests"],
+    queryFn: async () => [], // Mock empty array for now
     refetchInterval: 10000,
   });
 
   const { data: messages, isLoading: messagesLoading } = useQuery({
-    queryKey: ['messages', selectedConversation],
+    queryKey: ["messages", selectedConversation],
     queryFn: async () => {
       if (!selectedConversation) return [];
       try {
         const response = await chatAPI.getMessages(selectedConversation);
         // API может возвращать разные типы ответов
         const responseData = response.data as unknown;
-        console.log('Messages API response:', responseData);
-        
+        console.log("Messages API response:", responseData);
+
         // Type guard для CachedResponse
-        const isCachedResponse = (data: unknown): data is CachedResponse<Message> => {
-          return typeof data === 'object' && data !== null && 
-                 'messages' in data && 'fromCache' in data && 'cacheInfo' in data;
+        const isCachedResponse = (
+          data: unknown
+        ): data is CachedResponse<Message> => {
+          return (
+            typeof data === "object" &&
+            data !== null &&
+            "messages" in data &&
+            "fromCache" in data &&
+            "cacheInfo" in data
+          );
         };
-        
+
         // Type guard для PaginatedResponse
-        const isPaginatedResponse = (data: unknown): data is PaginatedResponse<Message> => {
-          return typeof data === 'object' && data !== null && 
-                 'data' in data && 'total' in data && 'page' in data;
+        const isPaginatedResponse = (
+          data: unknown
+        ): data is PaginatedResponse<Message> => {
+          return (
+            typeof data === "object" &&
+            data !== null &&
+            "data" in data &&
+            "total" in data &&
+            "page" in data
+          );
         };
-        
+
         // Проверяем структуру ответа и извлекаем массив сообщений
         if (Array.isArray(responseData)) {
           return responseData;
@@ -171,11 +197,11 @@ function OperatorChatPageContent() {
         } else if (isCachedResponse(responseData)) {
           return responseData.messages;
         }
-        
-        console.warn('Unexpected response format:', responseData);
+
+        console.warn("Unexpected response format:", responseData);
         return [];
       } catch (error) {
-        console.error('Error fetching messages:', error);
+        console.error("Error fetching messages:", error);
         return []; // Возвращаем пустой массив в случае ошибки
       }
     },
@@ -184,53 +210,71 @@ function OperatorChatPageContent() {
   });
 
   // Calculate unread count
-  const calculateUnreadCount = useCallback((conversationId: string) => {
-    const cachedMessages = queryClient.getQueryData(['messages', conversationId]);
-    
-    if (cachedMessages && Array.isArray(cachedMessages)) {
-      return cachedMessages.filter((msg: any) => {
-        let actualSenderId = msg.senderId;
-        if (typeof actualSenderId === 'string' && actualSenderId.includes('ObjectId')) {
-          const idMatch = actualSenderId.match(/ObjectId\('([^']+)'\)/);
-          if (idMatch) {
-            actualSenderId = idMatch[1];
+  const calculateUnreadCount = useCallback(
+    (conversationId: string) => {
+      const cachedMessages = queryClient.getQueryData([
+        "messages",
+        conversationId,
+      ]);
+
+      if (cachedMessages && Array.isArray(cachedMessages)) {
+        return cachedMessages.filter((msg: any) => {
+          let actualSenderId = msg.senderId;
+          if (
+            typeof actualSenderId === "string" &&
+            actualSenderId.includes("ObjectId")
+          ) {
+            const idMatch = actualSenderId.match(/ObjectId\('([^']+)'\)/);
+            if (idMatch) {
+              actualSenderId = idMatch[1];
+            }
           }
-        }
-        
-        const isNotMyMessage = actualSenderId !== user?.id;
-        const isUnread = !msg.isRead && (!msg.readBy || !msg.readBy.includes(user?.id));
-        
-        return isNotMyMessage && isUnread;
-      }).length;
-    }
-    
-    if (conversations && Array.isArray(conversations)) {
-      const conversation = conversations.find(conv => 
-        (conv._id === conversationId || (conv as any).id === conversationId)
-      );
-      if (conversation && conversation.unreadByParticipant && user?.id) {
-        return conversation.unreadByParticipant[user.id] || 0;
+
+          const isNotMyMessage = actualSenderId !== user?.id;
+          const isUnread =
+            !msg.isRead && (!msg.readBy || !msg.readBy.includes(user?.id));
+
+          return isNotMyMessage && isUnread;
+        }).length;
       }
-    }
-    
-    return 0;
-  }, [queryClient, user?.id, conversations]);
+
+      if (conversations && Array.isArray(conversations)) {
+        const conversation = conversations.find(
+          (conv) =>
+            conv._id === conversationId || (conv as any).id === conversationId
+        );
+        if (conversation && conversation.unreadByParticipant && user?.id) {
+          return conversation.unreadByParticipant[user.id] || 0;
+        }
+      }
+
+      return 0;
+    },
+    [queryClient, user?.id, conversations]
+  );
 
   // Filter and process senders
   const filteredSenders = useMemo(() => {
-    if (!conversations || !Array.isArray(conversations) || conversations.length === 0) {
+    if (
+      !conversations ||
+      !Array.isArray(conversations) ||
+      conversations.length === 0
+    ) {
       return [];
     }
 
     const sendersMap = new Map<string, SenderType>();
-    
+
     conversations.forEach((conversation: any) => {
       const conversationId = conversation._id || (conversation as any).id;
       const participants = conversation.participants || [];
-      
+
       let displayParticipants = [];
-      
-      if (conversation.type === 'anonymous-support' && (conversation as any).anonymousUser) {
+
+      if (
+        conversation.type === "anonymous-support" &&
+        (conversation as any).anonymousUser
+      ) {
         displayParticipants = [(conversation as any).anonymousUser];
       } else {
         displayParticipants = participants.filter(
@@ -241,29 +285,43 @@ function OperatorChatPageContent() {
       displayParticipants.forEach((participant: any) => {
         const participantKey = participant._id || participant.id;
         const lastMessage = conversation.lastMessage;
-        const lastMessageTime = lastMessage?.timestamp || conversation.createdAt;
-        
+        const lastMessageTime =
+          lastMessage?.timestamp || conversation.createdAt;
+
         const actualUnreadCount = calculateUnreadCount(conversationId);
         const originalUnreadCount = conversation.unreadMessagesCount || 0;
-        const finalUnreadCount = Math.max(actualUnreadCount, originalUnreadCount);
-        
+        const finalUnreadCount = Math.max(
+          actualUnreadCount,
+          originalUnreadCount
+        );
+
         const existingSender = sendersMap.get(participantKey);
-        
-        if (!existingSender || new Date(lastMessageTime) > new Date(existingSender.lastMessageTime)) {
+
+        if (
+          !existingSender ||
+          new Date(lastMessageTime) > new Date(existingSender.lastMessageTime)
+        ) {
           sendersMap.set(participantKey, {
             id: participant._id || participant.id,
-            name: participant.profile?.fullName || participant.profile?.username || participant.email || 'Анонимный',
-            type: participant.role === 'operator' || participant.role === 'admin' ? 'operator' : 'visitor',
+            name:
+              participant.profile?.fullName ||
+              participant.profile?.username ||
+              participant.email ||
+              "Анонимный",
+            type:
+              participant.role === "operator" || participant.role === "admin"
+                ? "operator"
+                : "visitor",
             avatar: participant.profile?.avatarUrl,
             unreadCount: finalUnreadCount,
             lastMessageTime: lastMessageTime,
             isOnline: participant.profile?.isOnline || false,
             conversationId: conversationId,
-            email: participant.email || '',
-            phone: participant.profile?.phone || '',
-            role: participant.role || 'visitor',
+            email: participant.email || "",
+            phone: participant.profile?.phone || "",
+            role: participant.role || "visitor",
             isAuthorized: participant.isActivated || false,
-            source: participant.profile?.source || 'website'
+            source: participant.profile?.source || "website",
           });
         }
       });
@@ -271,27 +329,28 @@ function OperatorChatPageContent() {
 
     const senders = Array.from(sendersMap.values());
 
-    const filtered = senders.filter((sender) =>
-      sender.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      sender.email.toLowerCase().includes(searchQuery.toLowerCase())
+    const filtered = senders.filter(
+      (sender) =>
+        sender.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        sender.email.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return filtered.sort((a, b) => {
-      const aUnreadCount = a.conversationId 
+      const aUnreadCount = a.conversationId
         ? Math.max(calculateUnreadCount(a.conversationId), a.unreadCount || 0)
-        : (a.unreadCount || 0);
-      const bUnreadCount = b.conversationId 
+        : a.unreadCount || 0;
+      const bUnreadCount = b.conversationId
         ? Math.max(calculateUnreadCount(b.conversationId), b.unreadCount || 0)
-        : (b.unreadCount || 0);
-      
+        : b.unreadCount || 0;
+
       if (aUnreadCount > 0 && bUnreadCount === 0) return -1;
       if (aUnreadCount === 0 && bUnreadCount > 0) return 1;
-      
+
       if (aUnreadCount > 0 && bUnreadCount > 0) {
         const unreadDiff = bUnreadCount - aUnreadCount;
         if (unreadDiff !== 0) return unreadDiff;
       }
-      
+
       const aTime = new Date(a.lastMessageTime).getTime();
       const bTime = new Date(b.lastMessageTime).getTime();
       return bTime - aTime;
@@ -304,65 +363,93 @@ function OperatorChatPageContent() {
 
   const totalUnreadMessages = useMemo(() => {
     return filteredSenders.reduce((total, sender) => {
-      const actualUnreadCount = sender.conversationId 
-        ? Math.max(calculateUnreadCount(sender.conversationId), sender.unreadCount || 0)
-        : (sender.unreadCount || 0);
+      const actualUnreadCount = sender.conversationId
+        ? Math.max(
+            calculateUnreadCount(sender.conversationId),
+            sender.unreadCount || 0
+          )
+        : sender.unreadCount || 0;
       return total + actualUnreadCount;
     }, 0);
   }, [filteredSenders, calculateUnreadCount]);
 
   // Handle sender selection
-  const handleSenderSelect = useCallback(async (sender: SenderType) => {
-    if (selectedSender?.id === sender.id && selectedSender?.conversationId === sender.conversationId) {
-      return;
-    }
-
-    if (selectedConversation) {
-      leaveConversation(selectedConversation);
-    }
-
-    setSelectedSender(sender);
-    setSelectedConversation(sender.conversationId || null);
-    
-    if (isMobile) {
-      uiActions.closeChatSidebar();
-    }
-
-    if (sender.conversationId) {
-      joinConversation(sender.conversationId);
-      
-      try {
-        // Используем markConversationAsRead из useChat
-        markConversationAsRead(sender.conversationId);
-        queryClient.invalidateQueries({ queryKey: ['messages', sender.conversationId] });
-        queryClient.invalidateQueries({ queryKey: ['operator-conversations'] });
-        // Update unread count - this should be handled by the context
-        decrementUnreadCount();
-      } catch (error) {
-        console.error('Error marking messages as read:', error);
+  const handleSenderSelect = useCallback(
+    async (sender: SenderType) => {
+      if (
+        selectedSender?.id === sender.id &&
+        selectedSender?.conversationId === sender.conversationId
+      ) {
+        return;
       }
-    }
-  }, [selectedSender, selectedConversation, isMobile, uiActions, joinConversation, leaveConversation, markConversationAsRead, queryClient, updateUnreadCount]);
+
+      if (selectedConversation) {
+        leaveConversation(selectedConversation);
+      }
+
+      setSelectedSender(sender);
+      setSelectedConversation(sender.conversationId || null);
+
+      if (isMobile) {
+        uiActions.closeChatSidebar();
+      }
+
+      if (sender.conversationId) {
+        joinConversation(sender.conversationId);
+
+        try {
+          // Используем markConversationAsRead из useChat
+          markConversationAsRead(sender.conversationId);
+          queryClient.invalidateQueries({
+            queryKey: ["messages", sender.conversationId],
+          });
+          queryClient.invalidateQueries({
+            queryKey: ["operator-conversations"],
+          });
+          // Update unread count - this should be handled by the context
+          decrementUnreadCount();
+        } catch (error) {
+          console.error("Error marking messages as read:", error);
+        }
+      }
+    },
+    [
+      selectedSender,
+      selectedConversation,
+      isMobile,
+      uiActions,
+      joinConversation,
+      leaveConversation,
+      markConversationAsRead,
+      queryClient,
+      updateUnreadCount,
+    ]
+  );
 
   // Handle send message
-  const handleSendMessage = useCallback(async (content: string, file?: File) => {
-    if (!selectedConversation || !content.trim()) return;
+  const handleSendMessage = useCallback(
+    async (content: string, file?: File) => {
+      if (!selectedConversation || !content.trim()) return;
 
-    try {
-      // Используем sendChatMessage из useChat
-      sendChatMessage(selectedConversation, content.trim());
+      try {
+        // Используем sendChatMessage из useChat
+        sendChatMessage(selectedConversation, content.trim());
 
-      if (file) {
-        // Handle file upload logic here if needed
-        console.log('File to upload:', file);
+        if (file) {
+          // Handle file upload logic here if needed
+          console.log("File to upload:", file);
+        }
+
+        queryClient.invalidateQueries({
+          queryKey: ["messages", selectedConversation],
+        });
+        queryClient.invalidateQueries({ queryKey: ["operator-conversations"] });
+      } catch (error) {
+        console.error("Error sending message:", error);
       }
-
-      queryClient.invalidateQueries({ queryKey: ['messages', selectedConversation] });
-      queryClient.invalidateQueries({ queryKey: ['operator-conversations'] });
-    } catch (error) {
-      console.error('Error sending message:', error);
-    }
-  }, [selectedConversation, sendChatMessage, queryClient]);
+    },
+    [selectedConversation, sendChatMessage, queryClient]
+  );
 
   // Handle transfer and block actions
   const handleTransferChat = useCallback(() => {
@@ -375,12 +462,12 @@ function OperatorChatPageContent() {
 
   const handleTransferComplete = useCallback(() => {
     setShowTransferModal(false);
-    queryClient.invalidateQueries({ queryKey: ['operator-conversations'] });
+    queryClient.invalidateQueries({ queryKey: ["operator-conversations"] });
   }, [queryClient]);
 
   const handleRequestBlockComplete = useCallback(() => {
     setShowRequestBlockModal(false);
-    queryClient.invalidateQueries({ queryKey: ['operator-conversations'] });
+    queryClient.invalidateQueries({ queryKey: ["operator-conversations"] });
   }, [queryClient]);
 
   // Handle scroll
@@ -394,13 +481,18 @@ function OperatorChatPageContent() {
   // Auto scroll effect
   useEffect(() => {
     if (shouldAutoScroll && messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, shouldAutoScroll]);
 
   // Transfer requests effect
   useEffect(() => {
-    if (transferRequests && Array.isArray(transferRequests) && transferRequests.length > 0 && !showTransferRequestModal) {
+    if (
+      transferRequests &&
+      Array.isArray(transferRequests) &&
+      transferRequests.length > 0 &&
+      !showTransferRequestModal
+    ) {
       const latestRequest = transferRequests[0] as any;
       const currentRequestId = transferRequest?.id;
       if (latestRequest?.id && latestRequest.id !== currentRequestId) {
@@ -416,7 +508,10 @@ function OperatorChatPageContent() {
 
     return messages.map((message: any) => {
       let actualSenderId = message.senderId;
-      if (typeof actualSenderId === 'string' && actualSenderId.includes('ObjectId')) {
+      if (
+        typeof actualSenderId === "string" &&
+        actualSenderId.includes("ObjectId")
+      ) {
         const idMatch = actualSenderId.match(/ObjectId\('([^']+)'\)/);
         if (idMatch) {
           actualSenderId = idMatch[1];
@@ -424,28 +519,39 @@ function OperatorChatPageContent() {
       }
 
       const isMyMessage = actualSenderId === user?.id;
-      let senderRole = 'visitor';
-      
+      let senderRole = "visitor";
+
       if (selectedSender?.conversationId && conversations) {
-        const conversation = conversations.find((conv: any) => 
-          (conv._id === selectedSender.conversationId || (conv as any).id === selectedSender.conversationId)
+        const conversation = conversations.find(
+          (conv: any) =>
+            conv._id === selectedSender.conversationId ||
+            (conv as any).id === selectedSender.conversationId
         );
         if (conversation) {
-          const participant = conversation.participants?.find((p: any) => (p.id || p._id) === actualSenderId) as any;
-          if (participant && typeof participant === 'object' && participant.role) {
-            senderRole = participant.role || 'visitor';
+          const participant = conversation.participants?.find(
+            (p: any) => (p.id || p._id) === actualSenderId
+          ) as any;
+          if (
+            participant &&
+            typeof participant === "object" &&
+            participant.role
+          ) {
+            senderRole = participant.role || "visitor";
           }
         }
       }
-      
-      const isOperatorMessage = isMyMessage || senderRole === 'operator' || senderRole === 'admin';
-      
+
+      const isOperatorMessage =
+        isMyMessage || senderRole === "operator" || senderRole === "admin";
+
       return (
         <div
           key={message._id || message.id}
           data-message-id={message._id || message.id}
           data-sender-id={actualSenderId}
-          className={`flex ${isOperatorMessage ? "justify-end" : "justify-start"}`}
+          className={`flex ${
+            isOperatorMessage ? "justify-end" : "justify-start"
+          }`}
           ref={(el) => {
             if (el && observerRef.current) {
               observerRef.current.observe(el);
@@ -454,14 +560,18 @@ function OperatorChatPageContent() {
         >
           <div
             className={`${
-              isMobile ? 'max-w-[85%]' : 'max-w-xs lg:max-w-md'
+              isMobile ? "max-w-[85%]" : "max-w-xs lg:max-w-md"
             } px-3 sm:px-4 py-2 rounded-lg ${
               isOperatorMessage
                 ? "bg-blue-600 text-white"
                 : "bg-gray-100 border border-gray-200 text-gray-800"
             }`}
           >
-            <p className={`${isMobile ? 'text-base' : 'text-sm'} leading-relaxed`}>
+            <p
+              className={`${
+                isMobile ? "text-base" : "text-sm"
+              } leading-relaxed`}
+            >
               {message.text || message.content}
             </p>
             <div className="flex items-center justify-between mt-1">
@@ -470,14 +580,20 @@ function OperatorChatPageContent() {
                   isOperatorMessage ? "text-blue-200" : "text-gray-500"
                 }`}
               >
-                {new Date(message.createdAt || message.timestamp || new Date()).toLocaleTimeString()}
+                {new Date(
+                  message.createdAt || message.timestamp || new Date()
+                ).toLocaleTimeString()}
               </p>
               <div className="flex items-center space-x-1">
                 {(() => {
-                  const readByCount = message.readBy ? message.readBy.length : 0;
-                  const isReadByRecipient = message.readBy && message.readBy.some((id: string) => id !== actualSenderId);
+                  const readByCount = message.readBy
+                    ? message.readBy.length
+                    : 0;
+                  const isReadByRecipient =
+                    message.readBy &&
+                    message.readBy.some((id: string) => id !== actualSenderId);
                   const isFullyRead = message.isRead || isReadByRecipient;
-                  
+
                   if (isOperatorMessage) {
                     if (isFullyRead) {
                       return (
@@ -518,15 +634,15 @@ function OperatorChatPageContent() {
       {isMobile && uiState.isChatSidebarOpen && (
         <div
           className="fixed top-16 left-0 right-0 bottom-0 bg-black/50 z-10 lg:hidden"
-          style={{ top: '64px' }}
+          style={{ top: "64px" }}
           onClick={uiActions.closeChatSidebar}
         />
       )}
-      
+
       {isMobile && uiState.isUserInfoOpen && (
         <div
           className="fixed top-16 left-0 right-0 bottom-0 bg-black/50 z-20 lg:hidden"
-          style={{ top: '64px' }}
+          style={{ top: "64px" }}
           onClick={uiActions.closeUserInfo}
         />
       )}
@@ -544,7 +660,11 @@ function OperatorChatPageContent() {
         totalUnreadMessages={totalUnreadMessages}
         transferRequests={transferRequests || []}
         onTransferRequestClick={() => {
-          if (transferRequests && Array.isArray(transferRequests) && transferRequests.length > 0) {
+          if (
+            transferRequests &&
+            Array.isArray(transferRequests) &&
+            transferRequests.length > 0
+          ) {
             setTransferRequest(transferRequests[0]);
             setShowTransferRequestModal(true);
           }
@@ -578,20 +698,20 @@ function OperatorChatPageContent() {
                       <ArrowLeft className="w-4 h-4" />
                     </Button>
                   )}
-                  
+
                   <div>
                     <h2 className="text-lg font-semibold text-foreground">
                       {selectedSender.name}
                     </h2>
                     <p className="text-sm text-muted-foreground">
-                      {selectedSender.isOnline ? 'В сети' : 'Не в сети'}
+                      {selectedSender.isOnline ? "В сети" : "Не в сети"}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center space-x-2">
                   {/* Action buttons for visitors */}
-                  {selectedSender.type === 'visitor' && (
+                  {selectedSender.type === "visitor" && (
                     <>
                       <Button
                         variant="ghost"
@@ -612,7 +732,7 @@ function OperatorChatPageContent() {
                       </Button>
                     </>
                   )}
-                  
+
                   {/* User info toggle */}
                   <Button
                     variant="ghost"
@@ -627,15 +747,17 @@ function OperatorChatPageContent() {
             </div>
 
             {/* Messages Area */}
-            <div 
+            <div
               ref={messagesContainerRef}
               className="flex-1 overflow-y-auto p-4 space-y-4 bg-background"
-              style={{ paddingBottom: isMobile ? '180px' : '20px' }}
+              style={{ paddingBottom: isMobile ? "180px" : "20px" }}
               onScroll={handleScroll}
             >
               {messagesLoading ? (
                 <div className="flex justify-center">
-                  <div className="text-muted-foreground">Загрузка сообщений...</div>
+                  <div className="text-muted-foreground">
+                    Загрузка сообщений...
+                  </div>
                 </div>
               ) : (
                 renderMessages()
@@ -646,11 +768,17 @@ function OperatorChatPageContent() {
 
             {/* Scroll to bottom button */}
             {!shouldAutoScroll && (
-              <div className={`absolute right-4 z-20 ${isMobile ? 'bottom-48' : 'bottom-20'}`}>
+              <div
+                className={`absolute right-4 z-20 ${
+                  isMobile ? "bottom-48" : "bottom-20"
+                }`}
+              >
                 <Button
                   onClick={() => {
                     setShouldAutoScroll(true);
-                    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+                    messagesEndRef.current?.scrollIntoView({
+                      behavior: "smooth",
+                    });
                   }}
                   className="rounded-full shadow-lg"
                   size="icon"
@@ -704,27 +832,29 @@ function OperatorChatPageContent() {
         <UserInfoSidebar
           isOpen={uiState.isUserInfoOpen}
           onClose={uiActions.closeUserInfo}
-          selectedUser={{
-            _id: selectedSender.id,
-            id: selectedSender.id,
-            email: selectedSender.email,
-            role: (selectedSender.role as UserRole) || UserRole.VISITOR,
-            isActivated: selectedSender.isAuthorized || false,
-            isBlocked: false,
-            blacklistedByAdmin: false,
-            blacklistedByOperator: false,
-            profile: {
-              username: selectedSender.name,
-              fullName: selectedSender.name,
-              phone: selectedSender.phone,
-              avatarUrl: selectedSender.avatar,
-              bio: undefined,
-              lastSeenAt: new Date(),
-              isOnline: selectedSender.isOnline
-            },
-            createdAt: new Date(),
-            updatedAt: new Date()
-          } as ChatUser}
+          selectedUser={
+            {
+              _id: selectedSender.id,
+              id: selectedSender.id,
+              email: selectedSender.email,
+              role: (selectedSender.role as UserRole) || UserRole.VISITOR,
+              isActivated: selectedSender.isAuthorized || false,
+              isBlocked: false,
+              blacklistedByAdmin: false,
+              blacklistedByOperator: false,
+              profile: {
+                username: selectedSender.name,
+                fullName: selectedSender.name,
+                phone: selectedSender.phone,
+                avatarUrl: selectedSender.avatar,
+                bio: undefined,
+                lastSeenAt: new Date(),
+                isOnline: selectedSender.isOnline,
+              },
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            } as ChatUser
+          }
           isMobile={isMobile}
         />
       )}

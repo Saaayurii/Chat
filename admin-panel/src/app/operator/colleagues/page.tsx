@@ -1,24 +1,38 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Search, Users, Mail, Phone, User, Shield, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
-import { useAuthStore } from '@/store/authStore';
-import { usersAPI } from '@/core/api';
-import { UserRole } from '@/types';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/UI/Card';
-import { Input } from '@/components/UI/Input';
-import { Avatar } from '@/components/UI/Avatar';
-import { Badge, Loading } from '@/components/UI';
-import Button from '@/components/UI/Button';
-import { PresenceIndicator, PresenceAvatar, PresenceStatus } from '@/components/Presence';
+import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Search,
+  Users,
+  Mail,
+  Phone,
+  User,
+  Shield,
+  ChevronLeft,
+  ChevronRight,
+  MessageSquare,
+} from "lucide-react";
+import { useAuthStore } from "@/store/authStore";
+import { usersAPI } from "@/core/api";
+import { UserRole } from "@/types";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/UI/Card";
+import { Input } from "@/components/UI/Input";
+import { Avatar } from "@/components/UI/Avatar";
+import { Badge, Loading } from "@/components/UI";
+import Button from "@/components/UI/Button";
+import {
+  PresenceIndicator,
+  PresenceAvatar,
+  PresenceStatus,
+} from "@/components/Presence";
 
 function OperatorColleaguesPageContent() {
   const { user } = useAuthStore();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const { 0: searchQuery, 1: setSearchQuery } = useState("");
+  const { 0: currentPage, 1: setCurrentPage } = useState(1);
+  const { 0: debouncedSearchQuery, 1: setDebouncedSearchQuery } = useState("");
 
   // Debounce search query
   React.useEffect(() => {
@@ -31,70 +45,94 @@ function OperatorColleaguesPageContent() {
 
   // Fetch colleagues (operators and admins)
   const { data: colleaguesData, isLoading } = useQuery({
-    queryKey: ['colleagues', currentPage, debouncedSearchQuery],
+    queryKey: ["colleagues", currentPage, debouncedSearchQuery],
     queryFn: async () => {
       const response = await usersAPI.getUsers({
         page: currentPage,
         limit: 10,
         role: undefined, // Get all roles
-        search: debouncedSearchQuery || undefined
+        search: debouncedSearchQuery || undefined,
       });
-      
+
       // Filter out visitors and current user
       const colleagues = response.data.data.filter(
-        (colleague: any) => 
-          colleague.role !== UserRole.VISITOR && 
-          colleague._id !== user?.id
+        (colleague: any) =>
+          colleague.role !== UserRole.VISITOR && colleague._id !== user?.id
       );
-      
+
       return {
         ...response.data,
-        data: colleagues
+        data: colleagues,
       };
-    }
+    },
   });
 
   const handleStartChat = (colleagueId: string) => {
     // TODO: Implement chat functionality
-    console.log('Start chat with colleague:', colleagueId);
+    console.log("Start chat with colleague:", colleagueId);
     // This would typically navigate to the chat page and open conversation
   };
 
   const getRoleColor = (role: UserRole) => {
     switch (role) {
-      case UserRole.ADMIN: return 'destructive';
-      case UserRole.OPERATOR: return 'default';
-      default: return 'secondary';
+      case UserRole.ADMIN:
+        return "destructive";
+      case UserRole.OPERATOR:
+        return "default";
+      default:
+        return "secondary";
     }
   };
 
   const getRoleLabel = (role: UserRole) => {
     switch (role) {
-      case UserRole.ADMIN: return 'Администратор';
-      case UserRole.OPERATOR: return 'Оператор';
-      default: return role;
+      case UserRole.ADMIN:
+        return "Администратор";
+      case UserRole.OPERATOR:
+        return "Оператор";
+      default:
+        return role;
     }
   };
 
   const getRoleIcon = (role: UserRole) => {
     switch (role) {
-      case UserRole.ADMIN: return <Shield className="w-4 h-4 text-red-600" />;
-      case UserRole.OPERATOR: return <User className="w-4 h-4 text-blue-600" />;
-      default: return <User className="w-4 h-4 text-gray-600" />;
+      case UserRole.ADMIN:
+        return <Shield className="w-4 h-4 text-red-600" />;
+      case UserRole.OPERATOR:
+        return <User className="w-4 h-4 text-blue-600" />;
+      default:
+        return <User className="w-4 h-4 text-gray-600" />;
     }
   };
 
   const getStatusBadge = (colleague: any) => {
     if (colleague.isBlocked) {
-      return <Badge variant="destructive" className="ml-2">Заблокирован</Badge>;
+      return (
+        <Badge variant="destructive" className="ml-2">
+          Заблокирован
+        </Badge>
+      );
     }
     if (!colleague.isActivated) {
-      return <Badge variant="outline" className="ml-2">Не активирован</Badge>;
+      return (
+        <Badge variant="outline" className="ml-2">
+          Не активирован
+        </Badge>
+      );
     }
     if (colleague.profile?.isOnline) {
-      return <Badge variant="default" className="ml-2 bg-green-600">Онлайн</Badge>;
+      return (
+        <Badge variant="default" className="ml-2 bg-green-600">
+          Онлайн
+        </Badge>
+      );
     }
-    return <Badge variant="secondary" className="ml-2">Офлайн</Badge>;
+    return (
+      <Badge variant="secondary" className="ml-2">
+        Офлайн
+      </Badge>
+    );
   };
 
   return (
@@ -135,7 +173,8 @@ function OperatorColleaguesPageContent() {
               <span>Список коллег</span>
               {colleaguesData?.total && (
                 <Badge variant="secondary" className="ml-2">
-                  {colleaguesData.total} {colleaguesData.total === 1 ? 'человек' : 'человек'}
+                  {colleaguesData.total}{" "}
+                  {colleaguesData.total === 1 ? "человек" : "человек"}
                 </Badge>
               )}
             </CardTitle>
@@ -161,25 +200,39 @@ function OperatorColleaguesPageContent() {
                     <div className="flex items-center space-x-4">
                       <PresenceAvatar
                         userId={colleague._id}
-                        userName={colleague.profile?.fullName || colleague.profile?.username || colleague.email}
+                        userName={
+                          colleague.profile?.fullName ||
+                          colleague.profile?.username ||
+                          colleague.email
+                        }
                         avatar={colleague.profile?.avatarUrl}
-                        status={colleague.profile?.isOnline ? PresenceStatus.ONLINE : PresenceStatus.OFFLINE}
+                        status={
+                          colleague.profile?.isOnline
+                            ? PresenceStatus.ONLINE
+                            : PresenceStatus.OFFLINE
+                        }
                         size="md"
                       />
-                      
+
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2">
                           <h3 className="font-medium text-foreground">
-                            {colleague.profile?.fullName || colleague.profile?.username || 'Без имени'}
+                            {colleague.profile?.fullName ||
+                              colleague.profile?.username ||
+                              "Без имени"}
                           </h3>
                           {getRoleIcon(colleague.role)}
-                          <PresenceIndicator 
-                            status={colleague.profile?.isOnline ? PresenceStatus.ONLINE : PresenceStatus.OFFLINE}
+                          <PresenceIndicator
+                            status={
+                              colleague.profile?.isOnline
+                                ? PresenceStatus.ONLINE
+                                : PresenceStatus.OFFLINE
+                            }
                             size="sm"
                           />
                           {getStatusBadge(colleague)}
                         </div>
-                        
+
                         <div className="flex items-center space-x-4 mt-2 text-sm text-muted-foreground">
                           <div className="flex items-center space-x-1">
                             <Mail className="w-4 h-4" />
@@ -192,13 +245,16 @@ function OperatorColleaguesPageContent() {
                             </div>
                           )}
                         </div>
-                        
+
                         <div className="flex items-center space-x-2 mt-2">
                           <Badge variant={getRoleColor(colleague.role)}>
                             {getRoleLabel(colleague.role)}
                           </Badge>
                           <span className="text-xs text-muted-foreground">
-                            В системе с {new Date(colleague.createdAt).toLocaleDateString('ru-RU')}
+                            В системе с{" "}
+                            {new Date(colleague.createdAt).toLocaleDateString(
+                              "ru-RU"
+                            )}
                           </span>
                         </div>
                       </div>
@@ -224,7 +280,9 @@ function OperatorColleaguesPageContent() {
             {colleaguesData && colleaguesData.totalPages > 1 && (
               <div className="flex items-center justify-between mt-6 pt-6 border-t border-border">
                 <div className="text-sm text-muted-foreground">
-                  Показано {((currentPage - 1) * 10) + 1}-{Math.min(currentPage * 10, colleaguesData.total)} из {colleaguesData.total} коллег
+                  Показано {(currentPage - 1) * 10 + 1}-
+                  {Math.min(currentPage * 10, colleaguesData.total)} из{" "}
+                  {colleaguesData.total} коллег
                 </div>
                 <div className="flex items-center space-x-2">
                   <Button
@@ -236,25 +294,30 @@ function OperatorColleaguesPageContent() {
                     <ChevronLeft className="w-4 h-4" />
                     Предыдущая
                   </Button>
-                  
+
                   <div className="flex items-center space-x-1">
-                    {Array.from({ length: Math.min(5, colleaguesData.totalPages) }, (_, i) => {
-                      const pageNumber = Math.max(1, currentPage - 2) + i;
-                      if (pageNumber > colleaguesData.totalPages) return null;
-                      return (
-                        <Button
-                          key={pageNumber}
-                          variant={pageNumber === currentPage ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(pageNumber)}
-                          className="w-8 h-8 p-0"
-                        >
-                          {pageNumber}
-                        </Button>
-                      );
-                    })}
+                    {Array.from(
+                      { length: Math.min(5, colleaguesData.totalPages) },
+                      (_, i) => {
+                        const pageNumber = Math.max(1, currentPage - 2) + i;
+                        if (pageNumber > colleaguesData.totalPages) return null;
+                        return (
+                          <Button
+                            key={pageNumber}
+                            variant={
+                              pageNumber === currentPage ? "default" : "outline"
+                            }
+                            size="sm"
+                            onClick={() => setCurrentPage(pageNumber)}
+                            className="w-8 h-8 p-0"
+                          >
+                            {pageNumber}
+                          </Button>
+                        );
+                      }
+                    )}
                   </div>
-                  
+
                   <Button
                     variant="outline"
                     size="sm"

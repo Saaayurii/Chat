@@ -1,45 +1,51 @@
-'use client';
+"use client";
 
 import Link from "next/link";
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useMutation } from '@tanstack/react-query';
-import { Eye, EyeOff, CheckCircle, ArrowLeft, AlertCircle } from 'lucide-react';
-import { authAPI, ResetPasswordData } from '@/core/api';
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
+import { Eye, EyeOff, CheckCircle, ArrowLeft, AlertCircle } from "lucide-react";
+import { authAPI, ResetPasswordData } from "@/core/api";
 
 import Button from "@/components/UI/Button";
 import { Input } from "@/components/UI/Input";
 import { Label } from "@/components/UI/Label";
 import { Alert } from "@/components/UI/Alert";
 
-const resetPasswordSchema = z.object({
-  newPassword: z.string()
-    .min(8, 'Пароль должен содержать минимум 8 символов')
-    .regex(/[A-Z]/, 'Пароль должен содержать хотя бы одну заглавную букву')
-    .regex(/[a-z]/, 'Пароль должен содержать хотя бы одну строчную букву')
-    .regex(/\d/, 'Пароль должен содержать хотя бы одну цифру')
-    .regex(/[!@#$%^&*(),.?":{}|<>]/, 'Пароль должен содержать хотя бы один специальный символ'),
-  confirmPassword: z.string()
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Пароли не совпадают",
-  path: ["confirmPassword"],
-});
+const resetPasswordSchema = z
+  .object({
+    newPassword: z
+      .string()
+      .min(8, "Пароль должен содержать минимум 8 символов")
+      .regex(/[A-Z]/, "Пароль должен содержать хотя бы одну заглавную букву")
+      .regex(/[a-z]/, "Пароль должен содержать хотя бы одну строчную букву")
+      .regex(/\d/, "Пароль должен содержать хотя бы одну цифру")
+      .regex(
+        /[!@#$%^&*(),.?":{}|<>]/,
+        "Пароль должен содержать хотя бы один специальный символ"
+      ),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Пароли не совпадают",
+    path: ["confirmPassword"],
+  });
 
 type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 
 function ResetPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [token, setToken] = useState<string | null>(null);
+  const { 0: showPassword, 1: setShowPassword } = useState(false);
+  const { 0: showConfirmPassword, 1: setShowConfirmPassword } = useState(false);
+  const { 0: isSuccess, 1: setIsSuccess } = useState(false);
+  const { 0: token, 1: setToken } = useState<string | null>(null);
 
   useEffect(() => {
-    const tokenFromUrl = searchParams.get('token');
+    const tokenFromUrl = searchParams.get("token");
     setToken(tokenFromUrl);
   }, [searchParams]);
 
@@ -47,22 +53,22 @@ function ResetPasswordContent() {
     register,
     handleSubmit,
     formState: { errors },
-    setError
+    setError,
   } = useForm<ResetPasswordFormData>({
-    resolver: zodResolver(resetPasswordSchema)
+    resolver: zodResolver(resetPasswordSchema),
   });
 
   const resetPasswordMutation = useMutation({
     mutationFn: async (data: ResetPasswordFormData) => {
       if (!token) {
-        throw new Error('Токен не найден');
+        throw new Error("Токен не найден");
       }
-      
+
       const resetData: ResetPasswordData = {
         token,
-        newPassword: data.newPassword
+        newPassword: data.newPassword,
       };
-      
+
       const response = await authAPI.resetPassword(resetData);
       return response.data;
     },
@@ -70,11 +76,12 @@ function ResetPasswordContent() {
       setIsSuccess(true);
     },
     onError: (error: any) => {
-      const message = error.response?.data?.message || 
+      const message =
+        error.response?.data?.message ||
         error.message ||
-        'Произошла ошибка при сбросе пароля. Попробуйте снова.';
-      setError('root', { message });
-    }
+        "Произошла ошибка при сбросе пароля. Попробуйте снова.";
+      setError("root", { message });
+    },
   });
 
   const onSubmit = (data: ResetPasswordFormData) => {
@@ -98,13 +105,13 @@ function ResetPasswordContent() {
                 Ссылка для сброса пароля недействительна или устарела
               </p>
             </div>
-            
+
             <Alert className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
               <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
               <div className="text-red-800 dark:text-red-200">
                 <p className="font-medium mb-1">Ссылка недействительна</p>
                 <p className="text-sm">
-                  Возможно, ссылка устарела или была использована ранее. 
+                  Возможно, ссылка устарела или была использована ранее.
                   Запросите новую ссылку для сброса пароля.
                 </p>
               </div>
@@ -116,10 +123,10 @@ function ResetPasswordContent() {
                   Запросить новую ссылку
                 </Button>
               </Link>
-              
+
               <Link href="/login">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
@@ -133,7 +140,9 @@ function ResetPasswordContent() {
           <div className="h-full w-full bg-gradient-to-br from-red-600 to-purple-600 flex items-center justify-center">
             <div className="text-center text-white">
               <AlertCircle className="w-16 h-16 mx-auto mb-4 opacity-90" />
-              <h2 className="text-4xl font-bold mb-4">Ссылка недействительна</h2>
+              <h2 className="text-4xl font-bold mb-4">
+                Ссылка недействительна
+              </h2>
               <p className="text-xl opacity-90">
                 Запросите новую ссылку для сброса пароля
               </p>
@@ -158,16 +167,18 @@ function ResetPasswordContent() {
                 Пароль изменен
               </h1>
               <p className="text-balance text-muted-foreground">
-                Ваш пароль был успешно изменен. Теперь вы можете войти в систему с новым паролем.
+                Ваш пароль был успешно изменен. Теперь вы можете войти в систему
+                с новым паролем.
               </p>
             </div>
-            
+
             <Alert className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
               <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
               <div className="text-green-800 dark:text-green-200">
                 <p className="font-medium mb-1">Успешно!</p>
                 <p className="text-sm">
-                  Пароль был изменен. Используйте новый пароль для входа в систему.
+                  Пароль был изменен. Используйте новый пароль для входа в
+                  систему.
                 </p>
               </div>
             </Alert>
@@ -207,17 +218,24 @@ function ResetPasswordContent() {
               Введите новый пароль для вашего аккаунта
             </p>
           </div>
-          
-          <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4" suppressHydrationWarning={true}>
+
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="grid gap-4"
+            suppressHydrationWarning={true}
+          >
             <div className="grid gap-2">
-              <Label htmlFor="newPassword" className="text-gray-700 dark:text-gray-300">
+              <Label
+                htmlFor="newPassword"
+                className="text-gray-700 dark:text-gray-300"
+              >
                 Новый пароль
               </Label>
               <div className="relative">
                 <Input
                   id="newPassword"
-                  type={showPassword ? 'text' : 'password'}
-                  {...register('newPassword')}
+                  type={showPassword ? "text" : "password"}
+                  {...register("newPassword")}
                   className="bg-white dark:bg-dark-800 border-gray-300 dark:border-dark-700 text-gray-900 dark:text-white pr-10"
                   suppressHydrationWarning={true}
                 />
@@ -237,14 +255,17 @@ function ResetPasswordContent() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="confirmPassword" className="text-gray-700 dark:text-gray-300">
+              <Label
+                htmlFor="confirmPassword"
+                className="text-gray-700 dark:text-gray-300"
+              >
                 Подтвердите пароль
               </Label>
               <div className="relative">
                 <Input
                   id="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  {...register('confirmPassword')}
+                  type={showConfirmPassword ? "text" : "password"}
+                  {...register("confirmPassword")}
                   className="bg-white dark:bg-dark-800 border-gray-300 dark:border-dark-700 text-gray-900 dark:text-white pr-10"
                   suppressHydrationWarning={true}
                 />
@@ -253,7 +274,11 @@ function ResetPasswordContent() {
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 dark:text-dark-400 hover:text-gray-700 dark:hover:text-dark-300"
                 >
-                  {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showConfirmPassword ? (
+                    <EyeOff size={20} />
+                  ) : (
+                    <Eye size={20} />
+                  )}
                 </button>
               </div>
               {errors.confirmPassword && (
@@ -275,14 +300,16 @@ function ResetPasswordContent() {
               </ul>
             </div>
 
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full bg-blue-600 hover:bg-blue-700 text-white"
               disabled={resetPasswordMutation.isPending}
             >
-              {resetPasswordMutation.isPending ? 'Изменение...' : 'Изменить пароль'}
+              {resetPasswordMutation.isPending
+                ? "Изменение..."
+                : "Изменить пароль"}
             </Button>
-            
+
             {errors.root && (
               <Alert className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
                 <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
@@ -295,7 +322,7 @@ function ResetPasswordContent() {
           </form>
 
           <div className="text-center">
-            <Link 
+            <Link
               href="/login"
               className="inline-flex items-center text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
             >
@@ -321,14 +348,16 @@ function ResetPasswordContent() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={
-      <div className="w-full min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Загрузка...</p>
+    <Suspense
+      fallback={
+        <div className="w-full min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Загрузка...</p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <ResetPasswordContent />
     </Suspense>
   );

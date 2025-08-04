@@ -1,13 +1,25 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, AlertTriangle, MessageSquare, Ban, FileText, Send } from 'lucide-react';
-import { chatAPI } from '@/core/api';
-import Button from '@/components/UI/Button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/UI/Dialog';
-import Badge from '@/components/UI/Badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/UI/Avatar';
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  X,
+  AlertTriangle,
+  MessageSquare,
+  Ban,
+  FileText,
+  Send,
+} from "lucide-react";
+import { chatAPI } from "@/core/api";
+import Button from "@/components/UI/Button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/UI/Dialog";
+import Badge from "@/components/UI/Badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/UI/Avatar";
 
 interface RequestBlockUserModalProps {
   isOpen: boolean;
@@ -22,29 +34,29 @@ interface RequestBlockUserModalProps {
 
 const blockReasons = [
   {
-    id: 'spam',
-    label: 'Спам',
-    description: 'Отправка нежелательных сообщений',
-    icon: MessageSquare
+    id: "spam",
+    label: "Спам",
+    description: "Отправка нежелательных сообщений",
+    icon: MessageSquare,
   },
   {
-    id: 'abusive_language',
-    label: 'Нецензурная лексика',
-    description: 'Использование неприемлемых выражений',
-    icon: Ban
+    id: "abusive_language",
+    label: "Нецензурная лексика",
+    description: "Использование неприемлемых выражений",
+    icon: Ban,
   },
   {
-    id: 'inappropriate_content',
-    label: 'Неадекватное поведение',
-    description: 'Агрессивное или неуважительное поведение',
-    icon: AlertTriangle
+    id: "inappropriate_content",
+    label: "Неадекватное поведение",
+    description: "Агрессивное или неуважительное поведение",
+    icon: AlertTriangle,
   },
   {
-    id: 'other',
-    label: 'Другое',
-    description: 'Иная причина блокировки',
-    icon: FileText
-  }
+    id: "other",
+    label: "Другое",
+    description: "Иная причина блокировки",
+    icon: FileText,
+  },
 ];
 
 export default function RequestBlockUserModal({
@@ -55,44 +67,52 @@ export default function RequestBlockUserModal({
   userEmail,
   userAvatar,
   conversationId,
-  onRequestComplete
+  onRequestComplete,
 }: RequestBlockUserModalProps) {
-  const [selectedReason, setSelectedReason] = useState<string | null>(null);
-  const [comment, setComment] = useState('');
+  const { 0: selectedReason, 1: setSelectedReason } = useState<string | null>(
+    null
+  );
+  const { 0: comment, 1: setComment } = useState("");
   const queryClient = useQueryClient();
 
   const requestBlockMutation = useMutation({
-    mutationFn: async ({ reason, comment }: { reason: string; comment: string }) => {
+    mutationFn: async ({
+      reason,
+      comment,
+    }: {
+      reason: string;
+      comment: string;
+    }) => {
       // Отправляем запрос на блокировку вместо прямой блокировки
       const response = await chatAPI.requestUserBlock(userId, {
         reason,
         comment,
-        conversationId
+        conversationId,
       });
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      queryClient.invalidateQueries({ queryKey: ['block-requests'] });
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["block-requests"] });
       onRequestComplete();
       onClose();
       resetForm();
     },
     onError: (error) => {
-      console.error('Request block user failed:', error);
-    }
+      console.error("Request block user failed:", error);
+    },
   });
 
   const resetForm = () => {
     setSelectedReason(null);
-    setComment('');
+    setComment("");
   };
 
   const handleRequestBlock = () => {
     if (selectedReason && userId) {
-      requestBlockMutation.mutate({ 
+      requestBlockMutation.mutate({
         reason: selectedReason,
-        comment: comment.trim()
+        comment: comment.trim(),
       });
     }
   };
@@ -138,8 +158,9 @@ export default function RequestBlockUserModal({
                   Запрос на блокировку
                 </h5>
                 <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">
-                  Ваш запрос будет отправлен администратору для рассмотрения. 
-                  Пользователь будет заблокирован только после одобрения администратором.
+                  Ваш запрос будет отправлен администратору для рассмотрения.
+                  Пользователь будет заблокирован только после одобрения
+                  администратором.
                 </p>
               </div>
             </div>
@@ -147,7 +168,9 @@ export default function RequestBlockUserModal({
 
           {/* Block reasons */}
           <div className="space-y-3">
-            <h5 className="font-medium text-foreground">Причина запроса блокировки:</h5>
+            <h5 className="font-medium text-foreground">
+              Причина запроса блокировки:
+            </h5>
             <div className="space-y-2">
               {blockReasons.map((reason) => {
                 const Icon = reason.icon;
@@ -157,15 +180,17 @@ export default function RequestBlockUserModal({
                     onClick={() => setSelectedReason(reason.id)}
                     className={`p-3 border rounded-lg cursor-pointer transition-colors ${
                       selectedReason === reason.id
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border hover:border-primary/50'
+                        ? "border-primary bg-primary/10"
+                        : "border-border hover:border-primary/50"
                     }`}
                   >
                     <div className="flex items-start space-x-3">
                       <Icon className="w-4 h-4 mt-1 text-muted-foreground" />
                       <div className="flex-1">
                         <p className="font-medium text-sm">{reason.label}</p>
-                        <p className="text-xs text-muted-foreground">{reason.description}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {reason.description}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -199,7 +224,9 @@ export default function RequestBlockUserModal({
             </Button>
             <Button
               onClick={handleRequestBlock}
-              disabled={!selectedReason || !userId || requestBlockMutation.isPending}
+              disabled={
+                !selectedReason || !userId || requestBlockMutation.isPending
+              }
               className="flex-1"
             >
               {requestBlockMutation.isPending ? (

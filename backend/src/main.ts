@@ -7,7 +7,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
-import helmet from 'helmet'; 
+import helmet from 'helmet';
 import * as compression from 'compression';
 
 async function bootstrap() {
@@ -19,22 +19,24 @@ async function bootstrap() {
   app.useLogger(app.get(Logger));
 
   // Настройка безопасности
-  app.use(helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'"],
-        imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'", "ws:", "wss:"],
-        fontSrc: ["'self'"],
-        objectSrc: ["'none'"],
-        mediaSrc: ["'self'"],
-        frameSrc: ["'none'"],
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+          connectSrc: ["'self'", 'ws:', 'wss:'],
+          fontSrc: ["'self'"],
+          objectSrc: ["'none'"],
+          mediaSrc: ["'self'"],
+          frameSrc: ["'none'"],
+        },
       },
-    },
-    crossOriginEmbedderPolicy: false,
-  }));
+      crossOriginEmbedderPolicy: false,
+    }),
+  );
 
   // Компрессия
   app.use(compression());
@@ -81,53 +83,66 @@ async function bootstrap() {
   SwaggerModule.setup('api-docs', app, swaggerDocument);
 
   // 🔐 CORS настройки для безопасности
-  const corsOrigins = process.env.NODE_ENV === 'production' 
-    ? [
-        process.env.CLIENT_URL, 
-        process.env.WIDGET_URL, 
-        process.env.ADMIN_PANEL_URL,
-        'https://chat-admin-panel.vercel.app', // Админ панель
-        'https://chat-nine-snowy.vercel.app' // Виджет
-      ].filter(Boolean).map(url => url?.replace(/\/$/, '')) // Убираем слеш в конце
-    : [
-        process.env.CLIENT_URL,
-        process.env.WIDGET_URL,
-        process.env.ADMIN_PANEL_URL,
-        'http://localhost:5500',
-        'http://localhost:3000',
-        'http://localhost:3001',
-        'http://localhost:3005'
-      ].filter(Boolean).map(url => url?.replace(/\/$/, '')); // Убираем слеш в конце
+  const corsOrigins =
+    process.env.NODE_ENV === 'production'
+      ? [
+          process.env.CLIENT_URL,
+          process.env.WIDGET_URL,
+          process.env.ADMIN_PANEL_URL,
+          'https://chat-admin-panel.vercel.app', // Админ панель
+          'https://chat-nine-snowy.vercel.app', // Виджет
+        ]
+          .filter(Boolean)
+          .map((url) => url?.replace(/\/$/, '')) // Убираем слеш в конце
+      : [
+          process.env.CLIENT_URL,
+          process.env.WIDGET_URL,
+          process.env.ADMIN_PANEL_URL,
+          'http://localhost:5500',
+          'http://localhost:3000',
+          'http://localhost:3001',
+          'http://localhost:3005',
+        ]
+          .filter(Boolean)
+          .map((url) => url?.replace(/\/$/, '')); // Убираем слеш в конце
 
   app.enableCors({
     origin: (origin, callback) => {
-      console.log(`🌐 CORS check: origin = ${origin}, NODE_ENV = ${process.env.NODE_ENV}`);
+      console.log(
+        `🌐 CORS check: origin = ${origin}, NODE_ENV = ${process.env.NODE_ENV}`,
+      );
       console.log(`🌐 CORS origins:`, corsOrigins);
-      
+
       // Разрешить запросы без origin (например, мобильные приложения)
       if (!origin) {
         console.log(`🌐 CORS: Allowing request without origin`);
         return callback(null, true);
       }
-      
+
       // Разрешить запросы с разрешенных доменов
       if (corsOrigins.includes(origin)) {
         console.log(`🌐 CORS: Origin ${origin} found in corsOrigins - ALLOWED`);
         return callback(null, true);
       }
-      
+
       // Разрешить все vercel.app домены в production
-      if (process.env.NODE_ENV === 'production' && origin.endsWith('.vercel.app')) {
+      if (
+        process.env.NODE_ENV === 'production' &&
+        origin.endsWith('.vercel.app')
+      ) {
         console.log(`🌐 CORS: Vercel domain ${origin} - ALLOWED`);
         return callback(null, true);
       }
-      
+
       // Разрешить localhost в development
-      if (process.env.NODE_ENV !== 'production' && origin.includes('localhost')) {
+      if (
+        process.env.NODE_ENV !== 'production' &&
+        origin.includes('localhost')
+      ) {
         console.log(`🌐 CORS: Localhost domain ${origin} - ALLOWED`);
         return callback(null, true);
       }
-      
+
       console.log(`🌐 CORS: Origin ${origin} - BLOCKED`);
       callback(new Error('Not allowed by CORS'));
     },
@@ -146,14 +161,17 @@ async function bootstrap() {
   // 🔌 WebSocket адаптер
   app.useWebSocketAdapter(new IoAdapter(app));
 
-  // 🚀 Запуск приложения
+  // 🚀 Запуск приложения - КРИТИЧНО для Render
   const port = process.env.PORT || 3000;
-  await app.listen(port);
+  
+  // Bind to 0.0.0.0 for cloud deployment
+  await app.listen(port, '0.0.0.0');
 
   // 📊 Логирование информации о запуске
-  console.log('🚀 Приложение запущено на порту:', port);
+  console.log(`🚀 Приложение запущено на порту: ${port}`);
+  console.log(`🌍 Listening on: http://0.0.0.0:${port}`);
   console.log('🌍 NODE_ENV:', process.env.NODE_ENV);
-  console.log('📚 API Documentation:', process.env.API_DOCUMENTATION);
+  console.log(`📚 API Documentation: http://0.0.0.0:${port}/api-docs`);
   console.log('🔗 Client URL:', process.env.CLIENT_URL);
   console.log('🔗 Admin Panel URL:', process.env.ADMIN_PANEL_URL);
   console.log('🔗 Widget URL:', process.env.WIDGET_URL);

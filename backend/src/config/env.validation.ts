@@ -26,10 +26,14 @@ export class EnvironmentVariables {
   @IsString()
   COOKIE_SECRET: string;
 
-  @IsUrl()
+  @IsUrl({}, { message: 'CLIENT_URL must be a valid URL' })
   CLIENT_URL: string;
 
-  @IsUrl()
+  @IsUrl({}, { message: 'ADMIN_PANEL_URL must be a valid URL' })
+  @IsOptional()
+  ADMIN_PANEL_URL?: string;
+
+  @IsUrl({}, { message: 'WIDGET_URL must be a valid URL' })
   @IsOptional()
   WIDGET_URL?: string;
 

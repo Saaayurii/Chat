@@ -22,7 +22,6 @@ export default function ProtectedRoute({
   useEffect(() => {
     // Ждем пока загрузится состояние аутентификации
     if (isLoading) return;
-
     // Если не аутентифицирован, перенаправляем на логин
     if (!isAuthenticated || !user) {
       router.push(redirectTo);

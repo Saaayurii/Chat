@@ -161,15 +161,24 @@ async function bootstrap() {
   // 🔌 WebSocket адаптер
   app.useWebSocketAdapter(new IoAdapter(app));
 
-  // 🚀 Запуск приложения - КРИТИЧНО для Render
-  const port = process.env.PORT || 3000;
+  // 🚀 КРИТИЧНО: Правильное определение порта для Render
+  const port = process.env.PORT || process.env.SERVER_PORT || 3000;
   
-  // Bind to 0.0.0.0 for cloud deployment
+  console.log(`🔍 Port detection:`);
+  console.log(`   - process.env.PORT: ${process.env.PORT}`);
+  console.log(`   - process.env.SERVER_PORT: ${process.env.SERVER_PORT}`);
+  console.log(`   - Final port: ${port}`);
+  
+  // Bind to 0.0.0.0 для облачного развертывания
   await app.listen(port, '0.0.0.0');
 
   // 📊 Логирование информации о запуске
-  console.log(`🚀 Приложение запущено на порту: ${port}`);
-  console.log(`🌍 Listening on: http://0.0.0.0:${port}`);
+  console.log(`🚀 ============================================`);
+  console.log(`🚀 Приложение УСПЕШНО запущено!`);
+  console.log(`🚀 Порт: ${port}`);
+  console.log(`🚀 Хост: 0.0.0.0`);
+  console.log(`🚀 URL: http://0.0.0.0:${port}`);
+  console.log(`🚀 ============================================`);
   console.log('🌍 NODE_ENV:', process.env.NODE_ENV);
   console.log(`📚 API Documentation: http://0.0.0.0:${port}/api-docs`);
   console.log('🔗 Client URL:', process.env.CLIENT_URL);
@@ -198,4 +207,7 @@ async function bootstrap() {
   );
 }
 
-bootstrap();
+bootstrap().catch((error) => {
+  console.error('❌ Ошибка запуска приложения:', error);
+  process.exit(1);
+});

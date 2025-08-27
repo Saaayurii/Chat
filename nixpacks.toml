@@ -1,0 +1,12 @@
+# nixpacks.toml - в корне проекта
+[phases.setup]
+nixPkgs = ['nodejs_18', 'npm']
+
+[phases.install]
+cmds = ['cd backend && npm install']
+
+[phases.build]
+cmds = ['cd backend && npm run build']
+
+[start]
+cmd = 'cd backend && npm run start:prod'

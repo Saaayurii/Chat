@@ -78,11 +78,15 @@ describe('OperatorChatPage', () => {
   const mockChatHook = {
     isConnected: true,
     isConnecting: false,
+    wsError: null,
     typingUsers: {},
+    onlineUsers: new Set<string>(),
     sendChatMessage: jest.fn(),
     setTyping: jest.fn(),
     joinConversation: jest.fn(),
     leaveConversation: jest.fn(),
+    markAsRead: jest.fn(),
+    markConversationAsRead: jest.fn(),
     reconnect: jest.fn()
   };
 
@@ -426,7 +430,7 @@ describe('OperatorChatPage', () => {
       const conversationItem = screen.getByText('User One').closest('div');
       await user.click(conversationItem!);
 
-      await waitFor(() => {
+      await waitFor(async () => {
         const messageInput = screen.getByPlaceholderText('Введите сообщение...');
         await user.tab();
         expect(messageInput).toHaveFocus();

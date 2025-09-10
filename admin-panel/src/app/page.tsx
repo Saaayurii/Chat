@@ -1,30 +1,33 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/authStore';
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/authStore";
 
 export default function Home() {
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    const user = localStorage.getItem('user');
+    const token = localStorage.getItem("access_token");
+    const user = localStorage.getItem("user");
 
-    const role = token && user ? (() => {
-      try {
-        return JSON.parse(user)?.role;
-      } catch {
-        return null;
-      }
-    })() : null;
+    const role =
+      token && user
+        ? (() => {
+            try {
+              return JSON.parse(user)?.role;
+            } catch {
+              return null;
+            }
+          })()
+        : null;
 
-    role === 'admin'
-      ? router.push('/admin/statistics')
-      : role === 'operator'
-        ? router.push('/operator/statistics')
-        : router.push('/login');
+    role === "admin"
+      ? router.push("/admin/statistics")
+      : role === "operator"
+      ? router.push("/operator/statistics")
+      : router.push("/login");
   }, [router]);
 
   return (

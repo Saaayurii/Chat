@@ -28,8 +28,14 @@ describe('AdminUsersPage', () => {
   let queryClient: QueryClient;
   let user: ReturnType<typeof userEvent.setup>;
   let mockNotifications: {
+    notifications: any[];
+    addNotification: jest.Mock;
+    removeNotification: jest.Mock;
+    clearAll: jest.Mock;
     success: jest.Mock;
     error: jest.Mock;
+    warning: jest.Mock;
+    info: jest.Mock;
   };
 
   const mockAdminUser = {
@@ -111,8 +117,14 @@ describe('AdminUsersPage', () => {
     user = userEvent.setup();
     
     mockNotifications = {
+      notifications: [],
+      addNotification: jest.fn(),
+      removeNotification: jest.fn(),
+      clearAll: jest.fn(),
       success: jest.fn(),
-      error: jest.fn()
+      error: jest.fn(),
+      warning: jest.fn(),
+      info: jest.fn()
     };
     
     mockUseAuthStore.mockReturnValue({ user: mockAdminUser });
@@ -404,7 +416,7 @@ describe('AdminUsersPage', () => {
       const roleSelect = screen.getByText('Все роли');
       await user.click(roleSelect);
 
-      await waitFor(() => {
+      await waitFor(async () => {
         const operatorOption = screen.getByRole('option', { name: 'Оператор' });
         await user.click(operatorOption);
       });

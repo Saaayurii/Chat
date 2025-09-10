@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { Home, ArrowLeft, MessageCircle } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import Link from "next/link";
+import { Home, ArrowLeft, MessageCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function NotFound() {
   const router = useRouter();
@@ -28,7 +28,8 @@ export default function NotFound() {
             Страница не найдена
           </h1>
           <p className="text-lg text-gray-600 max-w-md mx-auto">
-            К сожалению, страница, которую вы ищете, не существует или была перемещена.
+            К сожалению, страница, которую вы ищете, не существует или была
+            перемещена.
           </p>
         </div>
 
@@ -50,7 +51,7 @@ export default function NotFound() {
             <ArrowLeft className="w-5 h-5 mr-2" />
             Вернуться назад
           </button>
-          
+
           <Link
             href="/"
             className="flex items-center px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl"
@@ -66,20 +67,20 @@ export default function NotFound() {
             Не можете найти то, что ищете?
           </p>
           <div className="flex flex-wrap justify-center gap-4 text-sm">
-            <Link 
-              href="/login" 
+            <Link
+              href="/login"
               className="text-blue-500 hover:text-blue-600 hover:underline"
             >
               Вход в систему
             </Link>
-            <Link 
-              href="/profile" 
+            <Link
+              href="/profile"
               className="text-blue-500 hover:text-blue-600 hover:underline"
             >
               Профиль
             </Link>
-            <Link 
-              href="/settings" 
+            <Link
+              href="/settings"
               className="text-blue-500 hover:text-blue-600 hover:underline"
             >
               Настройки
@@ -104,7 +105,7 @@ export default function NotFound() {
             transform: translate(-50%, -50%) rotate(360deg);
           }
         }
-        
+
         .animate-spin-slow {
           animation: spin-slow 20s linear infinite;
         }

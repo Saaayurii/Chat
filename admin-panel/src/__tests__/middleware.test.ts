@@ -207,7 +207,7 @@ describe('Middleware', () => {
   describe('URL Construction', () => {
     test('constructs redirect URL correctly for different base URLs', () => {
       mockRequest.nextUrl!.pathname = '/';
-      mockRequest.url = 'https://example.com/some/path';
+      (mockRequest as any).url = 'https://example.com/some/path';
       
       const result = middleware(mockRequest as NextRequest);
       
@@ -217,7 +217,7 @@ describe('Middleware', () => {
 
     test('constructs login redirect URL correctly', () => {
       mockRequest.nextUrl!.pathname = '/admin/statistics';
-      mockRequest.url = 'https://example.com/admin/statistics';
+      (mockRequest as any).url = 'https://example.com/admin/statistics';
       mockRequest.cookies!.get = jest.fn().mockReturnValue(undefined);
       
       const result = middleware(mockRequest as NextRequest);
@@ -239,7 +239,7 @@ describe('Middleware', () => {
 
     test('handles malformed URLs gracefully', () => {
       mockRequest.nextUrl!.pathname = '/admin/statistics';
-      mockRequest.url = 'invalid-url';
+      (mockRequest as any).url = 'invalid-url';
       mockRequest.cookies!.get = jest.fn().mockReturnValue(undefined);
       
       // Should not throw error
@@ -250,7 +250,7 @@ describe('Middleware', () => {
 
     test('handles missing cookies object', () => {
       mockRequest.nextUrl!.pathname = '/admin/statistics';
-      mockRequest.cookies = undefined as any;
+      (mockRequest as any).cookies = undefined;
       
       // Should not throw error and should redirect to login
       expect(() => {

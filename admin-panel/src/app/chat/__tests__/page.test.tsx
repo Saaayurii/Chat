@@ -29,6 +29,8 @@ describe('ChatPage', () => {
 
   const mockSocketIOReturn = {
     isConnected: true,
+    isConnecting: false,
+    error: null,
     emit: jest.fn(),
     on: jest.fn(),
     off: jest.fn(),
@@ -38,6 +40,10 @@ describe('ChatPage', () => {
 
   const mockApiCallReturn = {
     execute: jest.fn(),
+    reset: jest.fn(),
+    setData: jest.fn(),
+    setError: jest.fn(),
+    setLoading: jest.fn(),
     loading: false,
     error: null,
     data: null

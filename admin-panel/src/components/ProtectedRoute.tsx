@@ -1,4 +1,4 @@
-'use client';
++'use client';
 
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
@@ -27,7 +27,6 @@ export default function ProtectedRoute({
       router.push(redirectTo);
       return;
     }
-
     // Если требуется определенная роль, проверяем её
     if (requiredRole && user.role !== requiredRole) {
       // Перенаправляем в зависимости от роли

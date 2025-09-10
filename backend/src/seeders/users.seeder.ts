@@ -2,36 +2,54 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
-import { User, UserDocument, UserRole, OperatorStatus } from '../database/schemas/user.schema';
+import {
+  User,
+  UserDocument,
+  UserRole,
+  OperatorStatus,
+} from '../database/schemas/user.schema';
 
 @Injectable()
 export class UsersSeeder {
-  constructor(
-    @InjectModel(User.name) private userModel: Model<UserDocument>,
-  ) {}
+  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
   async seed() {
     console.log('🌱 Seeding users...');
 
     // Проверяем количество пользователей по ролям
-    const adminCount = await this.userModel.countDocuments({ role: UserRole.ADMIN });
-    const operatorCount = await this.userModel.countDocuments({ role: UserRole.OPERATOR });
-    const visitorCount = await this.userModel.countDocuments({ role: UserRole.VISITOR, isActivated: true, isBlocked: false });
-    
-    console.log(`Found existing users: ${adminCount} admins, ${operatorCount} operators, ${visitorCount} visitors`);
-    
+    const adminCount = await this.userModel.countDocuments({
+      role: UserRole.ADMIN,
+    });
+    const operatorCount = await this.userModel.countDocuments({
+      role: UserRole.OPERATOR,
+    });
+    const visitorCount = await this.userModel.countDocuments({
+      role: UserRole.VISITOR,
+      isActivated: true,
+      isBlocked: false,
+    });
+
+    console.log(
+      `Found existing users: ${adminCount} admins, ${operatorCount} operators, ${visitorCount} visitors`,
+    );
+
     if (adminCount >= 2 && operatorCount >= 4 && visitorCount >= 5) {
-      console.log('👥 Users already exist in sufficient numbers, skipping users seeding');
+      console.log(
+        '👥 Users already exist in sufficient numbers, skipping users seeding',
+      );
       return;
     }
-    
+
     if (adminCount > 0 || operatorCount > 0 || visitorCount > 0) {
       console.log('🧹 Clearing existing users to recreate...');
       await this.userModel.deleteMany({});
     }
 
     const saltRounds = 12;
-    const defaultPassword = await bcrypt.hash('password123', saltRounds);
+    const defaultPassword: string = await bcrypt.hash(
+      'password123',
+      saltRounds,
+    );
 
     const users = [
       // Администраторы
@@ -65,7 +83,7 @@ export class UsersSeeder {
           isOnline: false,
         },
       },
-      
+
       // Операторы
       {
         email: 'operator1@chatsystem.com',
@@ -159,7 +177,7 @@ export class UsersSeeder {
           responseTimeAvg: 6.1,
         },
       },
-      
+
       // Посетители (клиенты)
       {
         email: 'user1@example.com',
@@ -217,6 +235,7 @@ export class UsersSeeder {
           fullName: 'Ольга Волкова',
           phone: '+79001234576',
           bio: 'Корпоративный клиент',
+          // eslint-disable-next-line prettier/prettier
           lastSeenAt: new Date(Date.now() - 7200000),
           isOnline: false,
         },
@@ -236,7 +255,7 @@ export class UsersSeeder {
           isOnline: true,
         },
       },
-      
+
       // Заблокированные пользователи для тестирования
       {
         email: 'blocked@example.com',
@@ -254,7 +273,7 @@ export class UsersSeeder {
           isOnline: false,
         },
       },
-      
+
       // Неактивированный пользователь
       {
         email: 'unactivated@example.com',
@@ -276,32 +295,31 @@ export class UsersSeeder {
     try {
       const createdUsers = await this.userModel.insertMany(users);
       console.log(`✅ Successfully created ${createdUsers.length} users`);
-      
+
       // Выводим информацию о созданных пользователях
       console.log('\n📋 Created users:');
       console.log('👑 Admins:');
       console.log('  - admin@chatsystem.com (password: password123)');
       console.log('  - admin2@chatsystem.com (password: password123)');
-      
+
       console.log('\n👩‍💼 Operators:');
       console.log('  - operator1@chatsystem.com (Мария, онлайн)');
       console.log('  - operator2@chatsystem.com (Денис, онлайн)');
       console.log('  - operator3@chatsystem.com (Анна, оффлайн)');
       console.log('  - operator4@chatsystem.com (Павел, онлайн)');
-      
+
       console.log('\n👥 Visitors:');
       console.log('  - user1@example.com (Иван, онлайн)');
       console.log('  - user2@example.com (Елена, оффлайн)');
       console.log('  - user3@example.com (Александр, оффлайн)');
       console.log('  - user4@example.com (Ольга, оффлайн)');
       console.log('  - user5@example.com (Сергей, онлайн)');
-      
+
       console.log('\n🚫 Test users:');
       console.log('  - blocked@example.com (заблокирован)');
       console.log('  - unactivated@example.com (не активирован)');
-      
+
       console.log('\n🔑 Default password for all users: password123\n');
-      
     } catch (error) {
       console.error('❌ Error seeding users:', error);
       throw error;

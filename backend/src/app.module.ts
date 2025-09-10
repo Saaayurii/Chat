@@ -18,7 +18,7 @@ import { EmailModule } from './email/email.module';
 import { TransferModule } from './transfer/transfer.module';
 import { CommonModule } from './common/common.module';
 import { HealthModule } from './health/health.module';
-import { redisConfig } from './config/redis.config';
+import { createRedisConfig } from './config/redis-health.config';
 import { databaseConfig } from './config/database.config';
 import { validate } from './config/env.validation';
 import { AppController } from './app.controller';
@@ -53,7 +53,7 @@ import { StaticFilesService } from './common/services/static-files.service';
     TerminusModule,
     CacheModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: redisConfig,
+      useFactory: createRedisConfig,
       inject: [ConfigService],
       isGlobal: true,
     }),

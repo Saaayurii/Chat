@@ -9,7 +9,9 @@ export class StaticFilesService {
   private readonly baseUrl: string;
 
   constructor(private configService: ConfigService) {
-    this.uploadDir = this.configService.get<string>('UPLOAD_DIR', '/opt/render/project/src/uploads');
+    // Используем относительный путь от корня проекта
+    const defaultUploadDir = path.join(process.cwd(), 'uploads');
+    this.uploadDir = this.configService.get<string>('UPLOAD_DIR', defaultUploadDir);
     this.baseUrl = this.configService.get<string>('CLIENT_URL', 'http://localhost:3000');
   }
 
@@ -132,9 +134,22 @@ export class StaticFilesService {
   async ensureUploadsDirectory(): Promise<void> {
     try {
       await fs.access(this.uploadDir);
-    } catch {
-      await fs.mkdir(this.uploadDir, { recursive: true });
-      console.log(`📁 Создана папка uploads: ${this.uploadDir}`);
+      console.log(`📁 Папка uploads уже существует: ${this.uploadDir}`);
+    } catch (accessError) {
+      try {
+        await fs.mkdir(this.uploadDir, { recursive: true });
+        console.log(`📁 Создана папка uploads: ${this.uploadDir}`);
+      } catch (mkdirError) {
+        console.warn(`⚠️ Не удалось создать папку uploads: ${this.uploadDir}`, mkdirError.message);
+        // Используем временную папку как fallback
+        const tempUploadDir = path.join(process.cwd(), 'temp-uploads');
+        try {
+          await fs.mkdir(tempUploadDir, { recursive: true });
+          console.log(`📁 Создана временная папка uploads: ${tempUploadDir}`);
+        } catch (tempError) {
+          console.error(`❌ Критическая ошибка: не удалось создать ни основную, ни временную папку uploads`, tempError);
+        }
+      }
     }
   }
 

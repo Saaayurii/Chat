@@ -1,5 +1,26 @@
 import * as dotenv from 'dotenv';
 dotenv.config();
+
+// Глобальные обработчики ошибок для предотвращения зависания
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  // Не выходим из процесса, логируем и продолжаем
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  // Не выходим из процесса, логируем и продолжаем
+});
+
+process.on('SIGTERM', () => {
+  console.log('📋 Получен SIGTERM, завершаем приложение...');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('📋 Получен SIGINT, завершаем приложение...');
+  process.exit(0);
+});
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as cookieParser from 'cookie-parser';

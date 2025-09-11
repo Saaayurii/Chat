@@ -1,38 +1,15 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { questionsAPI, usersAPI } from '@/core/api';
-import { 
-  Question, 
-  QuestionStatus, 
-  QuestionPriority, 
-  CreateQuestionData,
-  AssignOperatorData,
-  CloseQuestionData,
-  UserRole,
-  User 
-} from '@/types';
+import { Question, QuestionStatus, QuestionPriority, CreateQuestionData, UserRole, User } from '@/types';
 import { useAuthStore } from '@/store/authStore';
-import { 
-  Input, 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue,
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle,
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  Alert,
-  Badge
-} from '@/components/UI';
+import { Card, CardContent, CardHeader, CardTitle, Alert } from '@/components/UI';
 import Button from '../UI/Button';
+import { useQuestionsActions } from './QuestionsActions';
+import { QuestionsFilters } from './QuestionsFilters';
+import { QuestionCard } from './QuestionCard';
+import { CreateQuestionForm, AssignOperatorForm, CloseQuestionForm } from './QuestionForms';
+import { QuestionsPagination } from './QuestionsPagination';
 
 interface QuestionsManagementProps {
   userRole?: UserRole;
@@ -43,191 +20,194 @@ export default function QuestionsManagement({
   userRole, 
   showCreateForm = true 
 }: QuestionsManagementProps) {
-  const { user } = useAuthStore();
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  var { user } = useAuthStore();
+  var [questions, setQuestions] = useState<Question[]>([]);
+  var [loading, setLoading] = useState(false);
+  var [error, setError] = useState<string | null>(null);
+  var [currentPage, setCurrentPage] = useState(1);
+  var [totalPages, setTotalPages] = useState(1);
   
-  // Filters
-  const [statusFilter, setStatusFilter] = useState<QuestionStatus | ''>('');
-  const [priorityFilter, setPriorityFilter] = useState<QuestionPriority | ''>('');
-  const [categoryFilter, setCategoryFilter] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  var [statusFilter, setStatusFilter] = useState<QuestionStatus | ''>('');
+  var [priorityFilter, setPriorityFilter] = useState<QuestionPriority | ''>('');
+  var [categoryFilter, setCategoryFilter] = useState('');
+  var [searchQuery, setSearchQuery] = useState('');
   
-  // Form state
-  const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState<CreateQuestionData>({
-    text: '',
-    priority: QuestionPriority.MEDIUM,
-    category: '',
-    tags: []
-  });
+  var [showForm, setShowForm] = useState(false);
+  var [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
+  var [showAssignForm, setShowAssignForm] = useState(false);
+  var [showCloseForm, setShowCloseForm] = useState(false);
   
-  // Selected question for actions
-  const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
-  const [showAssignForm, setShowAssignForm] = useState(false);
-  const [showCloseForm, setShowCloseForm] = useState(false);
-  const [operatorId, setOperatorId] = useState('');
-  const [closingComment, setClosingComment] = useState('');
-  
-  // Operators list
-  const [operators, setOperators] = useState<User[]>([]);
-  const [operatorsLoading, setOperatorsLoading] = useState(false);
+  var [operators, setOperators] = useState<User[]>([]);
+  var [operatorsLoading, setOperatorsLoading] = useState(false);
+  var [canManageQuestions, setCanManageQuestions] = useState(false);
+  var [canCreateQuestions, setCanCreateQuestions] = useState(false);
 
-  const canManageQuestions = user?.role === UserRole.ADMIN || user?.role === UserRole.OPERATOR;
-  const canCreateQuestions = user?.role === UserRole.VISITOR;
+  var questionsActions = useQuestionsActions({
+    user,
+    onSuccess: () => new Promise<void>((resolve) => {
+      loadQuestions().then(() => resolve());
+    }),
+    onError: (message: string) => new Promise<void>((resolve) => {
+      setError(message);
+      resolve();
+    })
+  });
+
+  useEffect(() => {
+    questionsActions.canManageQuestions().then(setCanManageQuestions);
+    questionsActions.canCreateQuestions().then(setCanCreateQuestions);
+  }, [user]);
 
   useEffect(() => {
     loadQuestions();
   }, [currentPage, statusFilter, priorityFilter, categoryFilter, searchQuery]);
 
   useEffect(() => {
-    if (canManageQuestions) {
-      loadOperators();
-    }
+    canManageQuestions ? loadOperators() : null;
   }, [canManageQuestions]);
 
-  const loadQuestions = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const params = {
-        page: currentPage,
-        limit: 10,
-        ...(statusFilter && { status: statusFilter }),
-        ...(priorityFilter && { priority: priorityFilter }),
-        ...(categoryFilter && { category: categoryFilter }),
-        ...(searchQuery && { search: searchQuery }),
-        sortBy: 'createdAt',
-        sortOrder: 'desc' as const
-      };
+  var loadQuestions = () => new Promise<void>((resolve) => {
+    setLoading(true);
+    setError(null);
+    
+    var params = {
+      currentPage,
+      statusFilter,
+      priorityFilter,
+      categoryFilter,
+      searchQuery
+    };
 
-      let response;
-      if (user?.role === UserRole.VISITOR) {
-        response = await questionsAPI.getMyQuestions();
-        setQuestions(response.data);
-      } else {
-        response = await questionsAPI.getQuestions(params);
-        setQuestions(response.data.questions);
-        setTotalPages(Math.ceil(response.data.total / 10));
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Ошибка при загрузке вопросов');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadOperators = async () => {
-    try {
-      setOperatorsLoading(true);
-      const response = await usersAPI.getOperators();
-      setOperators(response.data);
-    } catch (err: any) {
-      console.error('Ошибка при загрузке операторов:', err);
-    } finally {
-      setOperatorsLoading(false);
-    }
-  };
-
-  const handleCreateQuestion = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!canCreateQuestions) return;
-
-    try {
-      setLoading(true);
-      await questionsAPI.createQuestion(formData);
-      setShowForm(false);
-      setFormData({
-        text: '',
-        priority: QuestionPriority.MEDIUM,
-        category: '',
-        tags: []
+    questionsActions.loadQuestions(params)
+      .then(({ questions: loadedQuestions, total }) => {
+        setQuestions(loadedQuestions);
+        setTotalPages(Math.ceil(total / 10));
+        setLoading(false);
+        resolve();
+      })
+      .catch((err: any) => {
+        setError(err.response?.data?.message || 'Ошибка при загрузке вопросов');
+        setLoading(false);
+        resolve();
       });
-      loadQuestions();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Ошибка при создании вопроса');
-    } finally {
-      setLoading(false);
-    }
-  };
+  });
 
-  const handleAssignOperator = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedQuestion || !canManageQuestions || !operatorId) return;
+  var loadOperators = () => new Promise<void>((resolve) => {
+    setOperatorsLoading(true);
+    questionsActions.loadOperators()
+      .then((loadedOperators) => {
+        setOperators(loadedOperators);
+        setOperatorsLoading(false);
+        resolve();
+      })
+      .catch((err: any) => {
+        console.error('Ошибка при загрузке операторов:', err);
+        setOperatorsLoading(false);
+        resolve();
+      });
+  });
 
-    try {
+  var handleCreateQuestion = (formData: CreateQuestionData) => new Promise<void>((resolve) => {
+    !canCreateQuestions ? resolve() : (() => {
       setLoading(true);
-      await questionsAPI.assignOperator(selectedQuestion._id, { operatorId });
-      setShowAssignForm(false);
-      setSelectedQuestion(null);
-      setOperatorId('');
-      loadQuestions();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Ошибка при назначении оператора');
-    } finally {
-      setLoading(false);
-    }
-  };
+      questionsActions.createQuestion(formData)
+        .then(() => {
+          setShowForm(false);
+          setLoading(false);
+          resolve();
+        })
+        .catch(() => {
+          setLoading(false);
+          resolve();
+        });
+    })();
+  });
 
-  const handleOpenAssignForm = (question: Question) => {
+  var handleAssignOperator = (operatorId: string) => new Promise<void>((resolve) => {
+    !selectedQuestion || !canManageQuestions || !operatorId ? resolve() : (() => {
+      setLoading(true);
+      questionsActions.assignOperator(selectedQuestion._id, operatorId)
+        .then(() => {
+          setShowAssignForm(false);
+          setSelectedQuestion(null);
+          setLoading(false);
+          resolve();
+        })
+        .catch(() => {
+          setLoading(false);
+          resolve();
+        });
+    })();
+  });
+
+  var handleOpenAssignForm = (question: Question) => new Promise<void>((resolve) => {
     setSelectedQuestion(question);
-    setOperatorId(''); // Сброс выбранного оператора
     setShowAssignForm(true);
-    if (operators.length === 0) {
-      loadOperators(); // Загружаем операторов, если они еще не загружены
-    }
-  };
+    operators.length === 0 ? loadOperators().then(() => resolve()) : resolve();
+  });
 
-  const handleCloseQuestion = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedQuestion || !canManageQuestions) return;
-
-    try {
+  var handleCloseQuestion = (closingComment: string) => new Promise<void>((resolve) => {
+    !selectedQuestion || !canManageQuestions ? resolve() : (() => {
       setLoading(true);
-      await questionsAPI.closeQuestion(selectedQuestion._id, { closingComment });
-      setShowCloseForm(false);
-      setSelectedQuestion(null);
-      setClosingComment('');
-      loadQuestions();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Ошибка при закрытии вопроса');
-    } finally {
-      setLoading(false);
-    }
+      questionsActions.closeQuestion(selectedQuestion._id, closingComment)
+        .then(() => {
+          setShowCloseForm(false);
+          setSelectedQuestion(null);
+          setLoading(false);
+          resolve();
+        })
+        .catch(() => {
+          setLoading(false);
+          resolve();
+        });
+    })();
+  });
+
+  var handleQuestionAssign = (question: Question) => new Promise<void>((resolve) => {
+    handleOpenAssignForm(question).then(() => resolve());
+  });
+
+  var handleQuestionClose = (question: Question) => new Promise<void>((resolve) => {
+    setSelectedQuestion(question);
+    setShowCloseForm(true);
+    resolve();
+  });
+
+  var handlePageChange = (page: number) => new Promise<void>((resolve) => {
+    setCurrentPage(page);
+    resolve();
+  });
+
+  var handleFilterChange = {
+    status: (value: QuestionStatus | '') => new Promise<void>((resolve) => {
+      setStatusFilter(value);
+      setCurrentPage(1);
+      resolve();
+    }),
+    priority: (value: QuestionPriority | '') => new Promise<void>((resolve) => {
+      setPriorityFilter(value);
+      setCurrentPage(1);
+      resolve();
+    }),
+    category: (value: string) => new Promise<void>((resolve) => {
+      setCategoryFilter(value);
+      setCurrentPage(1);
+      resolve();
+    }),
+    search: (value: string) => new Promise<void>((resolve) => {
+      setSearchQuery(value);
+      setCurrentPage(1);
+      resolve();
+    })
   };
 
-  const getStatusVariant = (status: QuestionStatus) => {
-    switch (status) {
-      case QuestionStatus.OPEN: return 'secondary';
-      case QuestionStatus.ASSIGNED: return 'default';
-      case QuestionStatus.IN_PROGRESS: return 'default';
-      case QuestionStatus.CLOSED: return 'default';
-      case QuestionStatus.TRANSFERRED: return 'outline';
-      default: return 'outline';
-    }
-  };
-
-  const getPriorityVariant = (priority: QuestionPriority) => {
-    switch (priority) {
-      case QuestionPriority.LOW: return 'default';
-      case QuestionPriority.MEDIUM: return 'secondary';
-      case QuestionPriority.HIGH: return 'default';
-      case QuestionPriority.URGENT: return 'destructive';
-      default: return 'outline';
-    }
-  };
-
-  if (loading && questions.length === 0) {
+  loading && questions.length === 0 ? (() => {
     return (
       <div className="flex justify-center p-8">
         <div className="text-muted-foreground">Загрузка...</div>
       </div>
     );
-  }
+  })() : null;
 
   return (
     <Suspense fallback={<div className="flex justify-center p-8"><div className="text-muted-foreground">Загрузка...</div></div>}>
@@ -252,309 +232,75 @@ export default function QuestionsManagement({
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
-
-            {/* Filters */}
             {canManageQuestions && (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
-                <Select value={statusFilter || 'all'} onValueChange={(value) => setStatusFilter(value === 'all' ? '' : value as QuestionStatus)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Все статусы" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Все статусы</SelectItem>
-                    <SelectItem value={QuestionStatus.OPEN}>Открыт</SelectItem>
-                    <SelectItem value={QuestionStatus.ASSIGNED}>Назначен</SelectItem>
-                    <SelectItem value={QuestionStatus.IN_PROGRESS}>В работе</SelectItem>
-                    <SelectItem value={QuestionStatus.CLOSED}>Закрыт</SelectItem>
-                    <SelectItem value={QuestionStatus.TRANSFERRED}>Передан</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select value={priorityFilter || 'all'} onValueChange={(value) => setPriorityFilter(value === 'all' ? '' : value as QuestionPriority)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Все приоритеты" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Все приоритеты</SelectItem>
-                    <SelectItem value={QuestionPriority.LOW}>Низкий</SelectItem>
-                    <SelectItem value={QuestionPriority.MEDIUM}>Средний</SelectItem>
-                    <SelectItem value={QuestionPriority.HIGH}>Высокий</SelectItem>
-                    <SelectItem value={QuestionPriority.URGENT}>Срочный</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Input
-                  placeholder="Категория"
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="border-input"
-                />
-
-                <Input
-                  placeholder="Поиск..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="border-input"
-                />
-              </div>
+              <QuestionsFilters
+                statusFilter={statusFilter}
+                priorityFilter={priorityFilter}
+                categoryFilter={categoryFilter}
+                searchQuery={searchQuery}
+                onStatusChange={handleFilterChange.status}
+                onPriorityChange={handleFilterChange.priority}
+                onCategoryChange={handleFilterChange.category}
+                onSearchChange={handleFilterChange.search}
+              />
             )}
 
-            {/* Questions List */}
             <div className="space-y-4">
               {questions.map((question) => (
-                <Card key={question._id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-lg text-foreground">{question.text}</h3>
-                        <p className="text-muted-foreground">Категория: {question.category}</p>
-                        {question.tags && question.tags.length > 0 && (
-                          <div className="flex gap-2 mt-2">
-                            {question.tags.map((tag, index) => (
-                              <Badge key={index} variant="secondary">
-                                {tag}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <Badge variant={getStatusVariant(question.status)}>
-                          {question.status}
-                        </Badge>
-                        <Badge variant={getPriorityVariant(question.priority)}>
-                          {question.priority}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    <div className="text-sm text-muted-foreground mb-3">
-                      <p>Создан: {new Date(question.createdAt).toLocaleString()}</p>
-                      {question.assignedAt && (
-                        <p>Назначен: {new Date(question.assignedAt).toLocaleString()}</p>
-                      )}
-                      {question.closedAt && (
-                        <p>Закрыт: {new Date(question.closedAt).toLocaleString()}</p>
-                      )}
-                      {question.operatorId && (
-                        <p>Оператор: {
-                          typeof question.operatorId === 'object' 
-                            ? (question.operatorId as any).profile?.fullName || (question.operatorId as any).email
-                            : question.operatorId
-                        }</p>
-                      )}
-                      <p>Сообщений: {question.messagesCount}</p>
-                    </div>
-
-                    {canManageQuestions && question.status !== QuestionStatus.CLOSED && (
-                      <div className="flex gap-2">
-                        {question.status === QuestionStatus.OPEN && (
-                          <Button
-                            onClick={() => handleOpenAssignForm(question)}
-                            size="sm"
-                          >
-                            Назначить оператора
-                          </Button>
-                        )}
-                        {question.status !== QuestionStatus.OPEN && (
-                          <Button
-                            onClick={() => {
-                              setSelectedQuestion(question);
-                              setShowCloseForm(true);
-                            }}
-                            size="sm"
-                            variant="outline"
-                          >
-                            Закрыть вопрос
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                <QuestionCard
+                  key={question._id}
+                  question={question}
+                  canManageQuestions={canManageQuestions}
+                  onAssignOperator={handleQuestionAssign}
+                  onCloseQuestion={handleQuestionClose}
+                />
               ))}
             </div>
 
-            {/* Pagination */}
-            {canManageQuestions && totalPages > 1 && (
-              <div className="flex justify-center gap-2">
-                <Button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  variant="outline"
-                >
-                  Назад
-                </Button>
-                <span className="px-3 py-2 text-sm text-muted-foreground self-center">
-                  Страница {currentPage} из {totalPages}
-                </span>
-                <Button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  variant="outline"
-                >
-                  Вперед
-                </Button>
-              </div>
+            {canManageQuestions && (
+              <QuestionsPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
             )}
           </CardContent>
         </Card>
 
-        {/* Create Question Form */}
-        <Dialog open={showForm} onOpenChange={setShowForm}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Задать вопрос</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleCreateQuestion} className="space-y-4">
-              <textarea
-                placeholder="Опишите ваш вопрос..."
-                value={formData.text}
-                onChange={(e) => setFormData({ ...formData, text: e.target.value })}
-                className="w-full border border-input rounded-md px-3 py-2 h-32 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                required
-              />
-              
-              <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value as QuestionPriority })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Выберите приоритет" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={QuestionPriority.LOW}>Низкий приоритет</SelectItem>
-                  <SelectItem value={QuestionPriority.MEDIUM}>Средний приоритет</SelectItem>
-                  <SelectItem value={QuestionPriority.HIGH}>Высокий приоритет</SelectItem>
-                  <SelectItem value={QuestionPriority.URGENT}>Срочный</SelectItem>
-                </SelectContent>
-              </Select>
+        <CreateQuestionForm
+          open={showForm}
+          loading={loading}
+          onClose={() => new Promise<void>((resolve) => {
+            setShowForm(false);
+            resolve();
+          })}
+          onSubmit={handleCreateQuestion}
+        />
 
-              <Input
-                placeholder="Категория"
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                required
-              />
+        <AssignOperatorForm
+          open={showAssignForm}
+          loading={loading}
+          operatorsLoading={operatorsLoading}
+          question={selectedQuestion}
+          operators={operators}
+          onClose={() => new Promise<void>((resolve) => {
+            setShowAssignForm(false);
+            setSelectedQuestion(null);
+            resolve();
+          })}
+          onSubmit={handleAssignOperator}
+        />
 
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
-                  Отмена
-                </Button>
-                <Button type="submit" disabled={loading}>
-                  {loading ? 'Отправка...' : 'Отправить'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        {/* Assign Operator Form */}
-        <Dialog open={showAssignForm} onOpenChange={setShowAssignForm}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Назначить оператора</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleAssignOperator} className="space-y-4">
-              {selectedQuestion && (
-                <div className="p-3 bg-muted/50 rounded-lg">
-                  <p className="text-sm text-muted-foreground">Вопрос:</p>
-                  <p className="font-medium">{selectedQuestion.text}</p>
-                  <div className="flex gap-2 mt-2">
-                    <Badge variant={getPriorityVariant(selectedQuestion.priority)}>
-                      {selectedQuestion.priority}
-                    </Badge>
-                    <Badge variant="outline">
-                      {selectedQuestion.category}
-                    </Badge>
-                  </div>
-                </div>
-              )}
-              
-              <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">
-                  Выберите оператора
-                </label>
-                {operatorsLoading ? (
-                  <div className="text-center text-muted-foreground py-4">
-                    Загрузка операторов...
-                  </div>
-                ) : operators.length === 0 ? (
-                  <div className="text-center text-muted-foreground py-4">
-                    Нет доступных операторов
-                  </div>
-                ) : (
-                  <Select value={operatorId} onValueChange={setOperatorId} required>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Выберите оператора" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {operators.map((operator) => (
-                        <SelectItem key={operator._id} value={operator._id}>
-                          <div className="flex items-center gap-2">
-                            <div className="flex flex-col">
-                              <span className="font-medium">
-                                {operator.profile?.fullName || operator.profile?.username || operator.email}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {operator.email}
-                              </span>
-                              {operator.operatorStats && (
-                                <span className="text-xs text-muted-foreground">
-                                  Рейтинг: {operator.operatorStats.averageRating?.toFixed(1) || 'Нет'} | 
-                                  Вопросов: {operator.operatorStats.totalQuestions || 0}
-                                </span>
-                              )}
-                            </div>
-                            {operator.profile?.isOnline !== undefined && (
-                              <Badge 
-                                variant={operator.profile?.isOnline ? 'default' : 'secondary'}
-                                className="ml-auto"
-                              >
-                                {operator.profile?.isOnline ? 'Доступен' : 'Не в сети'}
-                              </Badge>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-              
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setShowAssignForm(false)}>
-                  Отмена
-                </Button>
-                <Button type="submit" disabled={loading || !operatorId || operatorsLoading}>
-                  {loading ? 'Назначение...' : 'Назначить'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        {/* Close Question Form */}
-        <Dialog open={showCloseForm} onOpenChange={setShowCloseForm}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Закрыть вопрос</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleCloseQuestion} className="space-y-4">
-              <textarea
-                placeholder="Комментарий к закрытию (необязательно)"
-                value={closingComment}
-                onChange={(e) => setClosingComment(e.target.value)}
-                className="w-full border border-input rounded-md px-3 py-2 h-24 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              />
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setShowCloseForm(false)}>
-                  Отмена
-                </Button>
-                <Button type="submit" disabled={loading}>
-                  {loading ? 'Закрытие...' : 'Закрыть'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <CloseQuestionForm
+          open={showCloseForm}
+          loading={loading}
+          onClose={() => new Promise<void>((resolve) => {
+            setShowCloseForm(false);
+            setSelectedQuestion(null);
+            resolve();
+          })}
+          onSubmit={handleCloseQuestion}
+        />
       </div>
     </Suspense>
   );

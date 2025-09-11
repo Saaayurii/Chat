@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import React, { Suspense } from 'react';
 import { complaintsAPI } from '@/core/api';
 import { 
   Complaint, 
@@ -13,199 +13,182 @@ import {
 } from '@/types';
 import { useAuthStore } from '@/store/authStore';
 import { 
-  Input, 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue,
   Card, 
   CardContent, 
   CardHeader, 
   CardTitle,
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  Alert,
-  Badge
+  Alert
 } from '@/components/UI';
 import Button from '../UI/Button';
+import ComplaintCard from './ComplaintCard';
+import ComplaintFilters from './ComplaintFilters';
+import CreateComplaintForm from './CreateComplaintForm';
+import ReviewComplaintForm from './ReviewComplaintForm';
+import ComplaintsPagination from './ComplaintsPagination';
 
 interface ComplaintsManagementProps {
   userRole?: UserRole;
   showCreateForm?: boolean;
 }
 
-export default function ComplaintsManagement({ 
-  userRole, 
-  showCreateForm = true 
-}: ComplaintsManagementProps) {
-  const { user } = useAuthStore();
-  const [complaints, setComplaints] = useState<Complaint[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  
-  // Filters
-  const [statusFilter, setStatusFilter] = useState<ComplaintStatus | ''>('');
-  const [typeFilter, setTypeFilter] = useState<ComplaintType | ''>('');
-  const [severityFilter, setSeverityFilter] = useState<ComplaintSeverity | ''>('');
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  // Form state
-  const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState<CreateComplaintData>({
-    type: ComplaintType.INAPPROPRIATE_BEHAVIOR,
-    complaintText: '',
-    operatorId: '',
-    severity: ComplaintSeverity.MEDIUM
-  });
-  
-  // Review form state
-  const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
-  const [showReviewForm, setShowReviewForm] = useState(false);
-  const [reviewData, setReviewData] = useState<ReviewComplaintData>({
-    decision: 'resolved',
-    adminResponse: '',
-    resolutionNotes: '',
-    warnOperator: false,
-    suspendOperator: false
+export default ({ userRole, showCreateForm = true }: ComplaintsManagementProps) => {
+  var { user } = useAuthStore();
+  var [state, setState] = React.useState({ 
+    0: [], 
+    1: false, 
+    2: null, 
+    3: 1, 
+    4: 1, 
+    5: '', 
+    6: '', 
+    7: '', 
+    8: '', 
+    9: false,
+    10: {
+      type: ComplaintType.INAPPROPRIATE_BEHAVIOR,
+      complaintText: '',
+      operatorId: '',
+      severity: ComplaintSeverity.MEDIUM
+    },
+    11: null,
+    12: false,
+    13: {
+      decision: 'resolved',
+      adminResponse: '',
+      resolutionNotes: '',
+      warnOperator: false,
+      suspendOperator: false
+    }
   });
 
-  const canManageComplaints = user?.role === UserRole.ADMIN;
-  const canCreateComplaints = user?.role === UserRole.VISITOR;
+  var canManageComplaints = user?.role === UserRole.ADMIN;
+  var canCreateComplaints = user?.role === UserRole.VISITOR;
 
-  useEffect(() => {
-    loadComplaints();
-  }, [currentPage, statusFilter, typeFilter, severityFilter, searchQuery]);
-
-  const loadComplaints = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  var loadComplaints = () => {
+    return new Promise((resolve, reject) => {
+      setState(prev => ({ ...prev, 1: true, 2: null }));
       
-      const params = {
-        page: currentPage,
+      var params = {
+        page: state[3],
         limit: 10,
-        ...(statusFilter && { status: statusFilter }),
-        ...(typeFilter && { type: typeFilter }),
-        ...(severityFilter && { severity: severityFilter }),
-        ...(searchQuery && { search: searchQuery }),
+        ...(state[5] && { status: state[5] }),
+        ...(state[6] && { type: state[6] }),
+        ...(state[7] && { severity: state[7] }),
+        ...(state[8] && { search: state[8] }),
         sortBy: 'createdAt',
-        sortOrder: 'desc' as const
+        sortOrder: 'desc'
       };
 
-      let response;
-      if (user?.role === UserRole.VISITOR) {
-        response = await complaintsAPI.getMyComplaints();
-        setComplaints(response.data);
-      } else {
-        response = await complaintsAPI.getComplaints(params);
-        setComplaints(response.data.complaints);
-        setTotalPages(Math.ceil(response.data.total / 10));
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Ошибка при загрузке жалоб');
-    } finally {
-      setLoading(false);
-    }
+      var apiCall = user?.role === UserRole.VISITOR 
+        ? complaintsAPI.getMyComplaints()
+        : complaintsAPI.getComplaints(params);
+
+      apiCall
+        .then(response => {
+          user?.role === UserRole.VISITOR 
+            ? setState(prev => ({ ...prev, 0: response.data }))
+            : setState(prev => ({ 
+                ...prev, 
+                0: response.data.complaints,
+                4: Math.ceil(response.data.total / 10)
+              }));
+          resolve(response);
+        })
+        .catch(err => {
+          setState(prev => ({ 
+            ...prev, 
+            2: err.response?.data?.message || 'Ошибка при загрузке жалоб' 
+          }));
+          reject(err);
+        })
+        .finally(() => {
+          setState(prev => ({ ...prev, 1: false }));
+        });
+    });
   };
 
-  const handleCreateComplaint = async (e: React.FormEvent) => {
+  var handleCreateComplaint = (e) => {
     e.preventDefault();
-    if (!canCreateComplaints) return;
-
-    try {
-      setLoading(true);
-      await complaintsAPI.createComplaint(formData);
-      setShowForm(false);
-      setFormData({
-        type: ComplaintType.INAPPROPRIATE_BEHAVIOR,
-        complaintText: '',
-        operatorId: '',
-        severity: ComplaintSeverity.MEDIUM
-      });
-      loadComplaints();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Ошибка при создании жалобы');
-    } finally {
-      setLoading(false);
-    }
+    return canCreateComplaints ? 
+      new Promise((resolve, reject) => {
+        setState(prev => ({ ...prev, 1: true }));
+        complaintsAPI.createComplaint(state[10])
+          .then(() => {
+            setState(prev => ({ 
+              ...prev, 
+              9: false,
+              10: {
+                type: ComplaintType.INAPPROPRIATE_BEHAVIOR,
+                complaintText: '',
+                operatorId: '',
+                severity: ComplaintSeverity.MEDIUM
+              }
+            }));
+            return loadComplaints();
+          })
+          .then(resolve)
+          .catch(err => {
+            setState(prev => ({ 
+              ...prev, 
+              2: err.response?.data?.message || 'Ошибка при создании жалобы' 
+            }));
+            reject(err);
+          })
+          .finally(() => {
+            setState(prev => ({ ...prev, 1: false }));
+          });
+      }) : Promise.resolve();
   };
 
-  const handleReviewComplaint = async (e: React.FormEvent) => {
+  var handleReviewComplaint = (e) => {
     e.preventDefault();
-    if (!selectedComplaint || !canManageComplaints) return;
-
-    try {
-      setLoading(true);
-      await complaintsAPI.reviewComplaint(selectedComplaint._id, reviewData);
-      setShowReviewForm(false);
-      setSelectedComplaint(null);
-      setReviewData({
-        decision: 'resolved',
-        adminResponse: '',
-        resolutionNotes: '',
-        warnOperator: false,
-        suspendOperator: false
-      });
-      loadComplaints();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Ошибка при рассмотрении жалобы');
-    } finally {
-      setLoading(false);
-    }
+    return state[11] && canManageComplaints ?
+      new Promise((resolve, reject) => {
+        setState(prev => ({ ...prev, 1: true }));
+        complaintsAPI.reviewComplaint(state[11]._id, state[13])
+          .then(() => {
+            setState(prev => ({ 
+              ...prev, 
+              12: false,
+              11: null,
+              13: {
+                decision: 'resolved',
+                adminResponse: '',
+                resolutionNotes: '',
+                warnOperator: false,
+                suspendOperator: false
+              }
+            }));
+            return loadComplaints();
+          })
+          .then(resolve)
+          .catch(err => {
+            setState(prev => ({ 
+              ...prev, 
+              2: err.response?.data?.message || 'Ошибка при рассмотрении жалобы' 
+            }));
+            reject(err);
+          })
+          .finally(() => {
+            setState(prev => ({ ...prev, 1: false }));
+          });
+      }) : Promise.resolve();
   };
 
-  const getStatusVariant = (status: ComplaintStatus) => {
-    switch (status) {
-      case ComplaintStatus.PENDING: return 'secondary';
-      case ComplaintStatus.UNDER_REVIEW: return 'default';
-      case ComplaintStatus.RESOLVED: return 'default';
-      case ComplaintStatus.DISMISSED: return 'outline';
-      default: return 'outline';
-    }
-  };
+  React.useEffect(() => {
+    loadComplaints();
+  }, [state[3], state[5], state[6], state[7], state[8]]);
 
-  const getSeverityVariant = (severity: ComplaintSeverity) => {
-    switch (severity) {
-      case ComplaintSeverity.LOW: return 'default';
-      case ComplaintSeverity.MEDIUM: return 'secondary';
-      case ComplaintSeverity.HIGH: return 'default';
-      case ComplaintSeverity.CRITICAL: return 'destructive';
-      default: return 'outline';
-    }
-  };
-
-  const getTypeDisplay = (type: ComplaintType) => {
-    const typeMap = {
-      [ComplaintType.INAPPROPRIATE_BEHAVIOR]: 'Неподобающее поведение',
-      [ComplaintType.POOR_SERVICE]: 'Плохой сервис',
-      [ComplaintType.UNPROFESSIONAL_CONDUCT]: 'Непрофессиональное поведение',
-      [ComplaintType.DELAYED_RESPONSE]: 'Задержка ответа',
-      [ComplaintType.INCORRECT_INFORMATION]: 'Неверная информация',
-      [ComplaintType.OTHER]: 'Другое'
-    };
-    return typeMap[type] || type;
-  };
-
-  if (loading && complaints.length === 0) {
-    return (
-      <div className="flex justify-center p-8">
-        <div className="text-muted-foreground">Загрузка...</div>
-      </div>
-    );
-  }
-
-  return (
+  return state[1] && state[0].length === 0 ? (
+    <div className="flex justify-center p-8">
+      <div className="text-muted-foreground">Загрузка...</div>
+    </div>
+  ) : (
     <Suspense fallback={<div className="flex justify-center p-8"><div className="text-muted-foreground">Загрузка...</div></div>}>
       <div className="space-y-6">
-        {error && (
+        {state[2] && (
           <Alert variant="destructive">
-            {error}
+            {state[2]}
           </Alert>
         )}
 
@@ -217,7 +200,7 @@ export default function ComplaintsManagement({
               </CardTitle>
               {canCreateComplaints && showCreateForm && (
                 <Button
-                  onClick={() => setShowForm(true)}
+                  onClick={() => setState(prev => ({ ...prev, 9: true }))}
                   variant="destructive"
                 >
                   Подать жалобу
@@ -226,269 +209,60 @@ export default function ComplaintsManagement({
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
-
-            {/* Filters */}
             {canManageComplaints && (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
-                <Select value={statusFilter || 'all'} onValueChange={(value) => setStatusFilter(value === 'all' ? '' : value as ComplaintStatus)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Все статусы" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Все статусы</SelectItem>
-                    <SelectItem value={ComplaintStatus.PENDING}>Ожидает</SelectItem>
-                    <SelectItem value={ComplaintStatus.UNDER_REVIEW}>На рассмотрении</SelectItem>
-                    <SelectItem value={ComplaintStatus.RESOLVED}>Решена</SelectItem>
-                    <SelectItem value={ComplaintStatus.DISMISSED}>Отклонена</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select value={typeFilter || 'all'} onValueChange={(value) => setTypeFilter(value === 'all' ? '' : value as ComplaintType)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Все типы" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Все типы</SelectItem>
-                    <SelectItem value={ComplaintType.INAPPROPRIATE_BEHAVIOR}>Неподобающее поведение</SelectItem>
-                    <SelectItem value={ComplaintType.POOR_SERVICE}>Плохой сервис</SelectItem>
-                    <SelectItem value={ComplaintType.UNPROFESSIONAL_CONDUCT}>Непрофессиональное поведение</SelectItem>
-                    <SelectItem value={ComplaintType.DELAYED_RESPONSE}>Задержка ответа</SelectItem>
-                    <SelectItem value={ComplaintType.INCORRECT_INFORMATION}>Неверная информация</SelectItem>
-                    <SelectItem value={ComplaintType.OTHER}>Другое</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select value={severityFilter || 'all'} onValueChange={(value) => setSeverityFilter(value === 'all' ? '' : value as ComplaintSeverity)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Все уровни" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Все уровни</SelectItem>
-                    <SelectItem value={ComplaintSeverity.LOW}>Низкий</SelectItem>
-                    <SelectItem value={ComplaintSeverity.MEDIUM}>Средний</SelectItem>
-                    <SelectItem value={ComplaintSeverity.HIGH}>Высокий</SelectItem>
-                    <SelectItem value={ComplaintSeverity.CRITICAL}>Критический</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Input
-                  placeholder="Поиск..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="border-input"
-                />
-              </div>
+              <ComplaintFilters
+                statusFilter={state[5]}
+                typeFilter={state[6]}
+                severityFilter={state[7]}
+                searchQuery={state[8]}
+                onStatusChange={(value) => setState(prev => ({ ...prev, 5: value }))}
+                onTypeChange={(value) => setState(prev => ({ ...prev, 6: value }))}
+                onSeverityChange={(value) => setState(prev => ({ ...prev, 7: value }))}
+                onSearchChange={(value) => setState(prev => ({ ...prev, 8: value }))}
+              />
             )}
 
-            {/* Complaints List */}
             <div className="space-y-4">
-              {complaints.map((complaint) => (
-                <Card key={complaint._id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-lg text-foreground">{getTypeDisplay(complaint.type)}</h3>
-                        <p className="text-foreground mt-2">{complaint.complaintText}</p>
-                        {complaint.adminResponse && (
-                          <div className="mt-3 p-3 bg-muted/50 rounded-lg">
-                            <p className="font-medium text-foreground">Ответ администратора:</p>
-                            <p className="text-muted-foreground">{complaint.adminResponse}</p>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex gap-2 flex-col">
-                        <Badge variant={getStatusVariant(complaint.status)}>
-                          {complaint.status}
-                        </Badge>
-                        <Badge variant={getSeverityVariant(complaint.severity)}>
-                          {complaint.severity}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    <div className="text-sm text-muted-foreground mb-3">
-                      <p>Создана: {new Date(complaint.createdAt).toLocaleString()}</p>
-                      {complaint.reviewedAt && (
-                        <p>Рассмотрена: {new Date(complaint.reviewedAt).toLocaleString()}</p>
-                      )}
-                      {complaint.resolvedAt && (
-                        <p>Решена: {new Date(complaint.resolvedAt).toLocaleString()}</p>
-                      )}
-                      {complaint.operatorWarned && (
-                        <p className="text-orange-600 dark:text-orange-400">Оператор предупрежден</p>
-                      )}
-                      {complaint.operatorSuspended && (
-                        <p className="text-red-600 dark:text-red-400">Оператор заблокирован</p>
-                      )}
-                    </div>
-
-                    {canManageComplaints && complaint.status === ComplaintStatus.PENDING && (
-                      <Button
-                        onClick={() => {
-                          setSelectedComplaint(complaint);
-                          setShowReviewForm(true);
-                        }}
-                        size="sm"
-                      >
-                        Рассмотреть жалобу
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
+              {state[0].map((complaint) => (
+                <ComplaintCard
+                  key={complaint._id}
+                  complaint={complaint}
+                  canManageComplaints={canManageComplaints}
+                  onReview={(complaint) => {
+                    setState(prev => ({ ...prev, 11: complaint, 12: true }));
+                  }}
+                />
               ))}
             </div>
 
-            {/* Pagination */}
-            {canManageComplaints && totalPages > 1 && (
-              <div className="flex justify-center gap-2">
-                <Button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  variant="outline"
-                >
-                  Назад
-                </Button>
-                <span className="px-3 py-2 text-sm text-muted-foreground self-center">
-                  Страница {currentPage} из {totalPages}
-                </span>
-                <Button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  variant="outline"
-                >
-                  Вперед
-                </Button>
-              </div>
+            {canManageComplaints && (
+              <ComplaintsPagination
+                currentPage={state[3]}
+                totalPages={state[4]}
+                onPageChange={(page) => setState(prev => ({ ...prev, 3: page }))}
+              />
             )}
           </CardContent>
         </Card>
 
-        {/* Create Complaint Form */}
-        <Dialog open={showForm} onOpenChange={setShowForm}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Подать жалобу</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleCreateComplaint} className="space-y-4">
-              <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value as ComplaintType })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Тип жалобы" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ComplaintType.INAPPROPRIATE_BEHAVIOR}>Неподобающее поведение</SelectItem>
-                  <SelectItem value={ComplaintType.POOR_SERVICE}>Плохой сервис</SelectItem>
-                  <SelectItem value={ComplaintType.UNPROFESSIONAL_CONDUCT}>Непрофессиональное поведение</SelectItem>
-                  <SelectItem value={ComplaintType.DELAYED_RESPONSE}>Задержка ответа</SelectItem>
-                  <SelectItem value={ComplaintType.INCORRECT_INFORMATION}>Неверная информация</SelectItem>
-                  <SelectItem value={ComplaintType.OTHER}>Другое</SelectItem>
-                </SelectContent>
-              </Select>
+        <CreateComplaintForm
+          open={state[9]}
+          onOpenChange={(open) => setState(prev => ({ ...prev, 9: open }))}
+          formData={state[10]}
+          onFormDataChange={(data) => setState(prev => ({ ...prev, 10: data }))}
+          onSubmit={handleCreateComplaint}
+          loading={state[1]}
+        />
 
-              <textarea
-                placeholder="Опишите суть жалобы..."
-                value={formData.complaintText}
-                onChange={(e) => setFormData({ ...formData, complaintText: e.target.value })}
-                className="w-full border border-input rounded-md px-3 py-2 h-32 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                required
-              />
-
-              <Input
-                placeholder="ID оператора"
-                value={formData.operatorId}
-                onChange={(e) => setFormData({ ...formData, operatorId: e.target.value })}
-                required
-              />
-              
-              <Select value={formData.severity} onValueChange={(value) => setFormData({ ...formData, severity: value as ComplaintSeverity })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Серьезность" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ComplaintSeverity.LOW}>Низкая серьезность</SelectItem>
-                  <SelectItem value={ComplaintSeverity.MEDIUM}>Средняя серьезность</SelectItem>
-                  <SelectItem value={ComplaintSeverity.HIGH}>Высокая серьезность</SelectItem>
-                  <SelectItem value={ComplaintSeverity.CRITICAL}>Критическая серьезность</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
-                  Отмена
-                </Button>
-                <Button type="submit" disabled={loading} variant="destructive">
-                  {loading ? 'Отправка...' : 'Отправить жалобу'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        {/* Review Complaint Form */}
-        <Dialog open={showReviewForm} onOpenChange={setShowReviewForm}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Рассмотреть жалобу</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleReviewComplaint} className="space-y-4">
-              <Select value={reviewData.decision} onValueChange={(value) => setReviewData({ ...reviewData, decision: value as 'resolved' | 'dismissed' })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Решение" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="resolved">Принять жалобу</SelectItem>
-                  <SelectItem value="dismissed">Отклонить жалобу</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <textarea
-                placeholder="Ответ администратора..."
-                value={reviewData.adminResponse}
-                onChange={(e) => setReviewData({ ...reviewData, adminResponse: e.target.value })}
-                className="w-full border border-input rounded-md px-3 py-2 h-24 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                required
-              />
-
-              <textarea
-                placeholder="Заметки по решению (необязательно)"
-                value={reviewData.resolutionNotes}
-                onChange={(e) => setReviewData({ ...reviewData, resolutionNotes: e.target.value })}
-                className="w-full border border-input rounded-md px-3 py-2 h-20 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              />
-
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={reviewData.warnOperator}
-                    onChange={(e) => setReviewData({ ...reviewData, warnOperator: e.target.checked })}
-                    className="rounded border-input"
-                  />
-                  <span className="text-foreground">Предупредить оператора</span>
-                </label>
-
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={reviewData.suspendOperator}
-                    onChange={(e) => setReviewData({ ...reviewData, suspendOperator: e.target.checked })}
-                    className="rounded border-input"
-                  />
-                  <span className="text-foreground">Заблокировать оператора</span>
-                </label>
-              </div>
-
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setShowReviewForm(false)}>
-                  Отмена
-                </Button>
-                <Button type="submit" disabled={loading}>
-                  {loading ? 'Обработка...' : 'Принять решение'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <ReviewComplaintForm
+          open={state[12]}
+          onOpenChange={(open) => setState(prev => ({ ...prev, 12: open }))}
+          reviewData={state[13]}
+          onReviewDataChange={(data) => setState(prev => ({ ...prev, 13: data }))}
+          onSubmit={handleReviewComplaint}
+          loading={state[1]}
+        />
       </div>
     </Suspense>
   );
-}
+};

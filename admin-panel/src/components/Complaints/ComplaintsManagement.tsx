@@ -27,7 +27,7 @@ import ReviewComplaintForm from './ReviewComplaintForm';
 import ComplaintsPagination from './ComplaintsPagination';
 
 interface ComplaintsManagementProps {
-  userRole?: UserRole;
+  userRole?: typeof UserRole[keyof typeof UserRole];
   showCreateForm?: boolean;
 }
 
@@ -53,9 +53,9 @@ export default ({ userRole, showCreateForm = true }: ComplaintsManagementProps) 
     11: null,
     12: false,
     13: {
-      decision: 'resolved',
+      decision: 'resolved' as 'resolved' | 'dismissed',
       adminResponse: '',
-      resolutionNotes: '',
+      resolutionNotes: '' as string | undefined,
       warnOperator: false,
       suspendOperator: false
     }
@@ -81,16 +81,16 @@ export default ({ userRole, showCreateForm = true }: ComplaintsManagementProps) 
 
       var apiCall = user?.role === UserRole.VISITOR 
         ? complaintsAPI.getMyComplaints()
-        : complaintsAPI.getComplaints(params);
+        : complaintsAPI.getComplaints(params as any);
 
       apiCall
         .then(response => {
           user?.role === UserRole.VISITOR 
-            ? setState(prev => ({ ...prev, 0: response.data }))
+            ? setState(prev => ({ ...prev, 0: response.data as any }))
             : setState(prev => ({ 
                 ...prev, 
-                0: response.data.complaints,
-                4: Math.ceil(response.data.total / 10)
+                0: (response.data as any).complaints,
+                4: Math.ceil((response.data as any).total / 10)
               }));
           resolve(response);
         })
@@ -107,7 +107,7 @@ export default ({ userRole, showCreateForm = true }: ComplaintsManagementProps) 
     });
   };
 
-  var handleCreateComplaint = (e) => {
+  var handleCreateComplaint = (e: any) => {
     e.preventDefault();
     return canCreateComplaints ? 
       new Promise((resolve, reject) => {
@@ -140,12 +140,12 @@ export default ({ userRole, showCreateForm = true }: ComplaintsManagementProps) 
       }) : Promise.resolve();
   };
 
-  var handleReviewComplaint = (e) => {
+  var handleReviewComplaint = (e: any) => {
     e.preventDefault();
     return state[11] && canManageComplaints ?
       new Promise((resolve, reject) => {
         setState(prev => ({ ...prev, 1: true }));
-        complaintsAPI.reviewComplaint(state[11]._id, state[13])
+        complaintsAPI.reviewComplaint((state[11] as any)._id, state[13])
           .then(() => {
             setState(prev => ({ 
               ...prev, 
@@ -211,25 +211,25 @@ export default ({ userRole, showCreateForm = true }: ComplaintsManagementProps) 
           <CardContent className="space-y-6">
             {canManageComplaints && (
               <ComplaintFilters
-                statusFilter={state[5]}
-                typeFilter={state[6]}
-                severityFilter={state[7]}
+                statusFilter={state[5] as any}
+                typeFilter={state[6] as any}
+                severityFilter={state[7] as any}
                 searchQuery={state[8]}
-                onStatusChange={(value) => setState(prev => ({ ...prev, 5: value }))}
-                onTypeChange={(value) => setState(prev => ({ ...prev, 6: value }))}
-                onSeverityChange={(value) => setState(prev => ({ ...prev, 7: value }))}
+                onStatusChange={(value) => setState(prev => ({ ...prev, 5: value as any }))}
+                onTypeChange={(value) => setState(prev => ({ ...prev, 6: value as any }))}
+                onSeverityChange={(value) => setState(prev => ({ ...prev, 7: value as any }))}
                 onSearchChange={(value) => setState(prev => ({ ...prev, 8: value }))}
               />
             )}
 
             <div className="space-y-4">
-              {state[0].map((complaint) => (
+              {(state[0] as any[]).map((complaint: any) => (
                 <ComplaintCard
                   key={complaint._id}
                   complaint={complaint}
                   canManageComplaints={canManageComplaints}
                   onReview={(complaint) => {
-                    setState(prev => ({ ...prev, 11: complaint, 12: true }));
+                    setState(prev => ({ ...prev, 11: complaint as any, 12: true }));
                   }}
                 />
               ))}
@@ -249,7 +249,7 @@ export default ({ userRole, showCreateForm = true }: ComplaintsManagementProps) 
           open={state[9]}
           onOpenChange={(open) => setState(prev => ({ ...prev, 9: open }))}
           formData={state[10]}
-          onFormDataChange={(data) => setState(prev => ({ ...prev, 10: data }))}
+          onFormDataChange={(data) => setState(prev => ({ ...prev, 10: data as any }))}
           onSubmit={handleCreateComplaint}
           loading={state[1]}
         />
@@ -258,7 +258,7 @@ export default ({ userRole, showCreateForm = true }: ComplaintsManagementProps) 
           open={state[12]}
           onOpenChange={(open) => setState(prev => ({ ...prev, 12: open }))}
           reviewData={state[13]}
-          onReviewDataChange={(data) => setState(prev => ({ ...prev, 13: data }))}
+          onReviewDataChange={(data) => setState(prev => ({ ...prev, 13: data as any }))}
           onSubmit={handleReviewComplaint}
           loading={state[1]}
         />

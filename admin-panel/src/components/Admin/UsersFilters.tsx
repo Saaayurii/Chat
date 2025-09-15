@@ -15,9 +15,9 @@ import { UserRole } from "@/types";
 
 interface UsersFiltersProps {
   searchQuery: string;
-  selectedRole: UserRole | "";
+  selectedRole: typeof UserRole[keyof typeof UserRole] | "";
   onSearchChange: (query: string) => void;
-  onRoleChange: (role: UserRole | "") => void;
+  onRoleChange: (role: typeof UserRole[keyof typeof UserRole] | "") => void;
   onReset: () => void;
 }
 
@@ -46,7 +46,7 @@ export var UsersFilters = ({
         <Select
           value={selectedRole || "all"}
           onValueChange={(value) =>
-            onRoleChange(value === "all" ? "" : (value as UserRole))
+            onRoleChange(value === "all" ? "" : (value as typeof UserRole[keyof typeof UserRole]))
           }
         >
           <SelectTrigger>

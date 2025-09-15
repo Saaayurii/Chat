@@ -18,19 +18,28 @@ import OperatorsModal from '@/components/Statistics/OperatorsModal';
 type TimePeriod = 'today' | 'yesterday' | 'week' | 'month' | 'custom';
 type UserRoleFilter = 'all' | 'admin' | 'operator';
 
+interface StatisticsState {
+  searchQuery: string;
+  selectedOperator: string | null;
+  timePeriod: TimePeriod;
+  roleFilter: UserRoleFilter;
+  dateRange: { from: string; to: string };
+  showModal: boolean;
+}
+
 var AdminStatisticsPageContent = () => {
   var { user } = useAuthStore();
 
-  var [state, setState] = React.useState({
-    0: '',
-    1: null,
-    2: 'today',
-    3: 'admin',
-    4: { from: '', to: '' },
-    5: false
+  var [state, setState] = React.useState<StatisticsState>({
+    searchQuery: '',
+    selectedOperator: null,
+    timePeriod: 'today',
+    roleFilter: 'admin',
+    dateRange: { from: '', to: '' },
+    showModal: false
   });
 
-  var getDateRange = (period) => {
+  var getDateRange = (period: TimePeriod) => {
     var now = new Date();
     var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -60,16 +69,16 @@ var AdminStatisticsPageContent = () => {
         };
       case 'custom':
         return {
-          dateFrom: state[4].from,
-          dateTo: state[4].to,
+          dateFrom: state.dateRange.from,
+          dateTo: state.dateRange.to,
         };
       default:
         return {};
     }
   };
 
-  var currentDateRange = getDateRange(state[2]);
-  var operatorId = state[3] === 'operator' ? state[1] : undefined;
+  var currentDateRange = getDateRange(state.timePeriod);
+  var operatorId = state.roleFilter === 'operator' ? state.selectedOperator : undefined;
 
   var { data: operators, isLoading: operatorsLoading } = useQuery({
     queryKey: ['operators'],
@@ -106,15 +115,15 @@ var AdminStatisticsPageContent = () => {
   });
 
   var { data: selectedOperatorWorkload } = useQuery({
-    queryKey: ['operator-workload', state[1]],
+    queryKey: ['operator-workload', state.selectedOperator],
     queryFn: () => 
-      state[1] 
-        ? statisticsAPI.getOperatorWorkload(state[1]).then(response => response.data)
+      state.selectedOperator 
+        ? statisticsAPI.getOperatorWorkload(state.selectedOperator).then(response => response.data)
         : Promise.resolve(null),
-    enabled: !!state[1] && state[3] === 'operator',
+    enabled: !!state.selectedOperator && state.roleFilter === 'operator',
   });
 
-  var getPeriodDisplayName = (period) => {
+  var getPeriodDisplayName = (period: TimePeriod) => {
     switch (period) {
       case 'today': return 'Сегодня';
       case 'yesterday': return 'Вчера';
@@ -139,9 +148,9 @@ var AdminStatisticsPageContent = () => {
   var ratingsDistributionData = ratingsStats?.distribution?.map(item => ({
     name: `${item._id} звезд`,
     count: item.count,
-    percentage: (
+    percentage: ratingsStats?.overall ? (
       (item.count / ratingsStats.overall.totalRatings) * 100
-    ).toFixed(1),
+    ).toFixed(1) : '0',
   })) || [];
 
   var questionsStatusData = React.useMemo(() => {
@@ -184,19 +193,19 @@ var AdminStatisticsPageContent = () => {
     <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex flex-col xl:flex-row gap-8">
         <StatisticsSidebar
-          roleFilter={state[3]}
-          onRoleFilterChange={(role) => setState(prev => ({ ...prev, 3: role }))}
-          selectedOperator={state[1]}
-          onOperatorSelect={(operatorId) => setState(prev => ({ ...prev, 1: operatorId }))}
-          timePeriod={state[2]}
-          onTimePeriodChange={(period) => setState(prev => ({ ...prev, 2: period }))}
-          dateRange={state[4]}
-          onDateRangeChange={(range) => setState(prev => ({ ...prev, 4: range }))}
-          searchQuery={state[0]}
-          onSearchQueryChange={(query) => setState(prev => ({ ...prev, 0: query }))}
+          roleFilter={state.roleFilter}
+          onRoleFilterChange={(role: UserRoleFilter) => setState(prev => ({ ...prev, roleFilter: role }))}
+          selectedOperator={state.selectedOperator}
+          onOperatorSelect={(operatorId: string | null) => setState(prev => ({ ...prev, selectedOperator: operatorId }))}
+          timePeriod={state.timePeriod}
+          onTimePeriodChange={(period: TimePeriod) => setState(prev => ({ ...prev, timePeriod: period }))}
+          dateRange={state.dateRange}
+          onDateRangeChange={(range) => setState(prev => ({ ...prev, dateRange: range }))}
+          searchQuery={state.searchQuery}
+          onSearchQueryChange={(query) => setState(prev => ({ ...prev, searchQuery: query }))}
           operators={operators}
           operatorsLoading={operatorsLoading}
-          onShowModal={() => setState(prev => ({ ...prev, 5: true }))}
+          onShowModal={() => setState(prev => ({ ...prev, showModal: true }))}
         />
 
         <main className="flex-1">
@@ -207,11 +216,11 @@ var AdminStatisticsPageContent = () => {
                   Статистика
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400 mt-1">
-                  {state[3] === 'admin' ? 'Административная панель' : 'Статистика оператора'} • {getPeriodDisplayName(state[2])}
-                  {state[1] && operators && (
+                  {state.roleFilter === 'admin' ? 'Административная панель' : 'Статистика оператора'} • {getPeriodDisplayName(state.timePeriod)}
+                  {state.selectedOperator && operators && (
                     <span className="ml-2">
-                      • {operators.find(op => op._id === state[1])?.profile.fullName ||
-                          operators.find(op => op._id === state[1])?.profile.username}
+                      • {operators.find(op => op._id === state.selectedOperator)?.profile.fullName ||
+                          operators.find(op => op._id === state.selectedOperator)?.profile.username}
                     </span>
                   )}
                 </p>
@@ -233,7 +242,7 @@ var AdminStatisticsPageContent = () => {
                   likesDislikesData={likesDislikesData}
                 />
 
-                {state[3] === 'operator' && state[1] && selectedOperatorWorkload && (
+                {state.roleFilter === 'operator' && state.selectedOperator && selectedOperatorWorkload && (
                   <OperatorStats workload={selectedOperatorWorkload} />
                 )}
 
@@ -241,7 +250,7 @@ var AdminStatisticsPageContent = () => {
                   questionsStatusData={questionsStatusData}
                   ratingsDistributionData={ratingsDistributionData}
                   operators={operators}
-                  roleFilter={state[3]}
+                  roleFilter={state.roleFilter}
                 />
 
                 <SummaryStats
@@ -256,14 +265,14 @@ var AdminStatisticsPageContent = () => {
       </div>
 
       <OperatorsModal
-        open={state[5]}
-        onClose={() => setState(prev => ({ ...prev, 5: false }))}
+        open={state.showModal}
+        onClose={() => setState(prev => ({ ...prev, showModal: false }))}
         operators={operators?.filter(op =>
-          op.profile.fullName?.toLowerCase().includes(state[0].toLowerCase()) ||
-          op.profile.username.toLowerCase().includes(state[0].toLowerCase())
+          op.profile.fullName?.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
+          op.profile.username.toLowerCase().includes(state.searchQuery.toLowerCase())
         ) || []}
-        onOperatorSelect={(operatorId) => setState(prev => ({ ...prev, 1: operatorId }))}
-        onRoleFilterChange={(role) => setState(prev => ({ ...prev, 3: role }))}
+        onOperatorSelect={(operatorId: string | null) => setState(prev => ({ ...prev, selectedOperator: operatorId, showModal: false }))}
+        onRoleFilterChange={(role: UserRoleFilter) => setState(prev => ({ ...prev, roleFilter: role }))}
       />
     </div>
   );

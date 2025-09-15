@@ -12,7 +12,7 @@ interface NavbarDesktopProps {
   mainItems: NavItem[];
   categories: NavCategory[];
   totalUnreadCount: number;
-  user: { role: UserRole } | null;
+  user: { role: typeof UserRole[keyof typeof UserRole] } | null;
 }
 
 export var NavbarDesktop = ({ mainItems, categories, totalUnreadCount, user }: NavbarDesktopProps) => {

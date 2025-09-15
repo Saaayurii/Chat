@@ -12,12 +12,12 @@ import { QuestionStatus, QuestionPriority } from '@/types';
 import { questionStatuses, questionPriorities } from './QuestionsConfig';
 
 interface QuestionsFiltersProps {
-  statusFilter: QuestionStatus | '';
-  priorityFilter: QuestionPriority | '';
+  statusFilter: typeof QuestionStatus[keyof typeof QuestionStatus] | '';
+  priorityFilter: typeof QuestionPriority[keyof typeof QuestionPriority] | '';
   categoryFilter: string;
   searchQuery: string;
-  onStatusChange: (value: QuestionStatus | '') => Promise<void>;
-  onPriorityChange: (value: QuestionPriority | '') => Promise<void>;
+  onStatusChange: (value: typeof QuestionStatus[keyof typeof QuestionStatus] | '') => Promise<void>;
+  onPriorityChange: (value: typeof QuestionPriority[keyof typeof QuestionPriority] | '') => Promise<void>;
   onCategoryChange: (value: string) => Promise<void>;
   onSearchChange: (value: string) => Promise<void>;
 }
@@ -34,12 +34,12 @@ export var QuestionsFilters = ({
 }: QuestionsFiltersProps) => {
 
   var handleStatusChange = (value: string) => new Promise<void>((resolve) => {
-    var status = value === 'all' ? '' : value as QuestionStatus;
+    var status = value === 'all' ? '' : value as any;
     onStatusChange(status).then(() => resolve());
   });
 
   var handlePriorityChange = (value: string) => new Promise<void>((resolve) => {
-    var priority = value === 'all' ? '' : value as QuestionPriority;
+    var priority = value === 'all' ? '' : value as any;
     onPriorityChange(priority).then(() => resolve());
   });
 

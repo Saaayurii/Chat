@@ -41,7 +41,7 @@ export default ({
       <form onSubmit={onSubmit} className="space-y-4">
         <Select 
           value={formData.type} 
-          onValueChange={(value) => onFormDataChange({ ...formData, type: value as ComplaintType })}
+          onValueChange={(value) => onFormDataChange({ ...formData, type: value as typeof ComplaintType[keyof typeof ComplaintType] })}
         >
           <SelectTrigger>
             <SelectValue placeholder="Тип жалобы" />
@@ -73,7 +73,7 @@ export default ({
         
         <Select 
           value={formData.severity} 
-          onValueChange={(value) => onFormDataChange({ ...formData, severity: value as ComplaintSeverity })}
+          onValueChange={(value) => onFormDataChange({ ...formData, severity: value as typeof ComplaintSeverity[keyof typeof ComplaintSeverity] })}
         >
           <SelectTrigger>
             <SelectValue placeholder="Серьезность" />

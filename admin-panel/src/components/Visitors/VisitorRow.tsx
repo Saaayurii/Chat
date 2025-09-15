@@ -26,12 +26,12 @@ interface VisitorRowProps {
   onBlockUser: (visitorId: string) => void;
 }
 
-var getStatusBadge = (visitor) => 
+var getStatusBadge = (visitor: any) => 
   visitor.isBlocked ? <Badge variant="destructive">Заблокирован</Badge> :
   visitor.isActivated ? <Badge variant="success">Авторизован</Badge> :
   <Badge variant="secondary">Не авторизован</Badge>;
 
-var getPresenceStatus = (isOnline) => 
+var getPresenceStatus = (isOnline: boolean) => 
   isOnline ? PresenceStatus.ONLINE : PresenceStatus.OFFLINE;
 
 export default ({ visitor, onChatOpen, onBlockUser }: VisitorRowProps) => (

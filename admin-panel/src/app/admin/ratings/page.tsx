@@ -7,31 +7,21 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function AdminRatingsPage() {
-  const { user, isLoading } = useAuthStore();
-  const router = useRouter();
+  var { user, isLoading } = useAuthStore();
+  var router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && (!user || user.role !== UserRole.ADMIN)) {
-      router.push('/login');
-    }
+    !isLoading && (!user || user.role !== UserRole.ADMIN) ? router.push('/login') : null;
   }, [user, isLoading, router]);
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground mt-4">Загрузка...</p>
-        </div>
+  return isLoading ? (
+    <div className="flex justify-center items-center min-h-screen bg-background">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+        <p className="text-muted-foreground mt-4">Загрузка...</p>
       </div>
-    );
-  }
-
-  if (!user || user.role !== UserRole.ADMIN) {
-    return null;
-  }
-
-  return (
+    </div>
+  ) : !user || user.role !== UserRole.ADMIN ? null : (
     <div className="container mx-auto px-4 py-8 bg-background min-h-screen">
       <RatingsManagement userRole={UserRole.ADMIN} />
     </div>

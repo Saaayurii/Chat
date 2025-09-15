@@ -3,12 +3,12 @@ import { NavCategory } from './types';
 import { getMainNavigation, adminManagementItems, operatorItems, userItems, commonItems } from './config';
 
 export var getRoleColor = (role: string) => 
-  role === 'admin' ? "red" : role === 'operator' ? "blue" : "gray";
+  role === 'ADMIN' ? "red" : role === 'OPERATOR' ? "blue" : "gray";
 
 export var getRoleLabel = (role: string) => 
-  role === 'admin' ? "Администратор" : 
-  role === 'operator' ? "Оператор" : 
-  role === 'visitor' ? "Посетитель" : role;
+  role === 'ADMIN' ? "Администратор" : 
+  role === 'OPERATOR' ? "Оператор" : 
+  role === 'VISITOR' ? "Посетитель" : role;
 
 export var getUserInitials = (user: any) => {
   return user?.profile?.fullName ? 
@@ -31,7 +31,7 @@ export var getNavigationCategories = (user: any) => {
     (item) => user?.role && item.roles.includes(user.role as keyof typeof UserRole)
   );
 
-  user?.role === 'admin' ? 
+  user?.role === 'ADMIN' ? 
     (() => {
       var filteredAdmin = adminManagementItems.filter((item) =>
         item.roles.includes(user.role as keyof typeof UserRole)
@@ -40,11 +40,11 @@ export var getNavigationCategories = (user: any) => {
         categories.push({
           name: "Управление",
           items: filteredAdmin,
-          roles: ['admin'],
+          roles: ['ADMIN'],
         }) : null;
     })() : null;
 
-  user?.role === 'operator' ? 
+  user?.role === 'OPERATOR' ? 
     (() => {
       var filteredOperator = operatorItems.filter((item) =>
         item.roles.includes(user.role as keyof typeof UserRole)
@@ -53,11 +53,11 @@ export var getNavigationCategories = (user: any) => {
         categories.push({
           name: "Мои задачи",
           items: filteredOperator,
-          roles: ['operator'],
+          roles: ['OPERATOR'],
         }) : null;
     })() : null;
 
-  user?.role === 'visitor' ? 
+  user?.role === 'VISITOR' ? 
     (() => {
       var filteredUser = userItems.filter((item) =>
         item.roles.includes(user.role as keyof typeof UserRole)
@@ -66,7 +66,7 @@ export var getNavigationCategories = (user: any) => {
         categories.push({
           name: "Мои данные",
           items: filteredUser,
-          roles: ['visitor'],
+          roles: ['VISITOR'],
         }) : null;
     })() : null;
 
@@ -77,7 +77,7 @@ export var getNavigationCategories = (user: any) => {
     categories.push({
       name: "Общее",
       items: filteredCommon,
-      roles: ['admin', 'operator', 'visitor'],
+      roles: ['ADMIN', 'OPERATOR', 'VISITOR'],
     }) : null;
 
   return { mainItems: filteredMain, categories };

@@ -15,7 +15,7 @@ interface NotificationForms {
   ratingRequest: { email: string; operatorName: string; ratingUrl: string };
 }
 
-export const useEmailNotifications = (userRole?: UserRole) => {
+export const useEmailNotifications = (userRole?: typeof UserRole[keyof typeof UserRole]) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);

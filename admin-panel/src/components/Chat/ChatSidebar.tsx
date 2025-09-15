@@ -26,9 +26,13 @@ interface SenderType {
 }
 
 interface ChatSidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+  isMobile?: boolean;
   searchQuery: string;
-  setSearchQuery: (query: string) => void;
+  onSearchChange?: (query: string) => void;
   filteredSenders: SenderType[];
+  displayedSenders?: SenderType[];
   selectedSender: SenderType | null;
   onSenderSelect: (sender: SenderType) => void;
   isConnected: boolean;
@@ -37,6 +41,10 @@ interface ChatSidebarProps {
   conversationsLoading: boolean;
   totalUnreadMessages: number;
   onlineUsers: any[];
+  transferRequests?: any[];
+  onTransferRequestClick?: () => void;
+  calculateUnreadCount?: (sender: SenderType) => number;
+  onScroll?: (e: any) => void;
 }
 
 var getSenderTypeIcon = (type: string) => {
@@ -45,7 +53,7 @@ var getSenderTypeIcon = (type: string) => {
     operator: () => <Shield className="w-4 h-4 text-blue-600" />,
     default: () => <User className="w-4 h-4 text-gray-600" />
   };
-  return (iconMap[type] || iconMap.default)();
+  return ((iconMap as any)[type] || iconMap.default)();
 };
 
 var getSenderTypeLabel = (type: string) => {
@@ -54,13 +62,17 @@ var getSenderTypeLabel = (type: string) => {
     operator: "Оператор",
     default: "Посетитель"
   };
-  return labelMap[type] || labelMap.default;
+  return (labelMap as any)[type] || labelMap.default;
 };
 
 export var ChatSidebar = ({
+  isOpen,
+  onClose,
+  isMobile,
   searchQuery,
-  setSearchQuery,
+  onSearchChange,
   filteredSenders,
+  displayedSenders,
   selectedSender,
   onSenderSelect,
   isConnected,
@@ -68,7 +80,11 @@ export var ChatSidebar = ({
   onReconnect,
   conversationsLoading,
   totalUnreadMessages,
-  onlineUsers
+  onlineUsers,
+  transferRequests,
+  onTransferRequestClick,
+  calculateUnreadCount,
+  onScroll
 }: ChatSidebarProps) => (
   <div className="w-80 bg-card border-r border-border flex flex-col">
     <div className="p-4 border-b border-border">
@@ -111,7 +127,7 @@ export var ChatSidebar = ({
           type="text"
           placeholder="Поиск контактов..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => onSearchChange?.(e.target.value)}
           className="w-full pl-10 pr-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground placeholder-muted-foreground"
         />
         <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />

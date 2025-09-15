@@ -45,7 +45,7 @@ export var useSocketIO = (namespace: string, options: UseSocketIOOptions = {}) =
 
   var connectionManager = useSocketConnection({
     namespace,
-    token,
+    token: token || undefined,
     sessionId,
     isAnonymous,
     isAuthenticated,

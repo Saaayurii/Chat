@@ -1,26 +1,26 @@
 import { QuestionStatus, QuestionPriority } from '@/types';
 
-export var getStatusVariant = (status: QuestionStatus): string =>
+export var getStatusVariant = (status: typeof QuestionStatus[keyof typeof QuestionStatus]): string =>
   status === QuestionStatus.OPEN ? 'secondary' :
   status === QuestionStatus.ASSIGNED ? 'default' :
   status === QuestionStatus.IN_PROGRESS ? 'default' :
   status === QuestionStatus.CLOSED ? 'default' :
   status === QuestionStatus.TRANSFERRED ? 'outline' : 'outline';
 
-export var getPriorityVariant = (priority: QuestionPriority): string =>
+export var getPriorityVariant = (priority: typeof QuestionPriority[keyof typeof QuestionPriority]): string =>
   priority === QuestionPriority.LOW ? 'default' :
   priority === QuestionPriority.MEDIUM ? 'secondary' :
   priority === QuestionPriority.HIGH ? 'default' :
   priority === QuestionPriority.URGENT ? 'destructive' : 'outline';
 
-export var getStatusLabel = (status: QuestionStatus): string =>
+export var getStatusLabel = (status: typeof QuestionStatus[keyof typeof QuestionStatus]): string =>
   status === QuestionStatus.OPEN ? 'Открыт' :
   status === QuestionStatus.ASSIGNED ? 'Назначен' :
   status === QuestionStatus.IN_PROGRESS ? 'В работе' :
   status === QuestionStatus.CLOSED ? 'Закрыт' :
   status === QuestionStatus.TRANSFERRED ? 'Передан' : status;
 
-export var getPriorityLabel = (priority: QuestionPriority): string =>
+export var getPriorityLabel = (priority: typeof QuestionPriority[keyof typeof QuestionPriority]): string =>
   priority === QuestionPriority.LOW ? 'Низкий' :
   priority === QuestionPriority.MEDIUM ? 'Средний' :
   priority === QuestionPriority.HIGH ? 'Высокий' :

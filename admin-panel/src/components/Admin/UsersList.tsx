@@ -32,7 +32,7 @@ interface UsersListProps {
   onActivateUser: (userId: string) => void;
 }
 
-var getRoleColor = (role: UserRole) => {
+var getRoleColor = (role: typeof UserRole[keyof typeof UserRole]) => {
   var colorMap = {
     [UserRole.ADMIN]: "destructive",
     [UserRole.OPERATOR]: "default",
@@ -42,10 +42,10 @@ var getRoleColor = (role: UserRole) => {
   return colorMap[role] || colorMap.default;
 };
 
-var getRoleLabel = (role: UserRole) => {
+var getRoleLabel = (role: typeof UserRole[keyof typeof UserRole]) => {
   var labelMap = {
     [UserRole.ADMIN]: "Администратор",
-    [UserRole.OPERATOR]: "Оператор", 
+    [UserRole.OPERATOR]: "Оператор",
     [UserRole.VISITOR]: "Посетитель",
     default: role,
   };
@@ -94,7 +94,7 @@ export var UsersList = ({
       </div>
     ) : (
       <div className="divide-y divide-border">
-        {usersData.data.map((user) => (
+        {usersData.data.map((user: any) => (
           <div
             key={user._id}
             className="p-6 hover:bg-muted/50 transition-colors"
@@ -128,7 +128,7 @@ export var UsersList = ({
                     </p>
                   ) : null}
                   <div className="flex items-center space-x-2">
-                    <Badge variant={getRoleColor(user.role)}>
+                    <Badge variant={getRoleColor(user.role) as any}>
                       {getRoleLabel(user.role)}
                     </Badge>
                     <span className="text-xs text-muted-foreground">

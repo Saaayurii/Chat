@@ -14,7 +14,7 @@ interface ColleagueCardProps {
   colleague: {
     _id: string;
     email: string;
-    role: UserRole;
+    role: typeof UserRole[keyof typeof UserRole];
     isBlocked: boolean;
     isActivated: boolean;
     createdAt: string;
@@ -30,19 +30,19 @@ interface ColleagueCardProps {
 }
 
 var ColleagueCard = ({ colleague, onStartChat }: ColleagueCardProps) => {
-  var getRoleColor = (role: UserRole) => {
+  var getRoleColor = (role: typeof UserRole[keyof typeof UserRole]) => {
     return role === UserRole.ADMIN ? "destructive" :
            role === UserRole.OPERATOR ? "default" : 
            "secondary";
   };
 
-  var getRoleLabel = (role: UserRole) => {
+  var getRoleLabel = (role: typeof UserRole[keyof typeof UserRole]) => {
     return role === UserRole.ADMIN ? "Администратор" :
            role === UserRole.OPERATOR ? "Оператор" :
            role;
   };
 
-  var getRoleIcon = (role: UserRole) => {
+  var getRoleIcon = (role: typeof UserRole[keyof typeof UserRole]) => {
     return role === UserRole.ADMIN ? 
       <Shield className="w-4 h-4 text-red-600" /> :
       role === UserRole.OPERATOR ? 

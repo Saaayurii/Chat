@@ -22,7 +22,7 @@ interface FormData {
   fullName: string;
   phone: string;
   bio: string;
-  role: UserRole;
+  role: typeof UserRole[keyof typeof UserRole];
 }
 
 interface FormErrors {
@@ -182,7 +182,7 @@ export var AddEmployeeForm = ({
         <Label htmlFor="role">Роль *</Label>
         <Select
           value={formData.role}
-          onValueChange={(value) => onInputChange("role", value as UserRole)}
+          onValueChange={(value) => onInputChange("role", value as typeof UserRole[keyof typeof UserRole])}
         >
           <SelectTrigger>
             <SelectValue placeholder="Выберите роль" />

@@ -11,13 +11,13 @@ import {
 import { ComplaintStatus, ComplaintType, ComplaintSeverity } from '@/types';
 
 interface ComplaintFiltersProps {
-  statusFilter: ComplaintStatus | '';
-  typeFilter: ComplaintType | '';
-  severityFilter: ComplaintSeverity | '';
+  statusFilter: typeof ComplaintStatus[keyof typeof ComplaintStatus] | '';
+  typeFilter: typeof ComplaintType[keyof typeof ComplaintType] | '';
+  severityFilter: typeof ComplaintSeverity[keyof typeof ComplaintSeverity] | '';
   searchQuery: string;
-  onStatusChange: (value: ComplaintStatus | '') => void;
-  onTypeChange: (value: ComplaintType | '') => void;
-  onSeverityChange: (value: ComplaintSeverity | '') => void;
+  onStatusChange: (value: typeof ComplaintStatus[keyof typeof ComplaintStatus] | '') => void;
+  onTypeChange: (value: typeof ComplaintType[keyof typeof ComplaintType] | '') => void;
+  onSeverityChange: (value: typeof ComplaintSeverity[keyof typeof ComplaintSeverity] | '') => void;
   onSearchChange: (value: string) => void;
 }
 
@@ -34,7 +34,7 @@ export default ({
   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
     <Select 
       value={statusFilter || 'all'} 
-      onValueChange={(value) => onStatusChange(value === 'all' ? '' : value as ComplaintStatus)}
+      onValueChange={(value) => onStatusChange(value === 'all' ? '' : value as any)}
     >
       <SelectTrigger>
         <SelectValue placeholder="Все статусы" />
@@ -50,7 +50,7 @@ export default ({
 
     <Select 
       value={typeFilter || 'all'} 
-      onValueChange={(value) => onTypeChange(value === 'all' ? '' : value as ComplaintType)}
+      onValueChange={(value) => onTypeChange(value === 'all' ? '' : value as any)}
     >
       <SelectTrigger>
         <SelectValue placeholder="Все типы" />
@@ -68,7 +68,7 @@ export default ({
 
     <Select 
       value={severityFilter || 'all'} 
-      onValueChange={(value) => onSeverityChange(value === 'all' ? '' : value as ComplaintSeverity)}
+      onValueChange={(value) => onSeverityChange(value === 'all' ? '' : value as any)}
     >
       <SelectTrigger>
         <SelectValue placeholder="Все уровни" />

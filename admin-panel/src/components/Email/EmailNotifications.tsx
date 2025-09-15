@@ -27,14 +27,14 @@ const NotificationForms = dynamic(() => import('./NotificationForms'), {
 });
 
 interface EmailNotificationsProps {
-  userRole?: UserRole;
+  userRole?: typeof UserRole[keyof typeof UserRole];
 }
 
-export default function EmailNotifications({ userRole }: EmailNotificationsProps) {
-  const { user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<'send' | 'template' | 'notifications'>('send');
+export default ({ userRole }: EmailNotificationsProps) => {
+  var { user } = useAuthStore();
+  var [activeTab, setActiveTab] = useState<'send' | 'template' | 'notifications'>('send');
 
-  const {
+  var {
     loading,
     error,
     success,

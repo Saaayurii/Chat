@@ -34,7 +34,7 @@ interface CreateQuestionFormProps {
 export var CreateQuestionForm = ({ open, loading, onClose, onSubmit }: CreateQuestionFormProps) => {
   var [formData, setFormData] = useState<CreateQuestionData>({
     text: '',
-    priority: QuestionPriority.MEDIUM,
+    priority: QuestionPriority.MEDIUM as typeof QuestionPriority[keyof typeof QuestionPriority],
     category: '',
     tags: []
   });
@@ -44,7 +44,7 @@ export var CreateQuestionForm = ({ open, loading, onClose, onSubmit }: CreateQue
     onSubmit(formData).then(() => {
       setFormData({
         text: '',
-        priority: QuestionPriority.MEDIUM,
+        priority: QuestionPriority.MEDIUM as typeof QuestionPriority[keyof typeof QuestionPriority],
         category: '',
         tags: []
       });
@@ -71,7 +71,7 @@ export var CreateQuestionForm = ({ open, loading, onClose, onSubmit }: CreateQue
             required
           />
           
-          <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value as QuestionPriority })}>
+          <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value as typeof QuestionPriority[keyof typeof QuestionPriority] })}>
             <SelectTrigger>
               <SelectValue placeholder="Выберите приоритет" />
             </SelectTrigger>
@@ -151,7 +151,7 @@ export var AssignOperatorForm = ({
               <p className="text-sm text-muted-foreground">Вопрос:</p>
               <p className="font-medium">{question.text}</p>
               <div className="flex gap-2 mt-2">
-                <Badge variant={getPriorityVariant(question.priority)}>
+                <Badge variant={getPriorityVariant(question.priority) as any}>
                   {question.priority}
                 </Badge>
                 <Badge variant="outline">

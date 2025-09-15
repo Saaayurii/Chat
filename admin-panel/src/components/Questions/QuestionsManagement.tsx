@@ -12,7 +12,7 @@ import { CreateQuestionForm, AssignOperatorForm, CloseQuestionForm } from './Que
 import { QuestionsPagination } from './QuestionsPagination';
 
 interface QuestionsManagementProps {
-  userRole?: UserRole;
+  userRole?: typeof UserRole[keyof typeof UserRole];
   showCreateForm?: boolean;
 }
 
@@ -27,8 +27,8 @@ export default function QuestionsManagement({
   var [currentPage, setCurrentPage] = useState(1);
   var [totalPages, setTotalPages] = useState(1);
   
-  var [statusFilter, setStatusFilter] = useState<QuestionStatus | ''>('');
-  var [priorityFilter, setPriorityFilter] = useState<QuestionPriority | ''>('');
+  var [statusFilter, setStatusFilter] = useState<typeof QuestionStatus[keyof typeof QuestionStatus] | ''>('');
+  var [priorityFilter, setPriorityFilter] = useState<typeof QuestionPriority[keyof typeof QuestionPriority] | ''>('');
   var [categoryFilter, setCategoryFilter] = useState('');
   var [searchQuery, setSearchQuery] = useState('');
   
@@ -179,12 +179,12 @@ export default function QuestionsManagement({
   });
 
   var handleFilterChange = {
-    status: (value: QuestionStatus | '') => new Promise<void>((resolve) => {
+    status: (value: typeof QuestionStatus[keyof typeof QuestionStatus] | '') => new Promise<void>((resolve) => {
       setStatusFilter(value);
       setCurrentPage(1);
       resolve();
     }),
-    priority: (value: QuestionPriority | '') => new Promise<void>((resolve) => {
+    priority: (value: typeof QuestionPriority[keyof typeof QuestionPriority] | '') => new Promise<void>((resolve) => {
       setPriorityFilter(value);
       setCurrentPage(1);
       resolve();

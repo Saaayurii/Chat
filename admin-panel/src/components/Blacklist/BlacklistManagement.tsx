@@ -63,15 +63,15 @@ const RevokeEntryForm = dynamic(() => import("./RevokeEntryForm"), {
 });
 
 interface BlacklistManagementProps {
-  userRole?: UserRole;
+  userRole?: typeof UserRole[keyof typeof UserRole];
   showCreateForm?: boolean;
 }
 
-export default function BlacklistManagement({
+export default ({
   userRole,
   showCreateForm = true,
-}: BlacklistManagementProps) {
-  const { user } = useAuthStore();
+}: BlacklistManagementProps) => {
+  var { user } = useAuthStore();
 
   const {
     entries,

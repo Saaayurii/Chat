@@ -1,4 +1,4 @@
-+'use client';
+'use client';
 
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
@@ -7,7 +7,7 @@ import { UserRole } from '@/types';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: UserRole;
+  requiredRole?: typeof UserRole[keyof typeof UserRole];
   redirectTo?: string;
 }
 

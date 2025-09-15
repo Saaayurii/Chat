@@ -35,8 +35,8 @@ export default function Navbar() {
   useEffect(() => {
     navbarUtils.getUserInitials().then(setUserInitials);
     navbarUtils.getNavigationCategories().then(({ mainItems, categories }) => {
-      setMainItems(mainItems);
-      setCategories(categories);
+      setMainItems(mainItems as any);
+      setCategories(categories as any);
     });
     navbarUtils.getLogoClickPath().then(setLogoPath);
   }, [user]);

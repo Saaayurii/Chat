@@ -146,11 +146,11 @@ var OperatorChatPageContent = () => {
         isConnected={isConnected}
         isConnecting={isConnecting}
         onReconnect={reconnect}
-        selectedSender={selectedSender}
-        onSenderSelect={(sender) =>
+        selectedSender={selectedSender as any}
+        onSenderSelect={(sender: any) =>
           handleSenderSelect(sender, isMobile, uiActions)
         }
-        calculateUnreadCount={calculateUnreadCount}
+        calculateUnreadCount={(sender: any) => calculateUnreadCount(sender.id, conversations || [])}
         onlineUsers={Array.from(onlineUsers)}
         onScroll={handleScroll}
       />
@@ -168,14 +168,14 @@ var OperatorChatPageContent = () => {
             />
 
             <MessagesArea
-              messages={messages}
+              messages={messages || []}
               messagesLoading={messagesLoading}
               userId={user?.id}
               isMobile={isMobile}
               shouldAutoScroll={shouldAutoScroll}
               onScroll={handleScroll}
               onScrollToBottom={() => setShouldAutoScroll(true)}
-              selectedSender={selectedSender}
+              selectedSender={selectedSender as any}
               conversations={conversations}
             />
 
@@ -203,7 +203,7 @@ var OperatorChatPageContent = () => {
               _id: selectedSender.id,
               id: selectedSender.id,
               email: selectedSender.email,
-              role: (selectedSender.role as UserRole) || UserRole.VISITOR,
+              role: (selectedSender.role as typeof UserRole[keyof typeof UserRole]) || UserRole.VISITOR,
               isActivated: selectedSender.isAuthorized || false,
               isBlocked: false,
               blacklistedByAdmin: false,

@@ -182,18 +182,18 @@ export default function ProfilePage() {
 
                 <Radix.Badge
                   color={
-                    user?.role === "admin"
+                    user?.role === 'ADMIN'
                       ? "red"
-                      : user?.role === "operator"
+                      : user?.role === 'OPERATOR'
                       ? "blue"
                       : "gray"
                   }
                   variant="soft"
                   className="mt-2"
                 >
-                  {user?.role === "admin"
+                  {user?.role === 'ADMIN'
                     ? "Администратор"
-                    : user?.role === "operator"
+                    : user?.role === 'OPERATOR'
                     ? "Оператор"
                     : "Посетитель"}
                 </Radix.Badge>

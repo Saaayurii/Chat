@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 
 interface ChatActionsConfig {
-  emit: (event: string, data?: any) => boolean;
+  emit: (event: string, data?: any) => Promise<boolean>;
   isConnected: boolean;
 }
 

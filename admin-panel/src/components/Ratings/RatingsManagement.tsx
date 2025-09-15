@@ -35,7 +35,7 @@ const HideRatingForm = dynamic(() => import('./HideRatingForm'), {
 });
 
 interface RatingsManagementProps {
-  userRole?: UserRole;
+  userRole?: typeof UserRole[keyof typeof UserRole];
   showCreateForm?: boolean;
   operatorId?: string;
 }

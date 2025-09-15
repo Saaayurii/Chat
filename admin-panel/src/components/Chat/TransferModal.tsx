@@ -26,7 +26,7 @@ interface Operator {
     isOnline: boolean;
     status?: "free" | "busy" | "break" | "offline";
   };
-  role: UserRole;
+  role: typeof UserRole[keyof typeof UserRole];
   activeChats: number;
   lastActivity: string;
 }

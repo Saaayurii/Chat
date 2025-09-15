@@ -15,7 +15,7 @@ interface NavbarMobileProps {
   categories: NavCategory[];
   totalUnreadCount: number;
   user: {
-    role: UserRole;
+    role: typeof UserRole[keyof typeof UserRole];
     email?: string;
     profile?: {
       fullName?: string;

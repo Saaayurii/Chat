@@ -4,7 +4,7 @@ import { Rating, UserRole } from '@/types';
 
 interface RatingsListProps {
   ratings: Rating[];
-  userRole?: UserRole;
+  userRole?: typeof UserRole[keyof typeof UserRole];
   onHideRating?: (rating: Rating) => void;
 }
 

@@ -61,10 +61,10 @@ export var QuestionCard = ({
             )}
           </div>
           <div className="flex gap-2">
-            <Badge variant={getStatusVariant(question.status)}>
+            <Badge variant={getStatusVariant(question.status) as any}>
               {question.status}
             </Badge>
-            <Badge variant={getPriorityVariant(question.priority)}>
+            <Badge variant={getPriorityVariant(question.priority) as any}>
               {question.priority}
             </Badge>
           </div>

@@ -1,6 +1,10 @@
 export { api } from './config';
 export { authAPI } from './auth-api';
 export { usersAPI, profileAPI } from './users-api';
+
+// Экспорт типов
+export type { LoginData, RegistrationData, ResetPasswordData, ForgotPasswordData } from '../types/auth';
+export type { CreateUserData, UpdateUserData, UpdateProfileData } from '../types/user';
 export { chatAPI } from './chat-api';
 export { questionsAPI } from './questions-api';
 export { complaintsAPI } from './complaints-api';

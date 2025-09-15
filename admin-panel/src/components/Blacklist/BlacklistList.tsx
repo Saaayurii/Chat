@@ -4,20 +4,20 @@ import { BlacklistEntry, BlacklistStatus, UserRole } from '@/types';
 
 interface BlacklistListProps {
   entries: BlacklistEntry[];
-  userRole?: UserRole;
+  userRole?: typeof UserRole[keyof typeof UserRole];
   onApprove?: (entry: BlacklistEntry) => void;
   onRevoke?: (entry: BlacklistEntry) => void;
 }
 
-export default function BlacklistList({ 
+export default ({ 
   entries, 
   userRole, 
   onApprove, 
   onRevoke 
-}: BlacklistListProps) {
-  const canManageBlacklist = userRole === UserRole.ADMIN;
+}: BlacklistListProps) => {
+  var canManageBlacklist = userRole === UserRole.ADMIN;
 
-  const getStatusColor = (status: BlacklistStatus) => {
+  var getStatusColor = (status: typeof BlacklistStatus[keyof typeof BlacklistStatus]) => {
     switch (status) {
       case BlacklistStatus.PENDING:
         return 'bg-yellow-100 text-yellow-800';
@@ -32,7 +32,7 @@ export default function BlacklistList({
     }
   };
 
-  const getStatusText = (status: BlacklistStatus) => {
+  var getStatusText = (status: typeof BlacklistStatus[keyof typeof BlacklistStatus]) => {
     switch (status) {
       case BlacklistStatus.PENDING:
         return 'Ожидает рассмотрения';

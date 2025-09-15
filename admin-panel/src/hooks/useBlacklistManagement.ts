@@ -14,7 +14,7 @@ import {
 } from '@/types';
 
 interface UseBlacklistManagementProps {
-  userRole?: UserRole;
+  userRole?: typeof UserRole[keyof typeof UserRole];
 }
 
 export const useBlacklistManagement = ({ userRole }: UseBlacklistManagementProps) => {
@@ -24,9 +24,9 @@ export const useBlacklistManagement = ({ userRole }: UseBlacklistManagementProps
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   
-  const [statusFilter, setStatusFilter] = useState<BlacklistStatus | ''>('');
-  const [reasonFilter, setReasonFilter] = useState<BlacklistReason | ''>('');
-  const [typeFilter, setTypeFilter] = useState<BlacklistType | ''>('');
+  const [statusFilter, setStatusFilter] = useState<typeof BlacklistStatus[keyof typeof BlacklistStatus] | ''>('');
+  const [reasonFilter, setReasonFilter] = useState<typeof BlacklistReason[keyof typeof BlacklistReason] | ''>('');
+  const [typeFilter, setTypeFilter] = useState<typeof BlacklistType[keyof typeof BlacklistType] | ''>('');
   const [searchQuery, setSearchQuery] = useState('');
 
   const canManageBlacklist = userRole === UserRole.ADMIN;

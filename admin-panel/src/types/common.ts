@@ -1,32 +1,32 @@
 export var UserRole = {
-  ADMIN: 'admin',
-  OPERATOR: 'operator',
-  VISITOR: 'visitor',
+  ADMIN: 'ADMIN',
+  OPERATOR: 'OPERATOR',
+  VISITOR: 'VISITOR',
 } as const;
 
 export var ConversationType = {
-  USER_OPERATOR: 'user-operator',
-  OPERATOR_OPERATOR: 'operator-operator',
-  OPERATOR_ADMIN: 'operator-admin',
+  USER_OPERATOR: 'USER_OPERATOR',
+  OPERATOR_OPERATOR: 'OPERATOR_OPERATOR',
+  OPERATOR_ADMIN: 'OPERATOR_ADMIN',
 } as const;
 
 export var ConversationStatus = {
-  ACTIVE: 'active',
-  CLOSED: 'closed',
-  TRANSFERRED: 'transferred',
+  ACTIVE: 'ACTIVE',
+  CLOSED: 'CLOSED',
+  TRANSFERRED: 'TRANSFERRED',
 } as const;
 
 export var MessageType = {
-  TEXT: 'text',
-  FILE: 'file',
-  IMAGE: 'image',
-  SYSTEM: 'system',
+  TEXT: 'TEXT',
+  FILE: 'FILE',
+  IMAGE: 'IMAGE',
+  SYSTEM: 'SYSTEM',
 } as const;
 
 export var MessageStatus = {
-  SENT: 'sent',
-  DELIVERED: 'delivered',
-  READ: 'read',
+  SENT: 'SENT',
+  DELIVERED: 'DELIVERED',
+  READ: 'READ',
 } as const;
 
 export interface PaginationParams {

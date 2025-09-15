@@ -12,17 +12,17 @@ export var BlacklistReason = {
 } as const;
 
 export var BlacklistType = {
-  PERMANENT: 'permanent',
-  TEMPORARY: 'temporary',
+  PERMANENT: 'PERMANENT',
+  TEMPORARY: 'TEMPORARY',
 } as const;
 
 export var BlacklistStatus = {
-  ACTIVE: 'active',
-  EXPIRED: 'expired',
-  REVOKED: 'revoked',
-  PENDING: 'pending',
-  APPROVED: 'approved',
-  REJECTED: 'rejected',
+  ACTIVE: 'ACTIVE',
+  EXPIRED: 'EXPIRED',
+  REVOKED: 'REVOKED',
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
 } as const;
 
 export interface BlacklistEvidence {

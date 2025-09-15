@@ -15,7 +15,7 @@ interface ComplaintCardProps {
   onReview: (complaint: Complaint) => void;
 }
 
-var getTypeDisplay = (type: ComplaintType) => {
+var getTypeDisplay = (type: typeof ComplaintType[keyof typeof ComplaintType]) => {
   var typeMap = {
     [ComplaintType.INAPPROPRIATE_BEHAVIOR]: 'Неподобающее поведение',
     [ComplaintType.POOR_SERVICE]: 'Плохой сервис',
@@ -24,10 +24,10 @@ var getTypeDisplay = (type: ComplaintType) => {
     [ComplaintType.INCORRECT_INFORMATION]: 'Неверная информация',
     [ComplaintType.OTHER]: 'Другое'
   };
-  return typeMap[type] || type;
+  return (typeMap as any)[type] || type;
 };
 
-var getStatusVariant = (status: ComplaintStatus) => {
+var getStatusVariant = (status: typeof ComplaintStatus[keyof typeof ComplaintStatus]) => {
   switch (status) {
     case ComplaintStatus.PENDING: return 'secondary';
     case ComplaintStatus.UNDER_REVIEW: return 'default';
@@ -37,7 +37,7 @@ var getStatusVariant = (status: ComplaintStatus) => {
   }
 };
 
-var getSeverityVariant = (severity: ComplaintSeverity) => {
+var getSeverityVariant = (severity: typeof ComplaintSeverity[keyof typeof ComplaintSeverity]) => {
   switch (severity) {
     case ComplaintSeverity.LOW: return 'default';
     case ComplaintSeverity.MEDIUM: return 'secondary';
@@ -64,10 +64,10 @@ export default ({ complaint, canManageComplaints, onReview }: ComplaintCardProps
           )}
         </div>
         <div className="flex gap-2 flex-col">
-          <Badge variant={getStatusVariant(complaint.status)}>
+          <Badge variant={getStatusVariant(complaint.status) as any}>
             {complaint.status}
           </Badge>
-          <Badge variant={getSeverityVariant(complaint.severity)}>
+          <Badge variant={getSeverityVariant(complaint.severity) as any}>
             {complaint.severity}
           </Badge>
         </div>

@@ -10,7 +10,7 @@ import {
 } from "./NavbarConfig";
 
 interface User {
-  role: UserRole;
+  role: typeof UserRole[keyof typeof UserRole];
   profile?: {
     fullName?: string;
     username?: string;
@@ -36,14 +36,14 @@ export var useNavbarUtils = (user: User | null) => {
 
   var getNavigationCategories = () => new Promise<{ mainItems: NavItem[]; categories: NavCategory[] }>((resolve) => {
     var categories: NavCategory[] = [];
-    var mainNavigation = getMainNavigation(user?.role as UserRole);
+    var mainNavigation = getMainNavigation(user?.role as typeof UserRole[keyof typeof UserRole]);
     var filteredMain = mainNavigation.filter(
-      (item) => user?.role && item.roles.includes(user.role as UserRole)
+      (item) => user?.role && item.roles.includes(user.role as typeof UserRole[keyof typeof UserRole])
     );
 
     user?.role === UserRole.ADMIN ? (() => {
       var filteredAdmin = adminManagementItems.filter((item) =>
-        item.roles.includes(user.role as UserRole)
+        item.roles.includes(user.role as typeof UserRole[keyof typeof UserRole])
       );
       filteredAdmin.length > 0 ? categories.push({
         name: "Управление",
@@ -54,7 +54,7 @@ export var useNavbarUtils = (user: User | null) => {
 
     user?.role === UserRole.OPERATOR ? (() => {
       var filteredOperator = operatorItems.filter((item) =>
-        item.roles.includes(user.role as UserRole)
+        item.roles.includes(user.role as typeof UserRole[keyof typeof UserRole])
       );
       filteredOperator.length > 0 ? categories.push({
         name: "Мои задачи",
@@ -65,7 +65,7 @@ export var useNavbarUtils = (user: User | null) => {
 
     user?.role === UserRole.VISITOR ? (() => {
       var filteredUser = userItems.filter((item) =>
-        item.roles.includes(user.role as UserRole)
+        item.roles.includes(user.role as typeof UserRole[keyof typeof UserRole])
       );
       filteredUser.length > 0 ? categories.push({
         name: "Мои данные",
@@ -75,7 +75,7 @@ export var useNavbarUtils = (user: User | null) => {
     })() : null;
 
     var filteredCommon = commonItems.filter(
-      (item) => user?.role && item.roles.includes(user.role as UserRole)
+      (item) => user?.role && item.roles.includes(user.role as typeof UserRole[keyof typeof UserRole])
     );
     
     filteredCommon.length > 0 ? categories.push({

@@ -20,7 +20,7 @@ export default ({ questionsStats, likesDislikesData }: StatisticsCardsProps) => 
           </p>
           <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">
             {questionsStats?.statusStats?.reduce(
-              (sum, stat) => sum + stat.count,
+              (sum: number, stat: any) => sum + stat.count,
               0
             ) || 0}
           </p>

@@ -12,7 +12,7 @@ import {
 
 interface UseRatingsManagementProps {
   operatorId?: string;
-  userRole?: UserRole;
+  userRole?: typeof UserRole[keyof typeof UserRole];
 }
 
 export const useRatingsManagement = ({ operatorId, userRole }: UseRatingsManagementProps) => {

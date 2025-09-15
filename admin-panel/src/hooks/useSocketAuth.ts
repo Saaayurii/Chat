@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 
 interface AuthState {
-  token?: string;
+  token?: string | null;
   isAuthenticated: boolean;
   sessionId?: string;
   isAnonymous?: boolean;
@@ -46,7 +46,7 @@ export var useSocketAuth = (authState: AuthState, config: AuthConfig) => {
   var getConnectionConfig = () => 
     new Promise<{ token?: string; sessionId?: string; isAnonymous: boolean }>((resolve) => {
       resolve({
-        token: authState.token,
+        token: authState.token || undefined,
         sessionId: authState.sessionId,
         isAnonymous: authState.isAnonymous || false
       });

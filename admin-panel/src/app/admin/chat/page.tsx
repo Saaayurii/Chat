@@ -146,7 +146,7 @@ var AdminChatPageContent = () => {
     <div className="h-screen flex bg-background">
       <ChatSidebar
         searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
+        onSearchChange={setSearchQuery}
         filteredSenders={filteredSenders}
         selectedSender={selectedSender}
         onSenderSelect={handleSenderSelect}

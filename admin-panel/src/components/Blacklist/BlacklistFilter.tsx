@@ -3,13 +3,13 @@
 import { BlacklistStatus, BlacklistReason, BlacklistType } from '@/types';
 
 interface BlacklistFilterProps {
-  statusFilter: BlacklistStatus | '';
-  reasonFilter: BlacklistReason | '';
-  typeFilter: BlacklistType | '';
+  statusFilter: typeof BlacklistStatus[keyof typeof BlacklistStatus] | '';
+  reasonFilter: typeof BlacklistReason[keyof typeof BlacklistReason] | '';
+  typeFilter: typeof BlacklistType[keyof typeof BlacklistType] | '';
   searchQuery: string;
-  onStatusFilterChange: (value: BlacklistStatus | '') => void;
-  onReasonFilterChange: (value: BlacklistReason | '') => void;
-  onTypeFilterChange: (value: BlacklistType | '') => void;
+  onStatusFilterChange: (value: typeof BlacklistStatus[keyof typeof BlacklistStatus] | '') => void;
+  onReasonFilterChange: (value: typeof BlacklistReason[keyof typeof BlacklistReason] | '') => void;
+  onTypeFilterChange: (value: typeof BlacklistType[keyof typeof BlacklistType] | '') => void;
   onSearchQueryChange: (value: string) => void;
 }
 
@@ -27,7 +27,7 @@ export default function BlacklistFilter({
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded">
       <select
         value={statusFilter}
-        onChange={(e) => onStatusFilterChange(e.target.value as BlacklistStatus | '')}
+        onChange={(e) => onStatusFilterChange(e.target.value as typeof BlacklistStatus[keyof typeof BlacklistStatus] | '')}
         className="border rounded px-3 py-2"
       >
         <option value="">Все статусы</option>
@@ -39,7 +39,7 @@ export default function BlacklistFilter({
 
       <select
         value={reasonFilter}
-        onChange={(e) => onReasonFilterChange(e.target.value as BlacklistReason | '')}
+        onChange={(e) => onReasonFilterChange(e.target.value as typeof BlacklistReason[keyof typeof BlacklistReason] | '')}
         className="border rounded px-3 py-2"
       >
         <option value="">Все причины</option>
@@ -53,7 +53,7 @@ export default function BlacklistFilter({
 
       <select
         value={typeFilter}
-        onChange={(e) => onTypeFilterChange(e.target.value as BlacklistType | '')}
+        onChange={(e) => onTypeFilterChange(e.target.value as typeof BlacklistType[keyof typeof BlacklistType] | '')}
         className="border rounded px-3 py-2"
       >
         <option value="">Все типы</option>

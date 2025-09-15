@@ -8,8 +8,8 @@ interface OperatorsModalProps {
   open: boolean;
   onClose: () => void;
   operators: UserType[];
-  onOperatorSelect: (operatorId: string) => void;
-  onRoleFilterChange: (role: string) => void;
+  onOperatorSelect: (operatorId: string | null) => void;
+  onRoleFilterChange: (role: any) => void;
 }
 
 export default ({ 

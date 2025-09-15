@@ -20,7 +20,7 @@ interface FormData {
   fullName: string;
   phone: string;
   bio: string;
-  role: UserRole;
+  role: typeof UserRole[keyof typeof UserRole];
 }
 
 interface FormErrors {
@@ -305,7 +305,7 @@ export default function CreateUserModal({ isOpen, onClose }: CreateUserModalProp
             </label>
             <select
               value={formData.role}
-              onChange={(e) => handleInputChange('role', e.target.value as UserRole)}
+              onChange={(e) => handleInputChange('role', e.target.value as typeof UserRole[keyof typeof UserRole])}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-dark-800 dark:border-dark-600 dark:text-white"
             >
               <option value={UserRole.VISITOR}>Посетитель</option>

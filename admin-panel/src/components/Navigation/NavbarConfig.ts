@@ -16,17 +16,17 @@ export interface NavItem {
   name: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  roles: UserRole[];
+  roles: typeof UserRole[keyof typeof UserRole][];
   category?: string;
 }
 
 export interface NavCategory {
   name: string;
   items: NavItem[];
-  roles: UserRole[];
+  roles: typeof UserRole[keyof typeof UserRole][];
 }
 
-export var getMainNavigation = (userRole: UserRole): NavItem[] => [
+export var getMainNavigation = (userRole: typeof UserRole[keyof typeof UserRole]): NavItem[] => [
   {
     name: "Статистика",
     href: userRole === UserRole.ADMIN ? "/admin/statistics" : "/operator/statistics",

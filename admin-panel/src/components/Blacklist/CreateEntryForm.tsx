@@ -66,7 +66,7 @@ export default function CreateEntryForm({
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  reason: e.target.value as BlacklistReason,
+                  reason: e.target.value as typeof BlacklistReason[keyof typeof BlacklistReason],
                 })
               }
               className="w-full border rounded px-3 py-2"
@@ -107,7 +107,7 @@ export default function CreateEntryForm({
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  type: e.target.value as BlacklistType,
+                  type: e.target.value as typeof BlacklistType[keyof typeof BlacklistType],
                 })
               }
               className="w-full border rounded px-3 py-2"

@@ -1,16 +1,16 @@
 export var QuestionStatus = {
-  OPEN: 'open',
-  ASSIGNED: 'assigned',
-  IN_PROGRESS: 'in_progress',
-  CLOSED: 'closed',
-  TRANSFERRED: 'transferred',
+  OPEN: 'OPEN',
+  ASSIGNED: 'ASSIGNED',
+  IN_PROGRESS: 'IN_PROGRESS',
+  CLOSED: 'CLOSED',
+  TRANSFERRED: 'TRANSFERRED',
 } as const;
 
 export var QuestionPriority = {
-  LOW: 'low',
-  MEDIUM: 'medium',
-  HIGH: 'high',
-  URGENT: 'urgent',
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH',
+  URGENT: 'URGENT',
 } as const;
 
 export interface Question {

@@ -40,7 +40,7 @@ export var useChatEventRouter = (handlers: EventHandlers) => {
       'conversation:removed': () => currentHandlers.handleConversationRemoved?.(messageData),
       'conversation:assigned': () => currentHandlers.handleConversationAssigned?.(messageData),
       'messages-read': () => currentHandlers.handleMessagesRead?.(messageData),
-      'message-read': () => currentHandlers.handleSingleMessageRead?.(messageData),
+      'message-marked-as-read': () => currentHandlers.handleSingleMessageRead?.(messageData),
       'connected': () => console.log('Connected to chat:', messageData),
       'room-joined': () => console.log('Joined room:', messageData),
       'message-sent': () => console.log('Message sent confirmation:', messageData),

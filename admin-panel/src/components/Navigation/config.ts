@@ -16,27 +16,27 @@ import { NavItem } from './types';
 export var getMainNavigation = (userRole: keyof typeof UserRole): NavItem[] => [
   {
     name: "Статистика",
-    href: userRole === 'admin' ? "/admin/statistics" : "/operator/statistics",
+    href: userRole === 'ADMIN' ? "/admin/statistics" : "/operator/statistics",
     icon: BarChart3,
-    roles: ['admin', 'operator'],
+    roles: ['ADMIN', 'OPERATOR'],
   },
   {
     name: "Сообщения",
-    href: userRole === 'admin' ? "/admin/chat" : userRole === 'operator' ? "/operator/chat" : "/chat",
+    href: userRole === 'ADMIN' ? "/admin/chat" : userRole === 'OPERATOR' ? "/operator/chat" : "/chat",
     icon: MessageSquare,
-    roles: ['admin', 'operator', 'visitor'],
+    roles: ['ADMIN', 'OPERATOR', 'VISITOR'],
   },
   {
     name: "Сотрудники",
     href: "/admin/users",
     icon: Users,
-    roles: ['admin'],
+    roles: ['ADMIN'],
   },
   {
     name: "Посетители",
     href: "/admin/visitors",
     icon: User,
-    roles: ['admin'],
+    roles: ['ADMIN'],
   },
 ];
 
@@ -45,31 +45,31 @@ export var adminManagementItems: NavItem[] = [
     name: "Вопросы",
     href: "/admin/questions",
     icon: HelpCircle,
-    roles: ['admin'],
+    roles: ['ADMIN'],
   },
   {
     name: "Жалобы",
     href: "/admin/complaints",
     icon: AlertTriangle,
-    roles: ['admin'],
+    roles: ['ADMIN'],
   },
   {
     name: "Черный список",
     href: "/admin/blacklist",
     icon: Ban,
-    roles: ['admin'],
+    roles: ['ADMIN'],
   },
   {
     name: "Оценки",
     href: "/admin/ratings",
     icon: Star,
-    roles: ['admin'],
+    roles: ['ADMIN'],
   },
   {
     name: "Email уведомления",
     href: "/admin/emails",
     icon: Mail,
-    roles: ['admin'],
+    roles: ['ADMIN'],
   },
 ];
 
@@ -78,19 +78,19 @@ export var operatorItems: NavItem[] = [
     name: "Коллеги",
     href: "/operator/colleagues",
     icon: Users,
-    roles: ['operator'],
+    roles: ['OPERATOR'],
   },
   {
     name: "Мои вопросы",
     href: "/operator/questions",
     icon: HelpCircle,
-    roles: ['operator'],
+    roles: ['OPERATOR'],
   },
   {
     name: "Мои оценки",
     href: "/operator/ratings",
     icon: Star,
-    roles: ['operator'],
+    roles: ['OPERATOR'],
   },
 ];
 
@@ -101,12 +101,12 @@ export var commonItems: NavItem[] = [
     name: "Профиль",
     href: "/profile",
     icon: User,
-    roles: ['admin', 'operator', 'visitor'],
+    roles: ['ADMIN', 'OPERATOR', 'VISITOR'],
   },
   {
     name: "Настройки",
     href: "/settings",
     icon: Settings,
-    roles: ['admin', 'operator'],
+    roles: ['ADMIN', 'OPERATOR'],
   },
 ];

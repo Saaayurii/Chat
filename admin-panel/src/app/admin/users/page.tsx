@@ -18,7 +18,7 @@ interface FormData {
   fullName: string;
   phone: string;
   bio: string;
-  role: UserRole;
+  role: typeof UserRole[keyof typeof UserRole];
 }
 
 interface FormErrors {
@@ -37,7 +37,7 @@ export default function AdminUsersPage() {
 
   var { 0: searchQuery, 1: setSearchQuery } = useState("");
   var { 0: debouncedSearchQuery, 1: setDebouncedSearchQuery } = useState("");
-  var { 0: selectedRole, 1: setSelectedRole } = useState<UserRole | "">("");
+  var { 0: selectedRole, 1: setSelectedRole } = useState<typeof UserRole[keyof typeof UserRole] | "">("");
   var { 0: page, 1: setPage } = useState(1);
 
   var { 0: formData, 1: setFormData } = useState<FormData>({

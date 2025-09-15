@@ -8,17 +8,17 @@ export var ComplaintType = {
 } as const;
 
 export var ComplaintStatus = {
-  PENDING: 'pending',
-  UNDER_REVIEW: 'under_review',
-  RESOLVED: 'resolved',
-  DISMISSED: 'dismissed',
+  PENDING: 'PENDING',
+  UNDER_REVIEW: 'UNDER_REVIEW',
+  RESOLVED: 'RESOLVED',
+  DISMISSED: 'DISMISSED',
 } as const;
 
 export var ComplaintSeverity = {
-  LOW: 'low',
-  MEDIUM: 'medium',
-  HIGH: 'high',
-  CRITICAL: 'critical',
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH',
+  CRITICAL: 'CRITICAL',
 } as const;
 
 export interface ComplaintEvidence {

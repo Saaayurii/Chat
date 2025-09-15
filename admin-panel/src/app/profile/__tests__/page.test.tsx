@@ -74,7 +74,7 @@ describe('ProfilePage', () => {
     (profileAPI.uploadAvatar as jest.Mock).mockResolvedValue({ data: { avatarUrl: '/new-avatar.jpg' } });
     
     // Mock FileReader methods
-    mockFileReader.readAsDataURL.mockImplementation(function() {
+    mockFileReader.readAsDataURL.mockImplementation(function(this: any) {
       if (this.onload) {
         this.onload({ target: { result: 'data:image/jpeg;base64,fake-image-data' } });
       }
@@ -223,7 +223,7 @@ describe('ProfilePage', () => {
     test('validates form fields correctly', async () => {
       renderWithProviders();
 
-      await waitFor(() => {
+      await waitFor(async () => {
         const editButton = screen.getByText('Редактировать');
         await user.click(editButton);
       });
@@ -244,7 +244,7 @@ describe('ProfilePage', () => {
     test('validates username format', async () => {
       renderWithProviders();
 
-      await waitFor(() => {
+      await waitFor(async () => {
         const editButton = screen.getByText('Редактировать');
         await user.click(editButton);
       });
@@ -264,7 +264,7 @@ describe('ProfilePage', () => {
     test('validates bio length', async () => {
       renderWithProviders();
 
-      await waitFor(() => {
+      await waitFor(async () => {
         const editButton = screen.getByText('Редактировать');
         await user.click(editButton);
       });
@@ -284,7 +284,7 @@ describe('ProfilePage', () => {
     test('submits form with valid data', async () => {
       renderWithProviders();
 
-      await waitFor(() => {
+      await waitFor(async () => {
         const editButton = screen.getByText('Редактировать');
         await user.click(editButton);
       });
@@ -313,7 +313,7 @@ describe('ProfilePage', () => {
     test('cancels editing when cancel button is clicked', async () => {
       renderWithProviders();
 
-      await waitFor(() => {
+      await waitFor(async () => {
         const editButton = screen.getByText('Редактировать');
         await user.click(editButton);
       });
@@ -339,7 +339,7 @@ describe('ProfilePage', () => {
 
       renderWithProviders();
 
-      await waitFor(() => {
+      await waitFor(async () => {
         const editButton = screen.getByText('Редактировать');
         await user.click(editButton);
       });
@@ -482,7 +482,7 @@ describe('ProfilePage', () => {
     test('shows email as disabled field', async () => {
       renderWithProviders();
 
-      await waitFor(() => {
+      await waitFor(async () => {
         const editButton = screen.getByText('Редактировать');
         await user.click(editButton);
       });
@@ -495,7 +495,7 @@ describe('ProfilePage', () => {
     test('displays placeholder text correctly', async () => {
       renderWithProviders();
 
-      await waitFor(() => {
+      await waitFor(async () => {
         const editButton = screen.getByText('Редактировать');
         await user.click(editButton);
       });
@@ -534,7 +534,7 @@ describe('ProfilePage', () => {
     test('updates auth store after successful profile update', async () => {
       renderWithProviders();
 
-      await waitFor(() => {
+      await waitFor(async () => {
         const editButton = screen.getByText('Редактировать');
         await user.click(editButton);
       });
@@ -564,7 +564,7 @@ describe('ProfilePage', () => {
 
       renderWithProviders();
 
-      await waitFor(() => {
+      await waitFor(async () => {
         const editButton = screen.getByText('Редактировать');
         await user.click(editButton);
       });
@@ -590,7 +590,7 @@ describe('ProfilePage', () => {
 
       renderWithProviders();
 
-      await waitFor(() => {
+      await waitFor(async () => {
         const editButton = screen.getByText('Редактировать');
         await user.click(editButton);
       });
@@ -626,7 +626,7 @@ describe('ProfilePage', () => {
     test('has proper form labels', async () => {
       renderWithProviders();
 
-      await waitFor(() => {
+      await waitFor(async () => {
         const editButton = screen.getByText('Редактировать');
         await user.click(editButton);
       });

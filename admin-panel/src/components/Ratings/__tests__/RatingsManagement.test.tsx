@@ -139,37 +139,23 @@ describe('RatingsManagement', () => {
       _id: 'rating-1',
       rating: 5,
       comment: 'Excellent service',
-      userId: 'user-1',
+      visitorId: 'visitor-1',
       operatorId: 'operator-1',
       isVisible: true,
-      isHidden: false,
+      isAnonymous: false,
       createdAt: new Date('2024-01-01T00:00:00.000Z'),
-      user: {
-        _id: 'user-1',
-        profile: { fullName: 'John Doe', username: 'johndoe' }
-      },
-      operator: {
-        _id: 'operator-1',
-        profile: { fullName: 'Jane Operator', username: 'janeop' }
-      }
+      updatedAt: new Date('2024-01-01T00:00:00.000Z'),
     },
     {
       _id: 'rating-2',
       rating: 3,
       comment: 'Average service',
-      userId: 'user-2',
+      visitorId: 'visitor-2',
       operatorId: 'operator-1',
       isVisible: true,
-      isHidden: false,
+      isAnonymous: false,
       createdAt: new Date('2024-01-02T00:00:00.000Z'),
-      user: {
-        _id: 'user-2',
-        profile: { fullName: 'Bob User', username: 'bobuser' }
-      },
-      operator: {
-        _id: 'operator-1',
-        profile: { fullName: 'Jane Operator', username: 'janeop' }
-      }
+      updatedAt: new Date('2024-01-02T00:00:00.000Z'),
     }
   ];
 
@@ -209,9 +195,9 @@ describe('RatingsManagement', () => {
       setError: jest.fn(),
       createRating: jest.fn(),
       hideRating: jest.fn()
-    };
+    } as any;
 
-    mockUseRatingsManagement.mockReturnValue(mockHook);
+    mockUseRatingsManagement.mockReturnValue(mockHook as any);
     
     jest.clearAllMocks();
   });
@@ -424,7 +410,7 @@ describe('RatingsManagement', () => {
 
     test('hides pagination when only one page', () => {
       mockHook.totalPages = 1;
-      mockUseRatingsManagement.mockReturnValue(mockHook);
+      mockUseRatingsManagement.mockReturnValue(mockHook as any);
 
       render(<RatingsManagement />);
 
@@ -437,7 +423,7 @@ describe('RatingsManagement', () => {
     test('shows loading state when data is loading', () => {
       mockHook.loading = true;
       mockHook.ratings = [];
-      mockUseRatingsManagement.mockReturnValue(mockHook);
+      mockUseRatingsManagement.mockReturnValue(mockHook as any);
 
       render(<RatingsManagement />);
 
@@ -446,7 +432,7 @@ describe('RatingsManagement', () => {
 
     test('shows error message when error exists', () => {
       mockHook.error = 'Failed to load ratings';
-      mockUseRatingsManagement.mockReturnValue(mockHook);
+      mockUseRatingsManagement.mockReturnValue(mockHook as any);
 
       render(<RatingsManagement />);
 
@@ -457,7 +443,7 @@ describe('RatingsManagement', () => {
 
     test('does not show loading when ratings exist', () => {
       mockHook.loading = true;
-      mockUseRatingsManagement.mockReturnValue(mockHook);
+      mockUseRatingsManagement.mockReturnValue(mockHook as any);
 
       render(<RatingsManagement />);
 
@@ -648,7 +634,7 @@ describe('RatingsManagement', () => {
   describe('Error Handling', () => {
     test('handles create rating errors gracefully', async () => {
       mockHook.createRating.mockRejectedValue(new Error('Create failed'));
-      mockUseRatingsManagement.mockReturnValue(mockHook);
+      mockUseRatingsManagement.mockReturnValue(mockHook as any);
 
       mockUseAuthStore.mockReturnValue({
         user: {
@@ -673,7 +659,7 @@ describe('RatingsManagement', () => {
 
     test('handles hide rating errors gracefully', async () => {
       mockHook.hideRating.mockRejectedValue(new Error('Hide failed'));
-      mockUseRatingsManagement.mockReturnValue(mockHook);
+      mockUseRatingsManagement.mockReturnValue(mockHook as any);
 
       mockUseAuthStore.mockReturnValue({
         user: {

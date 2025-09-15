@@ -55,7 +55,10 @@ describe('SettingsPage', () => {
       user: mockUser
     });
     
-    (authAPI.changePassword as jest.Mock) = jest.fn().mockResolvedValue({ success: true });
+    // Mock change password method if it exists
+    if ('changePassword' in authAPI) {
+      (authAPI.changePassword as jest.Mock) = jest.fn().mockResolvedValue({ success: true });
+    }
     
     jest.clearAllMocks();
   });
